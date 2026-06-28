@@ -12,6 +12,7 @@ async function main() {
     prisma.interviewPlan.deleteMany(),
     prisma.candidate.deleteMany(),
     prisma.vendorRequirement.deleteMany(),
+    prisma.loginHistory.deleteMany(),
     prisma.vendor.deleteMany(),
     prisma.skillCatalog.deleteMany(),
     prisma.departmentCatalog.deleteMany(),

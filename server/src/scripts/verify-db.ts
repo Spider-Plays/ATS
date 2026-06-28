@@ -10,6 +10,12 @@ if (!url.startsWith('postgresql://')) {
   process.exit(1)
 }
 
+if (url.includes('insforge.app')) {
+  console.warn(
+    'Warning: DATABASE_URL points at InsForge Postgres. Run db:migrate-to-neon or set Neon URL from Render dashboard.'
+  )
+}
+
 const { prisma } = await import('../lib/prisma.js')
 
 try {

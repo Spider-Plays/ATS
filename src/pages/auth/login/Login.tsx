@@ -53,8 +53,10 @@ const Login = () => {
             const code = err instanceof Error ? err.message : ''
             if (code === 'ACCOUNT_DISABLED') {
                 setAuthError('This account has been disabled.')
-            } else if (code === 'SERVER_UNAVAILABLE' || code.includes('Cannot reach API')) {
-                setAuthError('Cannot reach the API server. Check that VITE_API_BASE_URL is set and the API allows this site origin.')
+            } else if (code === 'SERVER_UNAVAILABLE' || code === 'Cannot reach API' || code.includes('Cannot reach API')) {
+                setAuthError('Cannot reach the API server. Check that the API is running and allows this site origin.')
+            } else if (code === 'INVALID_CREDENTIALS') {
+                setAuthError('Invalid email or password.')
             } else {
                 setAuthError('Invalid email or password.')
             }

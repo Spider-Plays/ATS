@@ -5,6 +5,7 @@ async function main() {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase()
   const password = process.env.ADMIN_PASSWORD
   const name = process.env.ADMIN_NAME?.trim() || 'Administrator'
+  const role = process.env.ADMIN_ROLE?.trim().toUpperCase() || 'ADMIN'
 
   if (!email || !password) {
     console.error('Set ADMIN_EMAIL and ADMIN_PASSWORD environment variables.')
@@ -14,12 +15,12 @@ async function main() {
   const passwordHash = await bcrypt.hash(password, 10)
   const user = await prisma.user.upsert({
     where: { email },
-    update: { name, passwordHash, role: 'ADMIN', status: 'ACTIVE', department: 'Operations' },
+    update: { name, passwordHash, role, status: 'ACTIVE', department: 'Operations' },
     create: {
       email,
       passwordHash,
       name,
-      role: 'ADMIN',
+      role,
       department: 'Operations',
       status: 'ACTIVE',
       permissions: '[]',
@@ -28,7 +29,7 @@ async function main() {
     },
   })
 
-  console.log(`Admin ready: ${user.email}`)
+  console.log(`${role} ready: ${user.email}`)
 }
 
 main()

@@ -129,47 +129,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
     const login = async (email: string, password: string) => {
-
         try {
-
             const session = await authApi.login(email, password)
-
             setUser(session.user)
-
             setAllowedPages(session.allowedPages)
-
             return session
-
         } catch (e) {
-
             if (e instanceof ApiError) {
-
                 if (e.status === 403) throw new Error('ACCOUNT_DISABLED')
-
-                if (e.status >= 500) {
-
-                    throw new Error(e.message || 'SERVER_UNAVAILABLE')
-
-                }
-
+                if (e.status === 401) throw new Error('INVALID_CREDENTIALS')
+                if (e.status >= 500) throw new Error('SERVER_UNAVAILABLE')
                 throw new Error(e.message || 'INVALID_CREDENTIALS')
-
             }
-
             if (e instanceof TypeError || (e instanceof Error && e.message === 'Failed to fetch')) {
-
-                throw new Error(
-
-                    'Cannot reach API. Run npm run dev from the project root (client + server on port 4000).'
-
-                )
-
+                throw new Error('Cannot reach API')
             }
-
             throw new Error('INVALID_CREDENTIALS')
-
         }
-
     }
 
 

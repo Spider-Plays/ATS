@@ -21,6 +21,7 @@
     "db:clear": "tsx src/scripts/clear-db.ts",
     "db:bootstrap": "tsx src/scripts/bootstrap-admin.ts",
     "db:verify": "tsx src/scripts/verify-db.ts",
+    "db:migrate-to-neon": "tsx src/scripts/migrate-to-neon.ts",
     "db:setup": "prisma db push && prisma generate"
   },
   "dependencies": {
