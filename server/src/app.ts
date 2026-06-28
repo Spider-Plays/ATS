@@ -45,7 +45,7 @@ function isAllowedOrigin(origin: string): boolean {
   if (!env.isProduction) return false
   return (
     /^https:\/\/(www\.)?stitch-ats\.in$/.test(normalized) ||
-    /^https:\/\/[\w-]+\.pages\.dev$/.test(normalized) ||
+    /^https:\/\/([\w-]+\.)*[\w-]+\.pages\.dev$/.test(normalized) ||
     /^https:\/\/ats\.[\w-]+\.workers\.dev$/.test(normalized)
   )
 }

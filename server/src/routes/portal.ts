@@ -704,7 +704,10 @@ async function assertPortalOfferAccess(
   userEmail: string,
   offerId: string
 ): Promise<
-  | { offer: Awaited<ReturnType<typeof prisma.offer.findUnique>> & object; candidate: { email: string } }
+  | {
+      offer: NonNullable<Awaited<ReturnType<typeof prisma.offer.findUnique>>>
+      candidate: NonNullable<Awaited<ReturnType<typeof prisma.candidate.findUnique>>>
+    }
   | { error: string; status: number }
 > {
   const offer = await prisma.offer.findUnique({ where: { id: offerId } })

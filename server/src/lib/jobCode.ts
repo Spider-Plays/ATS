@@ -13,7 +13,7 @@ export function formatJobCode(date: Date, sequence: number): string {
 }
 
 /** REQ + 11 digits (DDMMYYYY + ###). */
-export function isStandardJobCode(code: string | null | undefined): boolean {
+export function isStandardJobCode(code: string | null | undefined): code is string {
   return typeof code === 'string' && /^REQ\d{11}$/.test(code)
 }
 
