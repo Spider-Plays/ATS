@@ -16,6 +16,13 @@ const insforgeUrl = project.oss_host
 const apiKey = project.api_key
 const apiBaseUrl = 'https://stitch-ats-api-6dd11de4-0043-4523-80ec-1b8755a5d51c.fly.dev'
 const siteUrl = 'https://stitch-ats.insforge.site'
+const clientOrigins = [
+  'http://localhost:3000',
+  'https://stitch-ats.in',
+  'https://www.stitch-ats.in',
+  'https://stitch-ats.insforge.site',
+  'https://3ixy53ge.insforge.site',
+].join(',')
 
 function run(cmd) {
   return execSync(cmd, { cwd: root, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim()
@@ -56,7 +63,7 @@ const serverLines = [
   `INSFORGE_ANON_KEY="${anonKey}"`,
   'JWT_SECRET="dev-insforge-jwt-secret-change-in-production-32chars"',
   'PORT=4000',
-  'CLIENT_ORIGIN="http://localhost:3000"',
+  'CLIENT_ORIGIN="' + clientOrigins + '"',
   'APP_NAME="Stitch ATS"',
   '',
 ]

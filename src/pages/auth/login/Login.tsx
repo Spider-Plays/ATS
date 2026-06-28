@@ -53,8 +53,8 @@ const Login = () => {
             const code = err instanceof Error ? err.message : ''
             if (code === 'ACCOUNT_DISABLED') {
                 setAuthError('This account has been disabled.')
-            } else if (code === 'SERVER_UNAVAILABLE') {
-                setAuthError('Cannot reach the API server. Run npm run dev from the project root (starts client + server on port 4000).')
+            } else if (code === 'SERVER_UNAVAILABLE' || code.includes('Cannot reach API')) {
+                setAuthError('Cannot reach the API server. Check that VITE_API_BASE_URL is set and the API allows this site origin.')
             } else {
                 setAuthError('Invalid email or password.')
             }

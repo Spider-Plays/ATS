@@ -20,6 +20,10 @@ export const env = {
   port: Number(process.env.PORT) || 4000,
   jwtSecret: resolveJwtSecret(),
   clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
+  clientOrigins: (process.env.CLIENT_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map((value) => value.trim().replace(/\/$/, ''))
+    .filter(Boolean),
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'Stitch ATS <onboarding@resend.dev>',
   appName: process.env.APP_NAME || 'Stitch ATS',

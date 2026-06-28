@@ -42,12 +42,13 @@ app.use(
   cors({
     origin(origin, callback) {
       if (!origin) return callback(null, true)
+      const normalized = origin.replace(/\/$/, '')
       if (!env.isProduction) {
-        if (devOrigins.includes(origin) || origin === env.clientOrigin) {
+        if (devOrigins.includes(normalized) || env.clientOrigins.includes(normalized)) {
           return callback(null, true)
         }
       }
-      if (origin === env.clientOrigin) return callback(null, true)
+      if (env.clientOrigins.includes(normalized)) return callback(null, true)
       callback(null, false)
     },
     credentials: true,
