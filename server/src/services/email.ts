@@ -77,7 +77,7 @@ function emailButton(href: string, label: string): string {
   </table>`
 }
 
-function credentialsBox(fields: Array<{ label: string; value: string; mono?: boolean }>): string {
+function detailBox(fields: Array<{ label: string; value: string; mono?: boolean }>): string {
   const rows = fields
     .map((field, index) => {
       const valueHtml = field.mono
@@ -96,6 +96,36 @@ function credentialsBox(fields: Array<{ label: string; value: string; mono?: boo
   return `<table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" bgcolor="${EMAIL_BRAND.bg}" style="background-color:${EMAIL_BRAND.bg};border:1px solid ${EMAIL_BRAND.border};">
     <tr><td style="padding:20px 24px;">${rows}</td></tr>
   </table>`
+}
+
+function emailGreeting(name: string): string {
+  return `<p style="margin:0 0 8px;font-size:16px;color:${EMAIL_BRAND.text};line-height:1.6;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">Hi <strong>${escapeHtml(name)}</strong>,</p>`
+}
+
+function emailLead(html: string): string {
+  return `<p style="margin:0 0 24px;font-size:15px;color:${EMAIL_BRAND.textMuted};line-height:1.6;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${html}</p>`
+}
+
+function emailParagraph(html: string): string {
+  return `<p style="margin:0 0 16px;font-size:15px;color:${EMAIL_BRAND.textMuted};line-height:1.6;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${html}</p>`
+}
+
+function emailNote(html: string): string {
+  return `<p style="margin:16px 0 0;font-size:13px;color:${EMAIL_BRAND.textMuted};line-height:1.5;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${html}</p>`
+}
+
+function emailBadge(label: string): string {
+  return `<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:24px;">
+    <tr>
+      <td bgcolor="${EMAIL_BRAND.primaryLight}" style="background-color:${EMAIL_BRAND.primaryLight};padding:6px 14px;">
+        <span style="font-size:12px;font-weight:700;color:${EMAIL_BRAND.primary};text-transform:uppercase;letter-spacing:0.06em;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${escapeHtml(label)}</span>
+      </td>
+    </tr>
+  </table>`
+}
+
+function emailLink(href: string, label: string): string {
+  return `<a href="${escapeHtml(href)}" target="_blank" style="color:${EMAIL_BRAND.primary};font-weight:600;text-decoration:none;">${escapeHtml(label)}</a>`
 }
 
 function emailShell(params: { preheader?: string; headerTitle: string; content: string }): string {
@@ -152,18 +182,6 @@ function emailShell(params: { preheader?: string; headerTitle: string; content: 
   </table>
 </body>
 </html>`
-}
-
-function emailLayout(content: string, options?: { headerTitle?: string; preheader?: string }): string {
-  return emailShell({
-    headerTitle: options?.headerTitle ?? env.appName,
-    preheader: options?.preheader,
-    content: `
-      <div style="color:${EMAIL_BRAND.text};font-size:15px;line-height:1.6;">
-        ${content}
-      </div>
-    `,
-  })
 }
 
 const CANDIDATE_STATUS_MESSAGES: Record<string, string> = {
@@ -239,25 +257,14 @@ export async function sendInviteEmail(params: {
       preheader: `Your ${env.appName} account is ready — sign in with the credentials below.`,
       headerTitle: "You're invited!",
       content: `
-        <p style="margin:0 0 8px;font-size:16px;color:${EMAIL_BRAND.text};line-height:1.6;">Hi <strong>${escapeHtml(params.name)}</strong>,</p>
-        <p style="margin:0 0 24px;font-size:15px;color:${EMAIL_BRAND.textMuted};line-height:1.6;">
-          You've been invited to join <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(env.appName)}</strong>.
-          Use the credentials below to sign in and start collaborating with your team.
-        </p>
-        <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin-bottom:24px;">
-          <tr>
-            <td bgcolor="${EMAIL_BRAND.primaryLight}" style="background-color:${EMAIL_BRAND.primaryLight};padding:6px 14px;">
-              <span style="font-size:12px;font-weight:700;color:${EMAIL_BRAND.primary};text-transform:uppercase;letter-spacing:0.06em;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${escapeHtml(params.role)}</span>
-            </td>
-          </tr>
-        </table>
-        ${credentialsBox([
+        ${emailGreeting(params.name)}
+        ${emailLead(`You've been invited to join <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(env.appName)}</strong>. Use the credentials below to sign in and start collaborating with your team.`)}
+        ${emailBadge(params.role)}
+        ${detailBox([
           { label: 'Email address', value: params.to },
           { label: 'Temporary password', value: params.tempPassword, mono: true },
         ])}
-        <p style="margin:16px 0 0;font-size:13px;color:${EMAIL_BRAND.textMuted};line-height:1.5;">
-          For your security, change this password after your first login under <strong>Settings → Security</strong>.
-        </p>
+        ${emailNote('For your security, change this password after your first login under <strong>Settings → Security</strong>.')}
         ${emailButton(loginUrl, `Sign in to ${env.appName}`)}
       `,
     }),
@@ -279,17 +286,13 @@ export async function sendAdminPasswordEmail(params: {
       preheader: `An administrator ${action} your ${env.appName} password.`,
       headerTitle: 'Password updated',
       content: `
-        <p style="margin:0 0 8px;font-size:16px;color:${EMAIL_BRAND.text};line-height:1.6;">Hi <strong>${escapeHtml(params.name)}</strong>,</p>
-        <p style="margin:0 0 24px;font-size:15px;color:${EMAIL_BRAND.textMuted};line-height:1.6;">
-          An administrator ${action} your account password. Use the new credentials below to sign in.
-        </p>
-        ${credentialsBox([
+        ${emailGreeting(params.name)}
+        ${emailLead(`An administrator ${action} your account password. Use the new credentials below to sign in.`)}
+        ${detailBox([
           { label: 'Email address', value: params.to },
           { label: 'New password', value: params.password, mono: true },
         ])}
-        <p style="margin:16px 0 0;font-size:13px;color:${EMAIL_BRAND.textMuted};line-height:1.5;">
-          Change your password after signing in under <strong>Settings → Security</strong>.
-        </p>
+        ${emailNote('Change your password after signing in under <strong>Settings → Security</strong>.')}
         ${emailButton(loginUrl, `Sign in to ${env.appName}`)}
       `,
     }),
@@ -308,15 +311,10 @@ export async function sendPasswordResetEmail(params: {
       preheader: `Reset your ${env.appName} password — link expires in 1 hour.`,
       headerTitle: 'Reset your password',
       content: `
-        <p style="margin:0 0 8px;font-size:16px;color:${EMAIL_BRAND.text};line-height:1.6;">Hi <strong>${escapeHtml(params.name)}</strong>,</p>
-        <p style="margin:0 0 24px;font-size:15px;color:${EMAIL_BRAND.textMuted};line-height:1.6;">
-          We received a request to reset your password. Click the button below to choose a new one.
-          This link expires in <strong>1 hour</strong>.
-        </p>
+        ${emailGreeting(params.name)}
+        ${emailLead('We received a request to reset your password. Click the button below to choose a new one. This link expires in <strong>1 hour</strong>.')}
         ${emailButton(params.resetUrl, 'Reset password')}
-        <p style="margin:24px 0 0;font-size:13px;color:${EMAIL_BRAND.textMuted};line-height:1.5;">
-          If you did not request this, you can safely ignore this email.
-        </p>
+        ${emailNote('If you did not request this, you can safely ignore this email.')}
       `,
     }),
   })
@@ -378,18 +376,24 @@ function interviewEmailBody(params: {
   location?: string
   headline: string
 }): string {
-  return emailLayout(
-    `
-        <p>Hi ${escapeHtml(params.candidateName)},</p>
-        <p><strong>${escapeHtml(params.headline)}</strong></p>
-        <p>Your <strong>${escapeHtml(params.type)}</strong> interview is on <strong>${escapeHtml(params.scheduledAt)}</strong>.</p>
-        ${params.location ? `<p><strong>Location:</strong> ${escapeHtml(params.location)}</p>` : ''}
-        ${params.meetingLink ? `<p><a href="${escapeHtml(params.meetingLink)}" style="color:${EMAIL_BRAND.primary};font-weight:600;">Join meeting</a></p>` : ''}
-        <p>A calendar invite is attached — accept it to block this time on your Google or Microsoft calendar.</p>
-        <p>Sign in to your candidate portal for updates.</p>
+  const details: Array<{ label: string; value: string }> = [
+    { label: 'Interview type', value: params.type },
+    { label: 'Date & time', value: params.scheduledAt },
+  ]
+  if (params.location) details.push({ label: 'Location', value: params.location })
+
+  return emailShell({
+    preheader: `Your ${params.type} interview is scheduled for ${params.scheduledAt}.`,
+    headerTitle: params.headline,
+    content: `
+      ${emailGreeting(params.candidateName)}
+      ${emailLead(`Your <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.type)}</strong> interview has been scheduled.`)}
+      ${detailBox(details)}
+      ${params.meetingLink ? emailParagraph(`${emailLink(params.meetingLink, 'Join meeting')}`) : ''}
+      ${emailNote('A calendar invite is attached — accept it to block this time on your Google or Microsoft calendar.')}
+      ${emailParagraph(`Sign in to your candidate portal for updates.`)}
     `,
-    { headerTitle: params.headline }
-  )
+  })
 }
 
 export async function sendOfferSentEmail(params: {
@@ -400,21 +404,19 @@ export async function sendOfferSentEmail(params: {
   validUntil?: string
 }): Promise<SendEmailResult> {
   const ctc = params.annualCtc.toLocaleString('en-IN')
-  const expiry = params.validUntil
-    ? `<p>Please respond by <strong>${escapeHtml(new Date(params.validUntil).toLocaleDateString('en-IN'))}</strong>.</p>`
-    : ''
   return sendHtmlEmail({
     to: params.to,
     subject: `Offer from ${env.appName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.candidateName)},</p>
-        <p>We're pleased to extend an offer with an annual CTC of <strong>Rs. ${ctc}/-</strong>.</p>
-        ${expiry}
+    html: emailShell({
+      preheader: 'Your offer letter is ready',
+      headerTitle: 'Offer extended',
+      content: `
+        ${emailGreeting(params.candidateName)}
+        ${emailLead(`We're pleased to extend an offer with an annual CTC of <strong style="color:${EMAIL_BRAND.text};">Rs. ${ctc}/-</strong>.`)}
+        ${params.validUntil ? emailParagraph(`Please respond by <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(new Date(params.validUntil).toLocaleDateString('en-IN'))}</strong>.`) : ''}
         ${emailButton(params.portalOfferUrl, 'View & respond to offer')}
-    `,
-      { headerTitle: 'Offer extended', preheader: 'Your offer letter is ready' }
-    ),
+      `,
+    }),
   })
 }
 
@@ -428,14 +430,14 @@ export async function sendOfferAcceptedEmail(params: {
   return sendHtmlEmail({
     to: params.to,
     subject: `Offer accepted — ${params.candidateName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.recipientName)},</p>
-        <p><strong>${escapeHtml(params.candidateName)}</strong> has accepted the offer for <strong>${escapeHtml(params.jobTitle)}</strong>.</p>
-        <p>Base salary: <strong>${params.baseSalary.toLocaleString()}</strong></p>
-    `,
-      { headerTitle: 'Offer accepted' }
-    ),
+    html: emailShell({
+      headerTitle: 'Offer accepted',
+      content: `
+        ${emailGreeting(params.recipientName)}
+        ${emailLead(`<strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.candidateName)}</strong> has accepted the offer for <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.jobTitle)}</strong>.`)}
+        ${detailBox([{ label: 'Base salary', value: params.baseSalary.toLocaleString() }])}
+      `,
+    }),
   })
 }
 
@@ -449,14 +451,14 @@ export async function sendOfferDeclinedEmail(params: {
   return sendHtmlEmail({
     to: params.to,
     subject: `Offer declined — ${params.candidateName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.recipientName)},</p>
-        <p><strong>${escapeHtml(params.candidateName)}</strong> has declined the offer for <strong>${escapeHtml(params.jobTitle)}</strong>.</p>
-        <p>Base salary offered: <strong>${params.baseSalary.toLocaleString()}</strong></p>
-    `,
-      { headerTitle: 'Offer declined' }
-    ),
+    html: emailShell({
+      headerTitle: 'Offer declined',
+      content: `
+        ${emailGreeting(params.recipientName)}
+        ${emailLead(`<strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.candidateName)}</strong> has declined the offer for <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.jobTitle)}</strong>.`)}
+        ${detailBox([{ label: 'Base salary offered', value: params.baseSalary.toLocaleString() }])}
+      `,
+    }),
   })
 }
 
@@ -471,22 +473,27 @@ export async function sendInterviewerAssignedEmail(params: {
   headline: string
   calendarInvite?: Buffer
 }): Promise<SendEmailResult> {
+  const details: Array<{ label: string; value: string }> = [
+    { label: 'Candidate', value: params.candidateName },
+    { label: 'Interview type', value: params.type },
+    { label: 'Date & time', value: params.scheduledAt },
+  ]
+  if (params.location) details.push({ label: 'Location', value: params.location })
+
   return sendHtmlEmail({
     to: params.to,
     subject: `${params.headline} — ${env.appName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.recipientName)},</p>
-        <p>You are assigned to interview <strong>${escapeHtml(params.candidateName)}</strong>.</p>
-        <p><strong>Type:</strong> ${escapeHtml(params.type)}<br/>
-        <strong>When:</strong> ${escapeHtml(params.scheduledAt)}</p>
-        ${params.location ? `<p><strong>Location:</strong> ${escapeHtml(params.location)}</p>` : ''}
-        ${params.meetingLink ? `<p><a href="${escapeHtml(params.meetingLink)}" style="color:${EMAIL_BRAND.primary};font-weight:600;">Join meeting</a></p>` : ''}
-        <p>A calendar invite is attached — accept it to block this time on your Google or Microsoft calendar.</p>
-        <p>Sign in to ${escapeHtml(env.appName)} for full details.</p>
-    `,
-      { headerTitle: params.headline }
-    ),
+    html: emailShell({
+      headerTitle: params.headline,
+      content: `
+        ${emailGreeting(params.recipientName)}
+        ${emailLead(`You are assigned to interview <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.candidateName)}</strong>.`)}
+        ${detailBox(details)}
+        ${params.meetingLink ? emailParagraph(`${emailLink(params.meetingLink, 'Join meeting')}`) : ''}
+        ${emailNote('A calendar invite is attached — accept it to block this time on your Google or Microsoft calendar.')}
+        ${emailParagraph(`Sign in to ${escapeHtml(env.appName)} for full details.`)}
+      `,
+    }),
     attachments: params.calendarInvite
       ? [{ filename: 'interview.ics', contentType: 'text/calendar; method=REQUEST', content: params.calendarInvite }]
       : undefined,
@@ -504,15 +511,15 @@ export async function sendInterviewCancelledEmail(params: {
   return sendHtmlEmail({
     to: params.to,
     subject: `Interview cancelled — ${env.appName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.recipientName)},</p>
-        <p>The <strong>${escapeHtml(params.type)}</strong> interview scheduled for <strong>${escapeHtml(params.scheduledAt)}</strong> has been cancelled.</p>
-        ${params.candidateName ? `<p>Candidate: <strong>${escapeHtml(params.candidateName)}</strong></p>` : ''}
-        <p>The attached calendar update will remove the event from your calendar.</p>
-    `,
-      { headerTitle: 'Interview cancelled' }
-    ),
+    html: emailShell({
+      headerTitle: 'Interview cancelled',
+      content: `
+        ${emailGreeting(params.recipientName)}
+        ${emailLead(`The <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.type)}</strong> interview scheduled for <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.scheduledAt)}</strong> has been cancelled.`)}
+        ${params.candidateName ? detailBox([{ label: 'Candidate', value: params.candidateName }]) : ''}
+        ${emailNote('The attached calendar update will remove the event from your calendar.')}
+      `,
+    }),
     attachments: params.calendarInvite
       ? [{ filename: 'interview-cancel.ics', contentType: 'text/calendar; method=CANCEL', content: params.calendarInvite }]
       : undefined,
@@ -531,20 +538,26 @@ export async function sendInterviewReminderEmail(params: {
   calendarInvite?: Buffer
 }): Promise<SendEmailResult> {
   const label = params.hoursUntil >= 2 ? `${params.hoursUntil} hours` : '1 hour'
+  const details: Array<{ label: string; value: string }> = [
+    { label: 'Interview type', value: params.type },
+    { label: 'Starts in', value: label },
+    { label: 'Date & time', value: params.scheduledAt },
+  ]
+  if (params.candidateName) details.push({ label: 'Candidate', value: params.candidateName })
+  if (params.location) details.push({ label: 'Location', value: params.location })
+
   return sendHtmlEmail({
     to: params.to,
     subject: `Interview reminder (${label}) — ${env.appName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.recipientName)},</p>
-        <p>Reminder: a <strong>${escapeHtml(params.type)}</strong> interview is in about <strong>${label}</strong>.</p>
-        <p><strong>When:</strong> ${escapeHtml(params.scheduledAt)}</p>
-        ${params.candidateName ? `<p><strong>Candidate:</strong> ${escapeHtml(params.candidateName)}</p>` : ''}
-        ${params.location ? `<p><strong>Location:</strong> ${escapeHtml(params.location)}</p>` : ''}
-        ${params.meetingLink ? `<p><a href="${escapeHtml(params.meetingLink)}" style="color:${EMAIL_BRAND.primary};font-weight:600;">Join meeting</a></p>` : ''}
-    `,
-      { headerTitle: 'Interview reminder' }
-    ),
+    html: emailShell({
+      headerTitle: 'Interview reminder',
+      content: `
+        ${emailGreeting(params.recipientName)}
+        ${emailLead(`Reminder: a <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.type)}</strong> interview is coming up in about <strong style="color:${EMAIL_BRAND.text};">${label}</strong>.`)}
+        ${detailBox(details)}
+        ${params.meetingLink ? emailParagraph(`${emailLink(params.meetingLink, 'Join meeting')}`) : ''}
+      `,
+    }),
     attachments: params.calendarInvite
       ? [{ filename: 'interview.ics', contentType: 'text/calendar; method=REQUEST', content: params.calendarInvite }]
       : undefined,
@@ -562,16 +575,18 @@ export async function sendCandidateStatusEmail(params: {
   return sendHtmlEmail({
     to: params.to,
     subject: `Application update — ${env.appName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.candidateName)},</p>
-        <p>${message}</p>
-        <p><strong>Role:</strong> ${escapeHtml(params.jobTitle)}<br/>
-        <strong>Status:</strong> ${escapeHtml(params.status.replace(/_/g, ' '))}</p>
+    html: emailShell({
+      headerTitle: 'Application update',
+      content: `
+        ${emailGreeting(params.candidateName)}
+        ${emailLead(message)}
+        ${detailBox([
+          { label: 'Role', value: params.jobTitle },
+          { label: 'Status', value: params.status.replace(/_/g, ' ') },
+        ])}
         ${emailButton(portalUrl, 'View candidate portal')}
-    `,
-      { headerTitle: 'Application update' }
-    ),
+      `,
+    }),
   })
 }
 
@@ -586,15 +601,15 @@ export async function sendReferralSubmittedEmail(params: {
   return sendHtmlEmail({
     to: params.to,
     subject: `Referral submitted — ${env.appName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.referrerName)},</p>
-        <p>Your referral for <strong>${escapeHtml(params.candidateName)}</strong> has been submitted for <strong>${escapeHtml(params.jobTitle)}</strong>${params.jobCode ? ` (${escapeHtml(params.jobCode)})` : ''}.</p>
-        <p>We'll notify you when their status changes.</p>
+    html: emailShell({
+      headerTitle: 'Referral submitted',
+      content: `
+        ${emailGreeting(params.referrerName)}
+        ${emailLead(`Your referral for <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.candidateName)}</strong> has been submitted for <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.jobTitle)}</strong>${params.jobCode ? ` (${escapeHtml(params.jobCode)})` : ''}.`)}
+        ${emailParagraph("We'll notify you when their status changes.")}
         ${emailButton(portalUrl, 'View referral portal')}
-    `,
-      { headerTitle: 'Referral submitted' }
-    ),
+      `,
+    }),
   })
 }
 
@@ -608,18 +623,18 @@ export async function sendReferralStatusEmail(params: {
   const hired = params.status === 'HIRED' || params.status === 'JOINED'
   const headline = hired ? 'Referral hired' : 'Referral update'
   const message = hired
-    ? `Great news — ${params.candidateName} has been hired for ${params.jobTitle}.`
-    : `${params.candidateName}'s application for ${params.jobTitle} was not selected.`
+    ? `Great news — ${escapeHtml(params.candidateName)} has been hired for ${escapeHtml(params.jobTitle)}.`
+    : `${escapeHtml(params.candidateName)}&apos;s application for ${escapeHtml(params.jobTitle)} was not selected.`
   return sendHtmlEmail({
     to: params.to,
     subject: `${headline} — ${env.appName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.referrerName)},</p>
-        <p>${escapeHtml(message)}</p>
-    `,
-      { headerTitle: headline }
-    ),
+    html: emailShell({
+      headerTitle: headline,
+      content: `
+        ${emailGreeting(params.referrerName)}
+        ${emailLead(message)}
+      `,
+    }),
   })
 }
 
@@ -636,18 +651,25 @@ export async function sendNewCandidateNotificationEmail(params: {
   referrerName?: string
 }): Promise<SendEmailResult> {
   const origin = params.submittedBy ?? params.vendorName ?? params.referrerName
+  const details: Array<{ label: string; value: string }> = [
+    { label: 'Candidate', value: `${params.candidateName} (${params.candidateEmail})` },
+    { label: 'Role', value: `${params.jobTitle}${params.jobCode ? ` · ${params.jobCode}` : ''}` },
+    { label: 'Source', value: params.source },
+  ]
+  if (origin) details.push({ label: 'Submitted by', value: origin })
+
   return sendHtmlEmail({
     to: params.to,
     subject: `New candidate — ${params.candidateName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.recipientName)},</p>
-        <p><strong>${escapeHtml(params.candidateName)}</strong> (${escapeHtml(params.candidateEmail)}) was added for <strong>${escapeHtml(params.jobTitle)}</strong>${params.jobCode ? ` · ${escapeHtml(params.jobCode)}` : ''}.</p>
-        <p><strong>Source:</strong> ${escapeHtml(params.source)}${origin ? `<br/><strong>Submitted by:</strong> ${escapeHtml(origin)}` : ''}</p>
-        <p>Sign in to ${escapeHtml(env.appName)} to review the profile.</p>
-    `,
-      { headerTitle: 'New candidate submitted' }
-    ),
+    html: emailShell({
+      headerTitle: 'New candidate submitted',
+      content: `
+        ${emailGreeting(params.recipientName)}
+        ${emailLead(`A new candidate profile is ready for review.`)}
+        ${detailBox(details)}
+        ${emailParagraph(`Sign in to ${escapeHtml(env.appName)} to review the profile.`)}
+      `,
+    }),
   })
 }
 
@@ -659,20 +681,23 @@ export async function sendVendorAssignmentEmail(params: {
 }): Promise<SendEmailResult> {
   const portalUrl = `${env.clientOrigin.replace(/\/$/, '')}/login`
   const list = params.requirements
-    .map((r) => `<li>${escapeHtml(r.title)}${r.jobCode ? ` (${escapeHtml(r.jobCode)})` : ''}</li>`)
+    .map(
+      (r) =>
+        `<li style="margin-bottom:8px;font-size:15px;color:${EMAIL_BRAND.text};font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${escapeHtml(r.title)}${r.jobCode ? ` (${escapeHtml(r.jobCode)})` : ''}</li>`
+    )
     .join('')
   return sendHtmlEmail({
     to: params.to,
     subject: `New job assignments — ${env.appName}`,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.recipientName)},</p>
-        <p><strong>${escapeHtml(params.vendorName)}</strong> has been assigned to the following open roles:</p>
-        <ul>${list}</ul>
+    html: emailShell({
+      headerTitle: 'New assignments',
+      content: `
+        ${emailGreeting(params.recipientName)}
+        ${emailLead(`<strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.vendorName)}</strong> has been assigned to the following open roles:`)}
+        <ul style="margin:0 0 24px;padding-left:20px;color:${EMAIL_BRAND.textMuted};line-height:1.6;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${list}</ul>
         ${emailButton(portalUrl, 'Open vendor portal')}
-    `,
-      { headerTitle: 'New assignments' }
-    ),
+      `,
+    }),
   })
 }
 
@@ -686,12 +711,12 @@ export async function sendStaffNotificationEmail(params: {
   return sendHtmlEmail({
     to: params.to,
     subject: params.subject,
-    html: emailLayout(
-      `
-        <p>Hi ${escapeHtml(params.recipientName)},</p>
-        <p>${params.body}</p>
-    `,
-      { headerTitle: params.headline }
-    ),
+    html: emailShell({
+      headerTitle: params.headline,
+      content: `
+        ${emailGreeting(params.recipientName)}
+        ${emailLead(escapeHtml(params.body))}
+      `,
+    }),
   })
 }
