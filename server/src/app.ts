@@ -38,17 +38,22 @@ const devOrigins = [
   'http://127.0.0.1:5173',
 ]
 
+function isAllowedOrigin(origin: string): boolean {
+  const normalized = origin.replace(/\/$/, '')
+  if (devOrigins.includes(normalized) || env.clientOrigins.includes(normalized)) return true
+  if (!env.isProduction) return false
+  return (
+    /^https:\/\/(www\.)?stitch-ats\.in$/.test(normalized) ||
+    /^https:\/\/ats\.[\w-]+\.workers\.dev$/.test(normalized) ||
+    /^https:\/\/[\w-]+\.insforge\.site$/.test(normalized)
+  )
+}
+
 app.use(
   cors({
     origin(origin, callback) {
       if (!origin) return callback(null, true)
-      const normalized = origin.replace(/\/$/, '')
-      if (!env.isProduction) {
-        if (devOrigins.includes(normalized) || env.clientOrigins.includes(normalized)) {
-          return callback(null, true)
-        }
-      }
-      if (env.clientOrigins.includes(normalized)) return callback(null, true)
+      if (isAllowedOrigin(origin)) return callback(null, true)
       callback(null, false)
     },
     credentials: true,

@@ -62,13 +62,17 @@ function portalOriginPath(path: string): string {
 export const authApi = {
   login: async (email: string, password: string): Promise<AuthSession> => {
     if (insforgeConfigured && insforge) {
-      const { data, error } = await insforge.auth.signInWithPassword({ email, password })
-      if (!error && data?.accessToken) {
-        try {
-          return await exchangeInsforgeSession(data.accessToken)
-        } catch {
-          // ATS profile missing — fall through to legacy login
+      try {
+        const { data, error } = await insforge.auth.signInWithPassword({ email, password })
+        if (!error && data?.accessToken) {
+          try {
+            return await exchangeInsforgeSession(data.accessToken)
+          } catch {
+            // ATS profile missing — fall through to legacy login
+          }
         }
+      } catch {
+        // InsForge unreachable — fall through to legacy login
       }
     }
 
