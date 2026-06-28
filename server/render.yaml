@@ -16,4 +16,4 @@ services:
       - key: JWT_SECRET
         sync: false
       - key: CLIENT_ORIGIN
-        sync: false
+        value: "http://localhost:3000,https://stitch-ats.in,https://www.stitch-ats.in"
