@@ -304,13 +304,21 @@ export async function sendPasswordResetEmail(params: {
   return sendHtmlEmail({
     to: params.to,
     subject: `Reset your ${env.appName} password`,
-    html: `
-      <div style="font-family: Inter, system-ui, sans-serif; max-width: 520px; margin: 0 auto;">
-        <p>Hi ${escapeHtml(params.name)},</p>
-        <p>Click below to reset your password (link expires in 1 hour):</p>
-        <p><a href="${params.resetUrl}" style="display:inline-block;background:#1a2b3c;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;">Reset password</a></p>
-      </div>
-    `,
+    html: emailShell({
+      preheader: `Reset your ${env.appName} password — link expires in 1 hour.`,
+      headerTitle: 'Reset your password',
+      content: `
+        <p style="margin:0 0 8px;font-size:16px;color:${EMAIL_BRAND.text};line-height:1.6;">Hi <strong>${escapeHtml(params.name)}</strong>,</p>
+        <p style="margin:0 0 24px;font-size:15px;color:${EMAIL_BRAND.textMuted};line-height:1.6;">
+          We received a request to reset your password. Click the button below to choose a new one.
+          This link expires in <strong>1 hour</strong>.
+        </p>
+        ${emailButton(params.resetUrl, 'Reset password')}
+        <p style="margin:24px 0 0;font-size:13px;color:${EMAIL_BRAND.textMuted};line-height:1.5;">
+          If you did not request this, you can safely ignore this email.
+        </p>
+      `,
+    }),
   })
 }
 

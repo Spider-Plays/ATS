@@ -3,6 +3,7 @@ dist
 site
 .env
 .env.local
+.env.development
 *.log
 
 server/node_modules
@@ -24,6 +25,7 @@ firebase.json
 firestore.rules
 
 # AI agent skills (local tooling)
+.insforge/
 .agent
 .agents
 .augment

@@ -23,6 +23,8 @@ function parseClientOrigins(raw: string): string[] {
     .filter(Boolean)
 }
 
+const DEFAULT_PRODUCTION_APP_URL = 'https://stitch-ats.in'
+
 /** Single app URL for email links — not the full comma-separated CORS list. */
 function resolvePrimaryClientOrigin(origins: string[]): string {
   if (origins.length === 0) return 'http://localhost:3000'
@@ -47,14 +49,32 @@ function resolvePrimaryClientOrigin(origins: string[]): string {
   return local ?? origins[0]
 }
 
+function isUsablePublicAppUrl(url: string): boolean {
+  return (
+    url.startsWith('https://') &&
+    !/^https:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(url) &&
+    !url.includes(',')
+  )
+}
+
+function resolveClientOrigin(origins: string[]): string {
+  const explicit = process.env.APP_URL?.trim().replace(/\/$/, '')
+  if (explicit) return explicit
+
+  const resolved = resolvePrimaryClientOrigin(origins)
+  if (isProduction && !isUsablePublicAppUrl(resolved)) {
+    return DEFAULT_PRODUCTION_APP_URL
+  }
+  return resolved
+}
+
 const clientOrigins = parseClientOrigins(process.env.CLIENT_ORIGIN || 'http://localhost:3000')
-const appUrl = process.env.APP_URL?.trim().replace(/\/$/, '')
 
 export const env = {
   isProduction,
   port: Number(process.env.PORT) || 4000,
   jwtSecret: resolveJwtSecret(),
-  clientOrigin: appUrl || resolvePrimaryClientOrigin(clientOrigins),
+  clientOrigin: resolveClientOrigin(clientOrigins),
   clientOrigins,
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'Stitch ATS <onboarding@resend.dev>',

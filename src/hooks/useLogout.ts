@@ -11,6 +11,8 @@ export function useLogout() {
     await logout()
     if (role === 'CANDIDATE') {
       navigate('/portal/login', { replace: true })
+    } else if (role === 'EMPLOYEE') {
+      navigate('/referral-portal/login', { replace: true })
     } else {
       navigate('/login', { replace: true })
     }
