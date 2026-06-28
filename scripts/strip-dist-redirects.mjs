@@ -1,14 +1,17 @@
-import { existsSync, unlinkSync } from 'node:fs'
+import { existsSync, unlinkSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const redirectsPath = path.join(
+const distDir = path.join(
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
-  'dist',
-  '_redirects'
+  'dist'
 )
+const redirectsPath = path.join(distDir, '_redirects')
+const assetsIgnorePath = path.join(distDir, '.assetsignore')
 
 if (existsSync(redirectsPath)) {
   unlinkSync(redirectsPath)
   console.log('Removed dist/_redirects (not supported on Cloudflare Workers).')
 }
+
+writeFileSync(assetsIgnorePath, '_redirects\n', 'utf8')
