@@ -1,6 +1,6 @@
 import { apiRequest, setToken, clearToken } from '../../lib/apiClient'
 import { User } from '../../types'
-import { PageKey } from '../../lib/pageAccess'
+import { PageKey } from '@/permissions'
 
 export type AuthSession = {
   user: User
@@ -41,6 +41,23 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ token, newPassword }),
     }),
+
+  registerCandidate: async (input: {
+    firstName: string
+    lastName: string
+    email: string
+    password: string
+  }): Promise<AuthSession> => {
+    const data = await apiRequest<{ token: string; user: User; allowedPages: PageKey[] }>(
+      '/auth/register-candidate',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      }
+    )
+    setToken(data.token)
+    return { user: data.user, allowedPages: data.allowedPages ?? [] }
+  },
 
   changePassword: async (currentPassword: string, newPassword: string): Promise<AuthSession> => {
     const data = await apiRequest<{ token: string; user: User; allowedPages?: PageKey[] }>(

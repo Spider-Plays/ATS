@@ -4,17 +4,34 @@ import { mapOffer } from '../utils/mappers.js'
 import { requireAuth, requireActiveUser, requireRoles } from '../middleware/auth.js'
 import { logActivity } from '../services/activityLog.js'
 import { INTERNAL_ROLES, OFFER_ROLES } from '../lib/roles.js'
+import {
+  assertCanViewCandidate,
+  buildOfferListWhere,
+  CandidateAccessError,
+} from '../lib/candidateAccess.js'
 import { sendOfferSentEmail } from '../services/email.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
 
-router.get('/', async (_req, res) => {
-  const rows = await prisma.offer.findMany({ orderBy: { createdAt: 'desc' } })
+router.get('/', async (req, res) => {
+  const listWhere = await buildOfferListWhere(req.auth!)
+  const rows = await prisma.offer.findMany({
+    where: listWhere,
+    orderBy: { createdAt: 'desc' },
+  })
   res.json(rows.map(mapOffer))
 })
 
 router.get('/by-candidate/:candidateId', async (req, res) => {
+  try {
+    await assertCanViewCandidate(req.auth!, req.params.candidateId)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
   const rows = await prisma.offer.findMany({
     where: { candidateId: req.params.candidateId },
     orderBy: { createdAt: 'desc' },
@@ -25,6 +42,14 @@ router.get('/by-candidate/:candidateId', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const row = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!row) return res.status(404).json({ error: 'Not found' })
+  try {
+    await assertCanViewCandidate(req.auth!, row.candidateId)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
   res.json(mapOffer(row))
 })
 
@@ -161,7 +186,24 @@ router.patch('/:id/status', requireRoles(...OFFER_ROLES), async (req, res) => {
 })
 
 router.delete('/:id', requireRoles('ADMIN'), async (req, res) => {
+  const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
+  if (!existing) return res.status(404).json({ error: 'Not found' })
+
   await prisma.offer.delete({ where: { id: req.params.id } })
+
+  await logActivity({
+    entityType: 'OFFER',
+    entityId: existing.id,
+    action: 'DELETED',
+    performedBy: req.auth!.userId,
+    performerRole: req.auth!.role,
+    details: {
+      candidateId: existing.candidateId,
+      requirementId: existing.requirementId,
+      status: existing.status,
+    },
+  })
+
   res.status(204).send()
 })
 

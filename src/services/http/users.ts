@@ -1,5 +1,5 @@
 import { apiRequest } from '../../lib/apiClient'
-import { User, UserRole } from '../../types'
+import { FeatureTagKey, LoginHistoryEntry, User, UserRole } from '../../types'
 
 export const userService = {
   getById: async (uid: string): Promise<User | undefined> => {
@@ -46,20 +46,21 @@ export const userService = {
     data: {
       newPassword?: string
       generateTemporary?: boolean
-      sendEmail?: boolean
     }
   ) =>
     apiRequest<{
       ok: boolean
-      emailSent: boolean
+      message?: string
       temporaryPassword?: string
-      emailWarning?: string
     }>(
       `/users/${uid}/reset-password`,
       { method: 'POST', body: JSON.stringify(data) }
     ),
 
   list: async (): Promise<User[]> => apiRequest<User[]>('/users'),
+
+  getLoginHistory: (uid: string) =>
+    apiRequest<LoginHistoryEntry[]>(`/users/${uid}/login-history`),
 
   updateRole: async (uid: string, role: UserRole): Promise<void> => {
     await apiRequest(`/users/${uid}/role`, {
@@ -75,15 +76,27 @@ export const userService = {
     })
   },
 
-  invite: async (data: {
+  updateTags: (uid: string, tags: FeatureTagKey[]) =>
+    apiRequest<User>(`/users/${uid}/tags`, {
+      method: 'PATCH',
+      body: JSON.stringify({ tags }),
+    }),
+
+  create: async (data: {
     email: string
-    name?: string
+    name: string
     role: UserRole
     department?: string
-  }): Promise<{ user: User; emailSent: boolean; temporaryPassword?: string }> => {
-    return apiRequest('/users/invite', {
+    phoneNumber?: string
+    address?: string
+    temporaryPassword: string
+  }): Promise<{ user: User }> => {
+    return apiRequest('/users', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
+
+  delete: (uid: string) =>
+    apiRequest<void>(`/users/${uid}`, { method: 'DELETE' }),
 }

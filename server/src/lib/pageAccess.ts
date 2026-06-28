@@ -2,6 +2,7 @@ import { prisma } from './prisma.js'
 
 /** Internal staff roles configurable in User Management → Role access */
 export const CONFIGURABLE_ROLES = [
+  'SUPER_ADMIN',
   'ADMIN',
   'HR_HEAD',
   'HR_MANAGER',
@@ -43,7 +44,8 @@ export const PAGE_DEFINITIONS: { key: PageKey; label: string; description: strin
 
 /** Default page access (matches original sidebar / route behavior) */
 export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
-  ADMIN: [...PAGE_KEYS],
+  SUPER_ADMIN: [...PAGE_KEYS],
+  ADMIN: PAGE_KEYS.filter((k) => k !== 'admin_users'),
   HR_HEAD: [
     'dashboard',
     'requirements',
@@ -79,6 +81,7 @@ export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
   TEAM_LEAD: [
     'dashboard',
     'requirements',
+    'vendors',
     'candidates',
     'pipeline',
     'interviews',
@@ -87,7 +90,7 @@ export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
     'settings',
   ],
   HIRING_MANAGER: ['dashboard', 'requirements', 'notifications', 'settings'],
-  INTERVIEWER: ['dashboard', 'interviews', 'notifications', 'settings'],
+  INTERVIEWER: ['dashboard', 'candidates', 'interviews', 'notifications', 'settings'],
 }
 
 function parsePages(raw: string | null | undefined): PageKey[] {
@@ -112,23 +115,39 @@ export function defaultPagesForRole(role: string): PageKey[] {
   return ['dashboard', 'notifications', 'settings']
 }
 
+function finalizePagesForRole(role: string, pages: PageKey[]): PageKey[] {
+  let result = [...pages]
+  if (role === 'SUPER_ADMIN' && !result.includes('admin_users')) {
+    result.push('admin_users')
+  }
+  if (role !== 'SUPER_ADMIN') {
+    result = result.filter((p) => p !== 'admin_users')
+  }
+  if (role === 'INTERVIEWER' && !result.includes('candidates')) {
+    result.push('candidates')
+  }
+  return result
+}
+
 export async function getAllowedPagesForRole(role: string): Promise<PageKey[]> {
-  if (role === 'CANDIDATE' || role === 'VENDOR') {
+  if (role === 'SUPER_ADMIN') {
+    return [...PAGE_KEYS]
+  }
+
+  if (role === 'CANDIDATE' || role === 'VENDOR' || role === 'EMPLOYEE') {
     return []
   }
 
   const row = await prisma.rolePageAccess.findUnique({ where: { role } })
+  let pages: PageKey[]
   if (row) {
     const parsed = parsePages(row.pages)
-    if (parsed.length > 0) {
-      if (role === 'ADMIN' && !parsed.includes('admin_users')) {
-        return [...parsed, 'admin_users']
-      }
-      return parsed
-    }
+    pages = parsed.length > 0 ? parsed : defaultPagesForRole(role)
+  } else {
+    pages = defaultPagesForRole(role)
   }
 
-  return defaultPagesForRole(role)
+  return finalizePagesForRole(role, pages)
 }
 
 export async function getAllRolePageAccess(): Promise<
@@ -139,9 +158,14 @@ export async function getAllRolePageAccess(): Promise<
 
   const result: Record<string, { pages: PageKey[]; updatedAt?: string }> = {}
   for (const role of CONFIGURABLE_ROLES) {
+    if (role === 'SUPER_ADMIN') {
+      result[role] = { pages: [...PAGE_KEYS] }
+      continue
+    }
     const row = byRole.get(role)
+    const raw = row?.pages ? parsePages(row.pages) : defaultPagesForRole(role)
     result[role] = {
-      pages: row?.pages ? parsePages(row.pages) : defaultPagesForRole(role),
+      pages: finalizePagesForRole(role, raw),
       updatedAt: row?.updatedAt.toISOString(),
     }
   }
@@ -149,10 +173,12 @@ export async function getAllRolePageAccess(): Promise<
 }
 
 export async function setRolePageAccess(role: string, pages: PageKey[]): Promise<PageKey[]> {
-  const sanitized = sanitizePages(pages)
-  if (role === 'ADMIN' && !sanitized.includes('admin_users')) {
-    sanitized.push('admin_users')
+  if (role === 'SUPER_ADMIN') {
+    return [...PAGE_KEYS]
   }
+
+  let sanitized = sanitizePages(pages)
+  sanitized = sanitized.filter((p) => p !== 'admin_users')
   if (sanitized.length === 0) {
     throw new Error('At least one page must be enabled')
   }
@@ -174,7 +200,8 @@ export function pathnameToPageKey(pathname: string): PageKey | null {
   if (pathname.startsWith('/pipeline')) return 'pipeline'
   if (pathname.startsWith('/interviews')) return 'interviews'
   if (pathname.startsWith('/offers')) return 'offers'
-  if (pathname.startsWith('/admin')) return 'admin_users'
+  if (pathname.startsWith('/admin/users')) return 'admin_users'
+  if (pathname.startsWith('/admin')) return null
   if (pathname.startsWith('/notifications')) return 'notifications'
   if (pathname.startsWith('/settings')) return 'settings'
   return null

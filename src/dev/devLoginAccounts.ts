@@ -3,6 +3,7 @@
  * Emails/passwords must match server/src/config/devUsers.ts — run `npm run db:seed` in server/.
  */
 export const DEV_LOGIN_ACCOUNTS = [
+  { label: 'Super Admin', role: 'SUPER_ADMIN', email: 'dev-superadmin@local.test', password: 'DevTest123!' },
   { label: 'Admin', role: 'ADMIN', email: 'dev-admin@local.test', password: 'DevTest123!' },
   { label: 'HR Head', role: 'HR_HEAD', email: 'dev-hrhead@local.test', password: 'DevTest123!' },
   { label: 'HR Manager', role: 'HR_MANAGER', email: 'dev-hrmanager@local.test', password: 'DevTest123!' },
@@ -11,7 +12,6 @@ export const DEV_LOGIN_ACCOUNTS = [
   { label: 'Hiring Manager', role: 'HIRING_MANAGER', email: 'dev-hiringmanager@local.test', password: 'DevTest123!' },
   { label: 'Interviewer', role: 'INTERVIEWER', email: 'dev-interviewer@local.test', password: 'DevTest123!' },
   { label: 'Vendor', role: 'VENDOR', email: 'dev-vendor@local.test', password: 'DevTest123!' },
+  { label: 'Employee', role: 'EMPLOYEE', email: 'dev-employee@local.test', password: 'DevTest123!' },
   { label: 'Candidate', role: 'CANDIDATE', email: 'dev-candidate@local.test', password: 'DevTest123!' },
-  { label: 'Portal (applied)', role: 'CANDIDATE', email: 'demo.portal1@local.test', password: 'DevTest123!' },
-  { label: 'Portal (browse)', role: 'CANDIDATE', email: 'demo.portal-browse@local.test', password: 'DevTest123!' },
 ] as const

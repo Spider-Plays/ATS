@@ -1,6 +1,7 @@
-import { requirementService, candidateService, userService, interviewService, offerService, feedbackService, searchService, portalService, skillService, departmentService } from './http'
+import { requirementService, candidateService, userService, interviewService, offerService, feedbackService, searchService, portalService, skillService, departmentService, clientService, interviewPanelService } from './http'
 import { vendorService } from './http/vendors'
 import { vendorPortalService } from './http/vendorPortal'
+import { referralPortalService } from './http/referralPortal'
 import { activityLogService } from './http/activityLogs'
 
 export const api = {
@@ -11,13 +12,20 @@ export const api = {
         create: requirementService.create,
         update: requirementService.update,
         updateStatus: requirementService.updateStatus,
+        updateHiringStage: requirementService.updateHiringStage,
+        cancel: requirementService.cancel,
         assignRecruiter: requirementService.assignRecruiter,
+        unassignRecruiter: requirementService.unassignRecruiter,
         approve: requirementService.approve,
         reject: requirementService.reject,
         setVisibility: requirementService.setVisibility,
+        setReferralVisibility: requirementService.setReferralVisibility,
         delete: requirementService.delete,
         getMatchingProfiles: requirementService.getMatchingProfiles,
         linkCandidate: requirementService.linkCandidate,
+        getInterviewPlan: requirementService.getInterviewPlan,
+        updateInterviewPlan: requirementService.updateInterviewPlan,
+        getCandidateInterviewProgress: requirementService.getCandidateInterviewProgress,
     },
     candidates: {
         list: candidateService.getAll,
@@ -43,6 +51,8 @@ export const api = {
     },
     portal: {
         getMe: portalService.getMe,
+        getApplications: portalService.getApplications,
+        getApplication: portalService.getApplication,
         saveProfile: portalService.saveProfile,
         uploadResume: portalService.uploadResume,
         getOpenPositions: portalService.getOpenPositions,
@@ -63,7 +73,22 @@ export const api = {
         getPositions: vendorPortalService.getPositions,
         getPosition: vendorPortalService.getPosition,
         getSubmissions: vendorPortalService.getSubmissions,
+        parseResume: vendorPortalService.parseResume,
+        checkEmail: vendorPortalService.checkEmail,
         submitCandidate: vendorPortalService.submitCandidate,
+        uploadResume: vendorPortalService.uploadResume,
+    },
+    referralPortal: {
+        getMe: referralPortalService.getMe,
+        getPositions: referralPortalService.getPositions,
+        getDepartments: referralPortalService.getDepartments,
+        getPosition: referralPortalService.getPosition,
+        getReferrals: referralPortalService.getReferrals,
+        getReferral: referralPortalService.getReferral,
+        parseResume: referralPortalService.parseResume,
+        checkEmail: referralPortalService.checkEmail,
+        submitReferral: referralPortalService.submitReferral,
+        uploadResume: referralPortalService.uploadResume,
     },
     skills: {
         list: skillService.list,
@@ -75,6 +100,16 @@ export const api = {
         create: departmentService.create,
         remove: departmentService.remove,
     },
+    clients: {
+        list: clientService.list,
+        create: clientService.create,
+        remove: clientService.remove,
+    },
+    interviewPanels: {
+        list: interviewPanelService.list,
+        seed: interviewPanelService.seed,
+        update: interviewPanelService.update,
+    },
     users: {
         list: userService.list,
         get: userService.getById,
@@ -84,7 +119,10 @@ export const api = {
         resetPassword: userService.resetPassword,
         updateRole: userService.updateRole,
         toggleStatus: userService.toggleStatus,
-        invite: userService.invite
+        create: userService.create,
+        getLoginHistory: userService.getLoginHistory,
+        updateTags: userService.updateTags,
+        delete: userService.delete,
     },
     interviews: {
         list: interviewService.getAll,
@@ -93,6 +131,7 @@ export const api = {
         create: interviewService.create,
         update: interviewService.update,
         updateStatus: interviewService.updateStatus,
+        fetchCandidateResume: interviewService.fetchCandidateResume,
         numberOfInterviews: async () => (await interviewService.getAll()).length
     },
     feedback: {
@@ -100,6 +139,7 @@ export const api = {
         getByCandidateId: feedbackService.getByCandidateId,
         get: feedbackService.getById,
         create: feedbackService.create,
+        remove: feedbackService.remove,
         downloadHtml: feedbackService.downloadHtml,
     },
     offers: {
@@ -108,6 +148,7 @@ export const api = {
         getByCandidateId: offerService.getByCandidateId,
         create: offerService.create,
         update: offerService.update,
-        updateStatus: offerService.updateStatus
+        updateStatus: offerService.updateStatus,
+        remove: offerService.remove,
     },
 }

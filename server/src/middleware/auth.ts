@@ -46,6 +46,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 export function requireRoles(...roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.auth) return res.status(401).json({ error: 'Unauthorized' })
+    if (req.auth.role === 'SUPER_ADMIN') return next()
     if (!roles.includes(req.auth.role)) {
       return res.status(403).json({ error: 'Forbidden' })
     }

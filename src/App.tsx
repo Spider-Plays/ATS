@@ -1,17 +1,10 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from 'react-router-dom'
 import AppRoutes from './routes'
 import { AuthProvider } from './contexts/AuthContext'
 import { Toaster } from './components/ui/Toaster'
-
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: false,
-            refetchOnWindowFocus: true,
-        },
-    },
-})
+import { ConfirmHost } from './components/ui/ConfirmHost'
+import { queryClient } from './lib/queryClient'
 
 function App() {
     return (
@@ -20,6 +13,7 @@ function App() {
                 <BrowserRouter>
                     <AppRoutes />
                     <Toaster />
+                    <ConfirmHost />
                 </BrowserRouter>
             </AuthProvider>
         </QueryClientProvider>
