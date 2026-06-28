@@ -1,4 +1,4 @@
-import { apiRequest, getToken } from '../../lib/apiClient'
+import { apiRequest, apiUrl, getToken } from '../../lib/apiClient'
 import { Feedback } from '../../types'
 
 export const feedbackService = {
@@ -19,7 +19,7 @@ export const feedbackService = {
     const token = getToken()
     const headers: Record<string, string> = {}
     if (token) headers.Authorization = `Bearer ${token}`
-    const res = await fetch(`/api/feedback/${id}/download`, { headers })
+    const res = await fetch(apiUrl(`/feedback/${id}/download`), { headers })
     if (!res.ok) throw new Error('Download failed')
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)

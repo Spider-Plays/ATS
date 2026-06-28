@@ -1,4 +1,4 @@
-import { apiRequest, getToken } from '../../lib/apiClient'
+import { apiRequest, apiUrl, getToken } from '../../lib/apiClient'
 import { Interview } from '../../types'
 
 export const interviewService = {
@@ -31,7 +31,7 @@ export const interviewService = {
     const token = getToken()
     const headers: Record<string, string> = {}
     if (token) headers.Authorization = `Bearer ${token}`
-    const res = await fetch(`/api/interviews/${interviewId}/candidate-resume`, { headers })
+    const res = await fetch(apiUrl(`/interviews/${interviewId}/candidate-resume`), { headers })
     if (res.status === 404) return null
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))

@@ -2,6 +2,10 @@ const TOKEN_KEY = 'stitch_auth_token'
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') || ''
 
+export function apiUrl(path: string): string {
+  return `${API_BASE}/api${path}`
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
