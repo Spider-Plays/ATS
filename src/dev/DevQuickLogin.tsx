@@ -68,7 +68,7 @@ export function DevQuickLogin({
           )
         } else if (err.status === 401) {
           onError(
-            'Invalid credentials — run: npm run db:seed --prefix server (creates employee@Stitch.com)'
+            'Invalid credentials — run: npm run db:seed --prefix server (creates employee@stitch-ats.in)'
           )
         } else if (err.status === 0 || err.message.includes('fetch')) {
           onError(

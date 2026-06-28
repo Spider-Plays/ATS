@@ -57,6 +57,12 @@ export const userService = {
       { method: 'POST', body: JSON.stringify(data) }
     ),
 
+  sendPasswordResetLink: (uid: string) =>
+    apiRequest<{ ok: boolean; message: string }>(
+      `/users/${uid}/send-password-reset-link`,
+      { method: 'POST' }
+    ),
+
   list: async (): Promise<User[]> => apiRequest<User[]>('/users'),
 
   getLoginHistory: (uid: string) =>

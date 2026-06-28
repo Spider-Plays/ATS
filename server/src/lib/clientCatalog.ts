@@ -9,6 +9,7 @@ export type ClientCatalogEntry = {
 let cachedNames: string[] | null = null
 let cacheAt = 0
 const CACHE_MS = 60_000
+let requirementsSynced = false
 
 async function syncClientsFromRequirements(): Promise<void> {
   const rows = await prisma.requirement.findMany({
@@ -16,16 +17,21 @@ async function syncClientsFromRequirements(): Promise<void> {
     select: { client: true },
     distinct: ['client'],
   })
-  for (const row of rows) {
-    const name = row.client?.trim()
-    if (!name) continue
-    const existing = await prisma.clientCatalog.findFirst({
-      where: { name: { equals: name, mode: 'insensitive' } },
-    })
-    if (!existing) {
-      await prisma.clientCatalog.create({ data: { name } }).catch(() => {})
-    }
-  }
+  if (rows.length === 0) return
+
+  const names = [
+    ...new Set(
+      rows
+        .map((row) => row.client?.trim())
+        .filter((name): name is string => Boolean(name))
+    ),
+  ]
+  if (names.length === 0) return
+
+  await prisma.clientCatalog.createMany({
+    data: names.map((name) => ({ name })),
+    skipDuplicates: true,
+  })
 }
 
 export async function ensureDefaultClientCatalog(): Promise<void> {
@@ -36,7 +42,12 @@ export async function ensureDefaultClientCatalog(): Promise<void> {
       skipDuplicates: true,
     })
   }
-  await syncClientsFromRequirements()
+
+  if (!requirementsSynced) {
+    await syncClientsFromRequirements()
+    requirementsSynced = true
+  }
+
   cachedNames = null
 }
 
@@ -98,4 +109,10 @@ export async function resolveClientFromCatalog(client: string): Promise<string> 
 
 export function invalidateClientCatalogCache(): void {
   cachedNames = null
+}
+
+/** Call after bulk requirement imports so legacy client names appear in the catalog once. */
+export async function refreshClientCatalogFromRequirements(): Promise<void> {
+  await syncClientsFromRequirements()
+  invalidateClientCatalogCache()
 }

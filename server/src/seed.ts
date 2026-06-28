@@ -64,11 +64,11 @@ async function main() {
   if (hasVendor) {
     const vendor = await prisma.vendor.upsert({
       where: { code: 'DEV-VENDOR' },
-      update: { name: 'Dev Staffing Co', status: 'ACTIVE', email: 'vendor-org@Stitch.com' },
+      update: { name: 'Dev Staffing Co', status: 'ACTIVE', email: 'vendor-org@stitch-ats.in' },
       create: {
         name: 'Dev Staffing Co',
         code: 'DEV-VENDOR',
-        email: 'vendor-org@Stitch.com',
+        email: 'vendor-org@stitch-ats.in',
         status: 'ACTIVE',
         contactName: 'Raghavendra Murthy',
       },

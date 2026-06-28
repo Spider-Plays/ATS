@@ -9,6 +9,7 @@ import { sanitizeFeatureTags } from '../lib/userTags.js'
 import { logTemporaryPassword } from '../lib/devPasswordLog.js'
 import { env } from '../config/env.js'
 import { notifyAdminPasswordReset, notifyStaffUserCreated } from '../lib/emailDispatch.js'
+import { issuePasswordResetLink } from '../lib/passwordReset.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser)
@@ -164,6 +165,17 @@ router.patch('/:id', requireRoles('SUPER_ADMIN'), async (req, res) => {
     },
   })
   res.json(mapUser(user))
+})
+
+router.post('/:id/send-password-reset-link', requireRoles('SUPER_ADMIN'), async (req, res) => {
+  const target = await prisma.user.findUnique({ where: { id: req.params.id } })
+  if (!target) return res.status(404).json({ error: 'User not found' })
+  if (target.status === 'DISABLED') {
+    return res.status(400).json({ error: 'Cannot send a reset link to a disabled account' })
+  }
+
+  await issuePasswordResetLink(target)
+  res.json({ ok: true, message: `Password reset link sent to ${target.email}.` })
 })
 
 router.post('/:id/reset-password', requireRoles('SUPER_ADMIN'), async (req, res) => {

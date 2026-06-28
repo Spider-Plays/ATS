@@ -41,10 +41,10 @@ const SAMPLE_VENDORS = [
   {
     name: 'Dev Staffing Co',
     code: 'DEV-VENDOR',
-    email: 'vendor-org@Stitch.com',
+    email: 'vendor-org@stitch-ats.in',
     contactName: 'Dev Vendor Contact',
     status: 'ACTIVE',
-    notes: 'Dev vendor org (portal login: vendor@Stitch.com).',
+    notes: 'Dev vendor org (portal login: vendor@stitch-ats.in).',
   },
 ] as const
 

@@ -1,7 +1,6 @@
 import { Router, type Request } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
-import crypto from 'crypto'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { env } from '../config/env.js'
@@ -9,8 +8,8 @@ import { mapUser } from '../utils/mappers.js'
 import { getAllowedPagesForRole } from '../lib/pageAccess.js'
 import { requireAuth, requireActiveUser, type AuthPayload } from '../middleware/auth.js'
 import { authRateLimiter } from '../middleware/rateLimit.js'
-import { sendPasswordResetEmail } from '../services/email.js'
 import { recordUserLogin } from '../lib/recordLogin.js'
+import { issuePasswordResetLink } from '../lib/passwordReset.js'
 
 const router = Router()
 
@@ -161,16 +160,7 @@ router.post('/forgot-password', authRateLimiter, async (req, res) => {
   })
 
   if (user && user.status === 'ACTIVE') {
-    const token = crypto.randomBytes(32).toString('hex')
-    const expires = new Date(Date.now() + 60 * 60 * 1000)
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordResetToken: token, passwordResetExpires: expires },
-    })
-    const loginPath =
-      user.role === 'CANDIDATE' ? '/portal/login' : '/login'
-    const resetUrl = `${env.clientOrigin.replace(/\/$/, '')}${loginPath}?reset=${token}`
-    await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl })
+    await issuePasswordResetLink(user)
   }
 
   res.json({ ok: true, message: 'If that email exists, a reset link was sent.' })

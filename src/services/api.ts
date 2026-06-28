@@ -122,6 +122,7 @@ export const api = {
         update: userService.update,
         updateProfile: userService.updateProfile,
         resetPassword: userService.resetPassword,
+        sendPasswordResetLink: userService.sendPasswordResetLink,
         updateRole: userService.updateRole,
         toggleStatus: userService.toggleStatus,
         create: userService.create,

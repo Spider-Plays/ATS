@@ -23,6 +23,7 @@ import {
   CandidateAccessError,
 } from '../lib/candidateAccess.js'
 import { findResumeFile, readResumeBuffer } from '../lib/resumeStorage.js'
+import { loadCandidateResume } from '../lib/candidateResume.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
@@ -174,16 +175,15 @@ router.get('/:id/candidate-resume', async (req, res) => {
     if (!row) return res.status(404).json({ error: 'Candidate not found' })
     if (!row.resumeFileName) return res.status(404).json({ error: 'No resume uploaded' })
 
-    const stored = await findResumeFile(row.id, row.resumeStorageKey)
-    if (!stored) return res.status(404).json({ error: 'Resume file missing' })
+    const loaded = await loadCandidateResume(row)
+    if (!loaded) return res.status(404).json({ error: 'Resume file missing' })
 
-    const buffer = await readResumeBuffer(stored)
-    res.setHeader('Content-Type', row.resumeMimeType || stored.mime)
+    res.setHeader('Content-Type', loaded.mime)
     res.setHeader(
       'Content-Disposition',
-      `inline; filename="${encodeURIComponent(row.resumeFileName)}"`
+      `inline; filename="${encodeURIComponent(loaded.fileName)}"`
     )
-    res.send(buffer)
+    res.send(loaded.buffer)
   } catch (err) {
     if (err instanceof CandidateAccessError) {
       return res.status(403).json({ error: err.message })

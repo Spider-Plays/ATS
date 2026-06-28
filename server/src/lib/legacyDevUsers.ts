@@ -3,7 +3,7 @@ import { DEV_USERS } from '../config/devUsers.js'
 
 function legacyDevEmail(canonicalEmail: string): string {
   const [local] = canonicalEmail.toLowerCase().split('@')
-  return `dev-${local}@stitch.com`
+  return `dev-${local}@stitch-ats.in`
 }
 
 async function reassignUserReferences(
@@ -71,7 +71,7 @@ async function reassignUserReferences(
   }
 }
 
-/** Merge or remove legacy dev-*@stitch.com and @local.test accounts before seeding. */
+/** Merge or remove legacy dev-*@stitch-ats.in and @local.test accounts before seeding. */
 export async function removeLegacyDevUsers(prisma: PrismaClient) {
   let merged = 0
   let deleted = 0
@@ -116,9 +116,17 @@ export async function removeLegacyDevUsers(prisma: PrismaClient) {
         {
           AND: [
             { email: { startsWith: 'dev-' } },
-            { email: { endsWith: '@stitch.com' } },
+            {
+              OR: [
+                { email: { endsWith: '@stitch.com' } },
+                { email: { endsWith: '@Stitch.com' } },
+                { email: { endsWith: '@stitch-ats.in' } },
+              ],
+            },
           ],
         },
+        { email: { endsWith: '@Stitch.com' } },
+        { email: { endsWith: '@stitch.com' } },
       ],
     },
   })

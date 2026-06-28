@@ -1,4 +1,5 @@
 const TOKEN_KEY = 'stitch_auth_token'
+const FETCH_TIMEOUT_MS = 90_000
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') || ''
 
@@ -39,19 +40,39 @@ export async function apiRequest<T>(
   }
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`${API_BASE}/api${path}`, { ...options, headers })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    if (res.status === 401) {
-      clearToken()
-      window.dispatchEvent(new Event('auth:session-expired'))
+  try {
+    const res = await fetch(`${API_BASE}/api${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      if (res.status === 401) {
+        clearToken()
+        window.dispatchEvent(new Event('auth:session-expired'))
+      }
+      throw new ApiError(body.error || res.statusText, res.status)
     }
-    throw new ApiError(body.error || res.statusText, res.status)
-  }
 
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
+    if (res.status === 204) return undefined as T
+    return res.json() as Promise<T>
+  } catch (err) {
+    if (err instanceof ApiError) throw err
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new ApiError(
+        'Request timed out. The API or database may still be waking up — try again in a moment.',
+        408
+      )
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
 }
 
 export async function uploadFormData<T>(path: string, formData: FormData): Promise<T> {

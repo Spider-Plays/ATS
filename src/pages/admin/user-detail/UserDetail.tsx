@@ -54,6 +54,7 @@ const UserDetail = () => {
     const [role, setRole] = useState<UserRole>('RECRUITER')
     const [profileSaving, setProfileSaving] = useState(false)
     const [generateLoading, setGenerateLoading] = useState(false)
+    const [resetLinkLoading, setResetLinkLoading] = useState(false)
     const [tempPassword, setTempPassword] = useState<string | null>(null)
     const [copied, setCopied] = useState(false)
     const [draftTags, setDraftTags] = useState<FeatureTagKey[]>([])
@@ -176,6 +177,19 @@ const UserDetail = () => {
             addToast(err instanceof ApiError ? err.message : 'Failed to set password', 'error')
         }
     })
+
+    const handleSendResetLink = async () => {
+        if (!id) return
+        setResetLinkLoading(true)
+        try {
+            const result = await api.users.sendPasswordResetLink(id)
+            addToast(result.message ?? 'Password reset link sent', 'success')
+        } catch (err) {
+            addToast(err instanceof ApiError ? err.message : 'Failed to send reset link', 'error')
+        } finally {
+            setResetLinkLoading(false)
+        }
+    }
 
     const handleGenerateTemporary = async () => {
         if (!id) return
@@ -494,7 +508,7 @@ const UserDetail = () => {
                         <Lock size={16} /> Password
                     </h2>
                     <p className="text-sm text-primary/60 dark:text-white/60">
-                        Set a new password for this user or generate a temporary one. Optionally email the new password to them.
+                        Set a new password, email a reset link, or generate a temporary password for this user.
                     </p>
 
                     <form onSubmit={onSetPassword} className="space-y-4 max-w-md">
@@ -524,6 +538,29 @@ const UserDetail = () => {
                         </div>
                         <Button type="submit">Set password</Button>
                     </form>
+
+                    <div className="border-t border-primary/10 dark:border-white/10 pt-5 space-y-3">
+                        <p className="text-xs font-bold text-primary/50 dark:text-white/50 uppercase tracking-wider">
+                            Or send password reset link
+                        </p>
+                        <p className="text-xs text-primary/60 dark:text-white/60">
+                            Email a secure link so the user can choose their own new password. The link expires in 1 hour.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleSendResetLink}
+                            disabled={resetLinkLoading || user.status === 'DISABLED'}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-lg bg-primary/10 dark:bg-white/10 text-primary dark:text-white hover:bg-primary/15 dark:hover:bg-white/15 disabled:opacity-50"
+                        >
+                            <Mail size={16} className={resetLinkLoading ? 'animate-pulse' : ''} />
+                            {resetLinkLoading ? 'Sending…' : 'Send password reset link'}
+                        </button>
+                        {user.status === 'DISABLED' && (
+                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                                Enable this account before sending a reset link.
+                            </p>
+                        )}
+                    </div>
 
                     <div className="border-t border-primary/10 dark:border-white/10 pt-5 space-y-3">
                         <p className="text-xs font-bold text-primary/50 dark:text-white/50 uppercase tracking-wider">

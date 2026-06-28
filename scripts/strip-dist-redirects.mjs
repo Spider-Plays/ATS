@@ -7,11 +7,11 @@ const distDir = path.join(
   'dist'
 )
 const redirectsPath = path.join(distDir, '_redirects')
-const assetsIgnorePath = path.join(distDir, '.assetsignore')
 
 if (existsSync(redirectsPath)) {
   unlinkSync(redirectsPath)
-  console.log('Removed dist/_redirects (not used on Cloudflare Pages).')
 }
 
-writeFileSync(assetsIgnorePath, '_redirects\n', 'utf8')
+// SPA fallback for Cloudflare Pages; /api is proxied by functions/api instead.
+writeFileSync(redirectsPath, '/* /index.html 200\n', 'utf8')
+console.log('Wrote dist/_redirects (SPA fallback for Cloudflare Pages).')

@@ -13,28 +13,20 @@ const CACHE_MS = 60_000
 let defaultsSynced = false
 
 export async function ensureDefaultSkillCatalog(): Promise<void> {
-  if (!defaultsSynced) {
-    await prisma.$transaction(
-      DEFAULT_SKILL_CATALOG.map((skill) =>
-        prisma.skillCatalog.upsert({
-          where: { name: skill.name },
-          create: { name: skill.name, category: skill.category },
-          update: { category: skill.category },
-        }),
-      ),
-    )
-    defaultsSynced = true
-    cachedNames = null
-    return
+  if (defaultsSynced) return
+
+  const count = await prisma.skillCatalog.count()
+  if (count === 0) {
+    await prisma.skillCatalog.createMany({
+      data: DEFAULT_SKILL_CATALOG.map((s) => ({
+        name: s.name,
+        category: s.category,
+      })),
+      skipDuplicates: true,
+    })
   }
 
-  await prisma.skillCatalog.createMany({
-    data: DEFAULT_SKILL_CATALOG.map((s) => ({
-      name: s.name,
-      category: s.category,
-    })),
-    skipDuplicates: true,
-  })
+  defaultsSynced = true
   cachedNames = null
 }
 

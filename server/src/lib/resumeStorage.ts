@@ -104,3 +104,41 @@ export async function findResumeFile(
 export async function readResumeBuffer(stored: StoredResume): Promise<Buffer> {
   return fs.readFile(stored.filePath)
 }
+
+export type CandidateResumeRow = {
+  id: string
+  name: string
+  email: string
+  role: string
+  location?: string | null
+  resumeText?: string | null
+  resumeFileName?: string | null
+  resumeMimeType?: string | null
+  resumeStorageKey?: string | null
+  resumeUrl?: string | null
+  primarySkills?: string | null
+  secondarySkills?: string | null
+}
+
+export async function readCandidateResumeFromDisk(
+  candidate: Pick<CandidateResumeRow, 'id' | 'resumeStorageKey'>
+): Promise<{ buffer: Buffer; mime: string } | null> {
+  const stored = await findResumeFile(candidate.id, candidate.resumeStorageKey)
+  if (!stored) return null
+  return { buffer: await readResumeBuffer(stored), mime: stored.mime }
+}
+
+export async function readCandidateResumeFromUrl(
+  url: string,
+  mime: string | null | undefined
+): Promise<{ buffer: Buffer; mime: string } | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(20_000) })
+    if (!res.ok) return null
+    const buffer = Buffer.from(await res.arrayBuffer())
+    if (buffer.length < 100) return null
+    return { buffer, mime: mime || 'application/pdf' }
+  } catch {
+    return null
+  }
+}

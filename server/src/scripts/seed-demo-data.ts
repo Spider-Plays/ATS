@@ -6,7 +6,6 @@ import {
   DEMO_CANDIDATES,
   DEMO_PORTAL_USERS,
   DEMO_REQUIREMENTS,
-  DEMO_RESUME_URLS,
   DEMO_VENDOR_CODE,
 } from '../config/demoData.js'
 import { serializeSkills } from '../lib/skills.js'
@@ -15,6 +14,8 @@ import {
   buildCandidateResumePayload,
   extractResumeText,
 } from '../lib/resumeParse.js'
+import { demoResumeFileName, renderDemoCandidateResumePdf } from '../lib/demoResumePdf.js'
+import { closePdfBrowser } from '../lib/offerPdf.js'
 import { computeMatchScore } from '../lib/profileMatching.js'
 import { findCandidateByEmail } from '../lib/candidateDuplicate.js'
 import { ensureInterviewPlan } from '../lib/interviewPlan.js'
@@ -250,84 +251,78 @@ async function upsertUser(u: {
   })
 }
 
-const resumeCache: Buffer[] = []
-
-async function fetchResumeBuffers() {
-  if (resumeCache.length > 0) return resumeCache
-  console.log('Downloading sample resume PDFs...')
-  for (const url of DEMO_RESUME_URLS) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(20_000) })
-      if (!res.ok) continue
-      const buf = Buffer.from(await res.arrayBuffer())
-      if (buf.length > 500) resumeCache.push(buf)
-    } catch {
-      // try next URL
-    }
-  }
-  if (resumeCache.length === 0) {
-    console.warn('Could not download PDFs — candidates will have resume text only.')
-  } else {
-    console.log(`Cached ${resumeCache.length} resume PDF(s).`)
-  }
-  return resumeCache
-}
-
 async function attachResume(
   candidateId: string,
-  snippet: string,
-  index: number,
-  skills?: { primary?: string[]; secondary?: string[] }
+  data: {
+    name: string
+    email: string
+    role: string
+    location?: string | null
+    snippet: string
+    primarySkills?: string[]
+    secondarySkills?: string[]
+  }
 ) {
-  const textPayload = buildCandidateResumePayload(snippet)
+  const textPayload = buildCandidateResumePayload(data.snippet)
   const primarySkills =
-    skills?.primary?.length
-      ? serializeSkills(skills.primary)
+    data.primarySkills?.length
+      ? serializeSkills(data.primarySkills)
       : textPayload.primarySkills
   const secondarySkills =
-    skills?.secondary?.length
-      ? serializeSkills(skills.secondary)
+    data.secondarySkills?.length
+      ? serializeSkills(data.secondarySkills)
       : textPayload.secondarySkills
 
-  const pdfs = await fetchResumeBuffers()
-  if (pdfs.length > 0) {
-    const buffer = pdfs[index % pdfs.length]
-    try {
-      const parsed = await extractResumeText(buffer, 'application/pdf', 'resume.pdf')
-      const merged = [snippet, parsed].filter(Boolean).join('\n\n')
-      const mergedPayload = buildCandidateResumePayload(merged)
-      const stored = await saveResumeFile(candidateId, 'application/pdf', buffer, 'resume.pdf')
-      await prisma.candidate.update({
-        where: { id: candidateId },
-        data: {
-          resumeFileName: 'resume.pdf',
-          resumeMimeType: 'application/pdf',
-          resumeUrl: null,
-          resumeStorageKey: null,
-          resumeText: mergedPayload.resumeText,
-          primarySkills: skills?.primary?.length ? primarySkills : mergedPayload.primarySkills,
-          secondarySkills: skills?.secondary?.length
-            ? secondarySkills
-            : mergedPayload.secondarySkills,
-        },
-      })
-      return
-    } catch {
-      // fall through to text-only
-    }
-  }
+  const fileName = demoResumeFileName(data.name)
+  let resumeText = textPayload.resumeText
 
-  await prisma.candidate.update({
-    where: { id: candidateId },
-    data: {
-      resumeFileName: null,
-      resumeMimeType: null,
-      resumeUrl: null,
-      resumeText: textPayload.resumeText,
-      primarySkills,
-      secondarySkills,
-    },
-  })
+  try {
+    const buffer = await renderDemoCandidateResumePdf({
+      name: data.name,
+      email: data.email,
+      role: data.role,
+      location: data.location,
+      summary: data.snippet,
+      primarySkills: data.primarySkills,
+      secondarySkills: data.secondarySkills,
+    })
+
+    try {
+      const parsed = await extractResumeText(buffer, 'application/pdf', fileName)
+      const merged = [data.snippet, parsed].filter(Boolean).join('\n\n')
+      const mergedPayload = buildCandidateResumePayload(merged)
+      resumeText = mergedPayload.resumeText
+    } catch {
+      // keep snippet-based resume text
+    }
+
+    await saveResumeFile(candidateId, 'application/pdf', buffer, fileName)
+    await prisma.candidate.update({
+      where: { id: candidateId },
+      data: {
+        resumeFileName: fileName,
+        resumeMimeType: 'application/pdf',
+        resumeUrl: null,
+        resumeStorageKey: null,
+        resumeText,
+        primarySkills: data.primarySkills?.length ? primarySkills : textPayload.primarySkills,
+        secondarySkills: data.secondarySkills?.length ? secondarySkills : textPayload.secondarySkills,
+      },
+    })
+  } catch (err) {
+    console.warn(`Could not generate resume PDF for ${data.email}:`, err)
+    await prisma.candidate.update({
+      where: { id: candidateId },
+      data: {
+        resumeFileName: fileName,
+        resumeMimeType: 'application/pdf',
+        resumeUrl: null,
+        resumeText,
+        primarySkills,
+        secondarySkills,
+      },
+    })
+  }
 }
 
 async function main() {
@@ -353,13 +348,13 @@ async function main() {
     update: {
       name: 'Demo Staffing Co',
       status: 'ACTIVE',
-      email: 'staffing@Stitch.com',
+      email: 'staffing@stitch-ats.in',
       contactName: 'Raghavendra Murthy',
     },
     create: {
       name: 'Demo Staffing Co',
       code: DEMO_VENDOR_CODE,
-      email: 'staffing@Stitch.com',
+      email: 'staffing@stitch-ats.in',
       status: 'ACTIVE',
       contactName: 'Raghavendra Murthy',
       phone: '+91 98765 43210',
@@ -500,7 +495,6 @@ async function main() {
       submittedByUserId?: string
       createdBy?: string
     },
-    index: number
   ) {
     const requirement = data.jobCode ? reqByCode.get(data.jobCode) : undefined
     const skillsPayload = buildCandidateResumePayload(data.resumeSnippet)
@@ -554,16 +548,20 @@ async function main() {
       })
     }
 
-    await attachResume(row.id, data.resumeSnippet, index, {
-      primary: data.primarySkills,
-      secondary: data.secondarySkills,
+    await attachResume(row.id, {
+      name: data.name,
+      email: data.email,
+      role: data.role,
+      location: data.location,
+      snippet: data.resumeSnippet,
+      primarySkills: data.primarySkills,
+      secondarySkills: data.secondarySkills,
     })
     return row
   }
 
   console.log('Seeding candidates...')
   const candidateSeeds = new Map<string, DemoCandidateSeed>()
-  let idx = 0
   for (const c of DEMO_CANDIDATES) {
     candidateSeeds.set(c.email.toLowerCase(), c)
     await upsertCandidate(
@@ -572,8 +570,7 @@ async function main() {
         vendorId: c.vendorSubmitted ? vendor.id : undefined,
         submittedByUserId: c.vendorSubmitted ? vendorUserId : undefined,
         createdBy: c.vendorSubmitted ? vendorUserId : recruiterId,
-      },
-      idx++
+      }
     )
   }
 
@@ -607,8 +604,7 @@ async function main() {
         phone: '+91 90000 00000',
         location: 'India',
         resumeSnippet: snippet,
-      },
-      idx++
+      }
     )
   }
 
@@ -627,8 +623,7 @@ async function main() {
           jobCode: 'REQ28062026001',
           resumeSnippet:
             `${devUserName('CANDIDATE')} — self-applied via portal for Senior Software Engineer. TypeScript, React, Node.js.`,
-        },
-        idx++
+        }
       )
     }
   }
@@ -653,7 +648,7 @@ async function main() {
   console.log(`  Users: ${counts[0]} (password: ${DEV_PASSWORD})`)
   console.log(`  Requirements: ${counts[1]}`)
   console.log(`  Candidates: ${counts[2]} (${counts[3]} self-applied, ${counts[4]} vendor)`)
-  console.log('  Portal browse-only: karan.joshi@Stitch.com, meera.shah@Stitch.com')
+  console.log('  Portal browse-only: karan.joshi@stitch-ats.in, meera.shah@stitch-ats.in')
   console.log('  Re-run with --fresh to replace hiring data.\n')
 }
 
@@ -662,4 +657,7 @@ main()
     console.error(e)
     process.exit(1)
   })
-  .finally(() => prisma.$disconnect())
+  .finally(async () => {
+    await closePdfBrowser()
+    await prisma.$disconnect()
+  })

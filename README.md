@@ -40,4 +40,20 @@ Open http://localhost:3000.
 
 - Build: `npm run build:client`
 - Output: `dist`
-- Env: `VITE_API_BASE_URL=https://stitch-ats.onrender.com`
+- Leave `VITE_API_BASE_URL` empty — `functions/api` proxies `/api` to Render (see `API_ORIGIN` in `wrangler.toml`).
+
+**Production** — deploy from your production branch (e.g. `main`):
+
+```bash
+npm run deploy:pages
+```
+
+**Dev / preview** — Cloudflare Pages uses **Preview** as the dev stage. Deploy from a non-production branch (e.g. `dev`):
+
+```bash
+npm run deploy:pages:preview
+```
+
+Or connect the repo in the Cloudflare dashboard: set **Production branch** to `main` and push to any other branch for automatic preview URLs (`*.pages.dev`).
+
+Preview-specific API URL: edit `[env.preview.vars] API_ORIGIN` in `wrangler.toml`, or set `API_ORIGIN` under **Settings → Environment variables → Preview** in the dashboard.

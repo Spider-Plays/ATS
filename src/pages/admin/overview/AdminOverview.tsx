@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import { api } from '@/services/api'
+import { ApiError } from '@/lib/apiClient'
 import { useAuth } from '@/hooks/useAuth'
 import { canManageUsers } from '@/permissions'
 import { InterviewStatCard } from '@/components/interviews/InterviewStatCard'
@@ -58,31 +59,90 @@ function CatalogPill({ to, label, count }: { to: string; label: string; count: n
   )
 }
 
+function AdminLoadError({
+  message,
+  onRetry,
+}: {
+  message: string
+  onRetry: () => void
+}) {
+  return (
+    <div className="max-w-7xl mx-auto pb-10">
+      <div className="p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200 text-sm space-y-3">
+        <p className="font-bold">{message}</p>
+        <p className="text-amber-800/90 dark:text-amber-200/90">
+          If this is a new install, run{' '}
+          <code className="text-xs font-mono bg-amber-100/80 dark:bg-black/20 px-1 py-0.5 rounded">
+            npx prisma db push
+          </code>{' '}
+          in the <code className="text-xs font-mono">server</code> folder, then restart the API.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="px-4 py-2 rounded-lg bg-amber-800 text-white text-sm font-bold hover:bg-amber-900"
+        >
+          Retry
+        </button>
+      </div>
+    </div>
+  )
+}
+
 const AdminOverview = () => {
   const { user } = useAuth()
   const firstName = user?.name?.split(' ')[0] ?? 'there'
   const manageUsers = canManageUsers(user?.role)
 
-  const { data: users = [], isLoading: loadingUsers } = useQuery({
+  const usersQuery = useQuery({
     queryKey: ['users', 'admin-overview'],
     queryFn: api.users.list,
+    retry: 1,
   })
-  const { data: departments = [], isLoading: loadingDepts } = useQuery({
+  const departmentsQuery = useQuery({
     queryKey: ['department-catalog'],
     queryFn: api.departments.list,
+    retry: 1,
   })
-  const { data: clients = [], isLoading: loadingClients } = useQuery({
+  const clientsQuery = useQuery({
     queryKey: ['client-catalog'],
     queryFn: api.clients.list,
+    retry: 1,
   })
-  const { data: skills = [], isLoading: loadingSkills } = useQuery({
-    queryKey: ['skills'],
+  const skillsQuery = useQuery({
+    queryKey: ['skill-catalog'],
     queryFn: api.skills.list,
+    retry: 1,
   })
-  const { data: panelLevels = [], isLoading: loadingPanels } = useQuery({
+  const panelsQuery = useQuery({
     queryKey: ['interview-panels'],
     queryFn: api.interviewPanels.list,
+    retry: 1,
   })
+
+  const users = usersQuery.data ?? []
+  const departments = departmentsQuery.data ?? []
+  const clients = clientsQuery.data ?? []
+  const skills = skillsQuery.data ?? []
+  const panelLevels = panelsQuery.data ?? []
+
+  const queries = [usersQuery, departmentsQuery, clientsQuery, skillsQuery, panelsQuery]
+  const isLoading = queries.some((q) => q.isLoading)
+  const failedQuery = queries.find((q) => q.isError)
+  const errorMessage =
+    failedQuery?.error instanceof ApiError
+      ? failedQuery.error.message
+      : failedQuery?.error instanceof Error
+        ? failedQuery.error.message
+        : failedQuery?.isError
+          ? 'Could not load administration data'
+          : null
+
+  const refetchAll = () => {
+    for (const q of queries) {
+      void q.refetch()
+    }
+  }
 
   const metrics = useMemo(
     () =>
@@ -102,11 +162,12 @@ const AdminOverview = () => {
   const roles = useMemo(() => staffRoleCounts(users), [users])
   const recentTeam = useMemo(() => recentStaffUsers(users), [users])
 
-  const isLoading =
-    loadingUsers || loadingDepts || loadingClients || loadingSkills || loadingPanels
-
   if (isLoading) {
     return <AdminOverviewSkeleton />
+  }
+
+  if (errorMessage) {
+    return <AdminLoadError message={errorMessage} onRetry={refetchAll} />
   }
 
   const allClear = tasks.length === 0

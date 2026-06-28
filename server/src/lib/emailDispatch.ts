@@ -1,5 +1,6 @@
 import { prisma } from './prisma.js'
 import { logActivity } from '../services/activityLog.js'
+import { env } from '../config/env.js'
 import {
   sendAdminPasswordEmail,
   sendCandidateStatusEmail,
@@ -397,7 +398,7 @@ export function notifyOfferSubmittedForApproval(offer: {
         recipientName: u.name,
         subject: `Offer pending HR approval — ${candidate.name}`,
         headline: 'Offer pending approval',
-        body: `An offer for <strong>${candidate.name}</strong> is awaiting HR approval. <a href="${process.env.CLIENT_ORIGIN || 'http://localhost:3000'}/offers/${offer.id}">Review offer</a>`,
+        body: `An offer for <strong>${candidate.name}</strong> is awaiting HR approval. <a href="${env.clientOrigin}/offers/${offer.id}">Review offer</a>`,
       })
     )
   })())
@@ -419,7 +420,7 @@ export function notifyOfferPendingExecApproval(offer: {
         recipientName: u.name,
         subject: `Offer pending executive approval — ${candidate.name}`,
         headline: 'Executive approval required',
-        body: `High-compensation offer for <strong>${candidate.name}</strong> requires executive approval. <a href="${process.env.CLIENT_ORIGIN || 'http://localhost:3000'}/offers/${offer.id}">Review offer</a>`,
+        body: `High-compensation offer for <strong>${candidate.name}</strong> requires executive approval. <a href="${env.clientOrigin}/offers/${offer.id}">Review offer</a>`,
       })
     )
   })())
@@ -441,7 +442,7 @@ export function notifyOfferApproved(offer: {
         recipientName: u.name,
         subject: `Offer approved — ${candidate.name}`,
         headline: 'Offer approved',
-        body: `The offer for <strong>${candidate.name}</strong> has been approved and is ready to send. <a href="${process.env.CLIENT_ORIGIN || 'http://localhost:3000'}/offers/${offer.id}">View offer</a>`,
+        body: `The offer for <strong>${candidate.name}</strong> has been approved and is ready to send. <a href="${env.clientOrigin}/offers/${offer.id}">View offer</a>`,
       })
     )
   })())
@@ -465,7 +466,7 @@ export function notifyOfferRejected(offer: {
         recipientName: u.name,
         subject: `Offer rejected — ${candidate.name}`,
         headline: 'Offer rejected',
-        body: `The offer for <strong>${candidate.name}</strong> was rejected and returned to draft.${reason} <a href="${process.env.CLIENT_ORIGIN || 'http://localhost:3000'}/offers/${offer.id}">View offer</a>`,
+        body: `The offer for <strong>${candidate.name}</strong> was rejected and returned to draft.${reason} <a href="${env.clientOrigin}/offers/${offer.id}">View offer</a>`,
       })
     )
   })())

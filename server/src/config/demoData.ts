@@ -1,4 +1,4 @@
-/** Demo dataset for `npm run db:seed-demo`. Demo emails use @Stitch.com — safe to delete/re-seed. */
+/** Demo dataset for `npm run db:seed-demo`. Demo emails use @stitch-ats.in — safe to delete/re-seed. */
 
 import { DEV_PASSWORD, devUserName } from './devUsers.js'
 
@@ -13,44 +13,44 @@ export const DEMO_RESUME_URLS = [
 
 export const DEMO_PORTAL_USERS = [
   {
-    email: 'aisha.mehta@Stitch.com',
+    email: 'aisha.mehta@stitch-ats.in',
     name: 'Aisha Mehta',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026001',
   },
   {
-    email: 'rohan.kapoor@Stitch.com',
+    email: 'rohan.kapoor@stitch-ats.in',
     name: 'Rohan Kapoor',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026002',
   },
   {
-    email: 'neha.iyer@Stitch.com',
+    email: 'neha.iyer@stitch-ats.in',
     name: 'Neha Iyer',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026003',
   },
   {
-    email: 'vikram.desai@Stitch.com',
+    email: 'vikram.desai@stitch-ats.in',
     name: 'Vikram Desai',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026004',
   },
   {
-    email: 'priya.nair@Stitch.com',
+    email: 'priya.nair@stitch-ats.in',
     name: 'Priya Nair',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026005',
   },
   /** Logged-in candidate account with no application yet (portal shows “apply to get started”). */
   {
-    email: 'karan.joshi@Stitch.com',
+    email: 'karan.joshi@stitch-ats.in',
     name: 'Karan Joshi',
     password: DEV_PASSWORD,
     applyToJobCode: null,
   },
   {
-    email: 'meera.shah@Stitch.com',
+    email: 'meera.shah@stitch-ats.in',
     name: 'Meera Shah',
     password: DEV_PASSWORD,
     applyToJobCode: null,
@@ -232,7 +232,7 @@ export type DemoCandidateSeed = {
 
 export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
   {
-    email: 'arjun.pillai@Stitch.com',
+    email: 'arjun.pillai@stitch-ats.in',
     name: 'Arjun Pillai',
     role: 'Full Stack Developer',
     status: 'SCREENING',
@@ -247,7 +247,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Arjun Pillai — Full Stack Developer with 6 years experience. Skills: TypeScript, React, Node.js, PostgreSQL, REST APIs, AWS, Docker.',
   },
   {
-    email: 'sneha.reddy@Stitch.com',
+    email: 'sneha.reddy@stitch-ats.in',
     name: 'Sneha Reddy',
     role: 'Backend Engineer',
     status: 'SHORTLISTED',
@@ -263,7 +263,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
   },
   // —— Senior SWE pipeline: one realistic profile per kanban stage ——
   {
-    email: 'kavitha.narasimhan@Stitch.com',
+    email: 'kavitha.narasimhan@stitch-ats.in',
     name: 'Kavitha Narasimhan',
     role: 'Senior Software Engineer',
     status: 'SOURCED',
@@ -279,7 +279,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Kavitha Narasimhan — Senior engineer at Infosys, 7 years building React/Node products. Led migration to TypeScript microservices on AWS.',
   },
   {
-    email: 'priyanka.sharma@Stitch.com',
+    email: 'priyanka.sharma@stitch-ats.in',
     name: 'Priyanka Sharma',
     role: 'Senior Software Engineer',
     status: 'OFFER',
@@ -297,7 +297,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     offerStatus: 'SENT',
   },
   {
-    email: 'vikram.singh@Stitch.com',
+    email: 'vikram.singh@stitch-ats.in',
     name: 'Vikram Singh',
     role: 'Senior Software Engineer',
     status: 'HIRED',
@@ -315,7 +315,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     offerStatus: 'ACCEPTED',
   },
   {
-    email: 'divya.menon@Stitch.com',
+    email: 'divya.menon@stitch-ats.in',
     name: 'Divya Menon',
     role: 'Senior Software Engineer',
     status: 'JOINED',
@@ -334,7 +334,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     offerStatus: 'ACCEPTED',
   },
   {
-    email: 'rahul.verma@Stitch.com',
+    email: 'rahul.verma@stitch-ats.in',
     name: 'Rahul Verma',
     role: 'Software Engineer',
     status: 'REJECTED',
@@ -350,7 +350,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Rahul Verma — Wipro, 3 years Java/Spring. Limited frontend and Node.js exposure.',
   },
   {
-    email: 'manish.khanna@Stitch.com',
+    email: 'manish.khanna@stitch-ats.in',
     name: 'Manish Khanna',
     role: 'Software Engineer',
     status: 'INTERVIEW',
@@ -367,7 +367,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
   },
   // —— DevOps pipeline coverage ——
   {
-    email: 'aditya.kulkarni@Stitch.com',
+    email: 'aditya.kulkarni@stitch-ats.in',
     name: 'Aditya Kulkarni',
     role: 'DevOps Engineer',
     status: 'SHORTLISTED',
@@ -382,7 +382,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Aditya Kulkarni — TCS Digital, 5 years platform engineering. Kubernetes, Terraform, AWS, GitOps with Argo CD.',
   },
   {
-    email: 'meera.iyer@Stitch.com',
+    email: 'meera.iyer@stitch-ats.in',
     name: 'Meera Iyer',
     role: 'Site Reliability Engineer',
     status: 'INTERVIEW',
@@ -398,7 +398,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     interviewProgress: 'l1-scheduled',
   },
   {
-    email: 'sanjay.patel@Stitch.com',
+    email: 'sanjay.patel@stitch-ats.in',
     name: 'Sanjay Patel',
     role: 'DevOps Engineer',
     status: 'OFFER',
@@ -415,7 +415,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     offerStatus: 'SENT',
   },
   {
-    email: 'lakshmi.rao@Stitch.com',
+    email: 'lakshmi.rao@stitch-ats.in',
     name: 'Lakshmi Rao',
     role: 'Platform Engineer',
     status: 'HIRED',
@@ -433,7 +433,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     offerStatus: 'ACCEPTED',
   },
   {
-    email: 'harish.naidu@Stitch.com',
+    email: 'harish.naidu@stitch-ats.in',
     name: 'Harish Naidu',
     role: 'DevOps Engineer',
     status: 'JOINED',
@@ -450,7 +450,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     offerStatus: 'ACCEPTED',
   },
   {
-    email: 'nitin.gupta@Stitch.com',
+    email: 'nitin.gupta@stitch-ats.in',
     name: 'Nitin Gupta',
     role: 'Systems Administrator',
     status: 'REJECTED',
@@ -467,7 +467,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
   },
   // —— QA & Java roles ——
   {
-    email: 'shruti.desai@Stitch.com',
+    email: 'shruti.desai@stitch-ats.in',
     name: 'Shruti Desai',
     role: 'SDET',
     status: 'APPLIED',
@@ -482,7 +482,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Shruti Desai — Mindtree SDET, 4 years. Selenium, Java, REST API automation, Cypress, Postman.',
   },
   {
-    email: 'anil.reddy@Stitch.com',
+    email: 'anil.reddy@stitch-ats.in',
     name: 'Anil Reddy',
     role: 'Java Backend Engineer',
     status: 'SCREENING',
@@ -497,7 +497,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Anil Reddy — HDFC Bank, 6 years Java microservices. Spring Boot, PostgreSQL, Kafka event streaming.',
   },
   {
-    email: 'fatima.ansari@Stitch.com',
+    email: 'fatima.ansari@stitch-ats.in',
     name: 'Fatima Ansari',
     role: 'Product Manager',
     status: 'OFFER',
@@ -514,7 +514,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     offerStatus: 'SENT',
   },
   {
-    email: 'rohan.jadhav@Stitch.com',
+    email: 'rohan.jadhav@stitch-ats.in',
     name: 'Rohan Jadhav',
     role: 'Platform Engineer',
     status: 'SOURCED',
@@ -530,7 +530,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     vendorSubmitted: true,
   },
   {
-    email: 'pooja.shah@Stitch.com',
+    email: 'pooja.shah@stitch-ats.in',
     name: 'Pooja Shah',
     role: 'SRE',
     status: 'SCREENING',
@@ -546,7 +546,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     vendorSubmitted: true,
   },
   {
-    email: 'jayesh.mehta@Stitch.com',
+    email: 'jayesh.mehta@stitch-ats.in',
     name: 'Jayesh Mehta',
     role: 'DevOps Consultant',
     status: 'APPLIED',
@@ -562,7 +562,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     vendorSubmitted: true,
   },
   {
-    email: 'esha.banerjee@Stitch.com',
+    email: 'esha.banerjee@stitch-ats.in',
     name: 'Esha Banerjee',
     role: 'UX Designer',
     status: 'INTERVIEW',
@@ -578,7 +578,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     interviewProgress: 'l1-scheduled',
   },
   {
-    email: 'tarun.bhatia@Stitch.com',
+    email: 'tarun.bhatia@stitch-ats.in',
     name: 'Tarun Bhatia',
     role: 'Product Designer',
     status: 'HIRED',
@@ -595,7 +595,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     offerStatus: 'ACCEPTED',
   },
   {
-    email: 'aadhya.krishnan@Stitch.com',
+    email: 'aadhya.krishnan@stitch-ats.in',
     name: 'Aadhya Krishnan',
     role: 'Product Designer',
     status: 'JOINED',
@@ -612,7 +612,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     offerStatus: 'ACCEPTED',
   },
   {
-    email: 'anita.krishnan@Stitch.com',
+    email: 'anita.krishnan@stitch-ats.in',
     name: 'Anita Krishnan',
     role: 'Data Analyst',
     status: 'SHORTLISTED',
@@ -627,7 +627,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Anita Krishnan — Data analyst, SQL, Python, Tableau, Excel, hiring analytics and reporting.',
   },
   {
-    email: 'chaitanya.joshi@Stitch.com',
+    email: 'chaitanya.joshi@stitch-ats.in',
     name: 'Chaitanya Joshi',
     role: 'Analytics Engineer',
     status: 'SCREENING',
@@ -643,7 +643,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     vendorSubmitted: true,
   },
   {
-    email: 'yogesh.thakur@Stitch.com',
+    email: 'yogesh.thakur@stitch-ats.in',
     name: 'Yogesh Thakur',
     role: 'BI Analyst',
     status: 'REJECTED',
@@ -658,7 +658,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Yogesh Thakur — BI analyst, Excel, SQL, basic reporting for retail analytics.',
   },
   {
-    email: 'oviya.ramesh@Stitch.com',
+    email: 'oviya.ramesh@stitch-ats.in',
     name: 'Oviya Ramesh',
     role: 'Frontend Developer',
     status: 'SOURCED',
@@ -673,7 +673,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Oviya Ramesh — Frontend developer at Tata Elxsi, React, TypeScript, CSS, Next.js, REST APIs.',
   },
   {
-    email: 'raj.malhotra@Stitch.com',
+    email: 'raj.malhotra@stitch-ats.in',
     name: 'Raj Malhotra',
     role: 'Engineering Manager',
     status: 'SOURCED',
@@ -688,7 +688,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Raj Malhotra — Engineering manager, system design, TypeScript, team leadership, agile.',
   },
   {
-    email: 'shreya.pandey@Stitch.com',
+    email: 'shreya.pandey@stitch-ats.in',
     name: 'Shreya Pandey',
     role: 'QA Engineer',
     status: 'SOURCED',
@@ -703,7 +703,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Shreya Pandey — QA engineer at HCLTech, Selenium, Jest, API testing, Cypress, Postman.',
   },
   {
-    email: 'bharat.choudhury@Stitch.com',
+    email: 'bharat.choudhury@stitch-ats.in',
     name: 'Bharat Choudhury',
     role: 'Mobile Developer',
     status: 'APPLIED',
@@ -718,7 +718,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
       'Bharat Choudhury — Mobile developer at Dream11, React Native, TypeScript, Node.js, REST APIs.',
   },
   {
-    email: 'gauri.kulkarni@Stitch.com',
+    email: 'gauri.kulkarni@stitch-ats.in',
     name: 'Gauri Kulkarni',
     role: 'Technical Writer',
     status: 'SCREENING',

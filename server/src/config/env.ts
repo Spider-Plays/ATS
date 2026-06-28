@@ -16,15 +16,46 @@ function resolveJwtSecret(): string {
   return secret || 'dev-secret'
 }
 
+function parseClientOrigins(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((value) => value.trim().replace(/\/$/, ''))
+    .filter(Boolean)
+}
+
+/** Single app URL for email links — not the full comma-separated CORS list. */
+function resolvePrimaryClientOrigin(origins: string[]): string {
+  if (origins.length === 0) return 'http://localhost:3000'
+  if (origins.length === 1) return origins[0]
+
+  const isLocal = (origin: string) =>
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+
+  const httpsOrigins = origins.filter(
+    (origin) => origin.startsWith('https://') && !isLocal(origin)
+  )
+
+  if (httpsOrigins.length > 0) {
+    // Prefer the production custom domain over Cloudflare preview URLs.
+    const customDomain = httpsOrigins.find(
+      (origin) => !/\.pages\.dev$/.test(origin) && !/\.workers\.dev$/.test(origin)
+    )
+    return customDomain ?? httpsOrigins[0]
+  }
+
+  const local = origins.find(isLocal)
+  return local ?? origins[0]
+}
+
+const clientOrigins = parseClientOrigins(process.env.CLIENT_ORIGIN || 'http://localhost:3000')
+const appUrl = process.env.APP_URL?.trim().replace(/\/$/, '')
+
 export const env = {
   isProduction,
   port: Number(process.env.PORT) || 4000,
   jwtSecret: resolveJwtSecret(),
-  clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
-  clientOrigins: (process.env.CLIENT_ORIGIN || 'http://localhost:3000')
-    .split(',')
-    .map((value) => value.trim().replace(/\/$/, ''))
-    .filter(Boolean),
+  clientOrigin: appUrl || resolvePrimaryClientOrigin(clientOrigins),
+  clientOrigins,
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'Stitch ATS <onboarding@resend.dev>',
   appName: process.env.APP_NAME || 'Stitch ATS',
