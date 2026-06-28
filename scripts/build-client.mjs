@@ -10,3 +10,4 @@ const distDir = path.join(root, 'dist')
 rmSync(distDir, { recursive: true, force: true })
 
 execSync('vite build', { cwd: root, stdio: 'inherit' })
+execSync('node scripts/strip-dist-redirects.mjs --pages', { cwd: root, stdio: 'inherit' })

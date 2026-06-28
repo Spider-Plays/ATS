@@ -11,7 +11,7 @@
         "build:client": "node scripts/build-client.mjs",
         "deploy:pages": "npm run build:client && node scripts/strip-dist-redirects.mjs --pages && npx wrangler pages deploy",
         "deploy:pages:preview": "npm run build:client && node scripts/strip-dist-redirects.mjs --pages && npx wrangler pages deploy --branch dev",
-        "deploy:worker": "node scripts/strip-dist-redirects.mjs && npx wrangler deploy",
+        "deploy:worker": "node scripts/strip-dist-redirects.mjs --pages",
         "build:client:check": "tsc && vite build",
         "db:setup": "npm run db:setup --prefix server",
         "db:clear": "npm run db:clear --prefix server",
