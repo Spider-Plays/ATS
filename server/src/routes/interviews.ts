@@ -4,7 +4,12 @@ import { mapInterview } from '../utils/mappers.js'
 import { requireAuth, requireActiveUser, requireRoles } from '../middleware/auth.js'
 import { logActivity, logCandidateInterviewActivity } from '../services/activityLog.js'
 import { INTERNAL_ROLES, INTERVIEW_SCHEDULERS } from '../lib/roles.js'
-import { sendInterviewScheduledEmail, sendInterviewUpdatedEmail } from '../services/email.js'
+import {
+  notifyInterviewCancelled,
+  notifyInterviewScheduled,
+  notifyInterviewUpdated,
+  prepareInterviewCalendar,
+} from '../lib/emailDispatch.js'
 import {
   assertCanScheduleStage,
   assertCandidateInInterviewStage,
@@ -26,6 +31,33 @@ function interviewEndTime(scheduledAt: Date, durationMinutes: number | null): Da
   const end = new Date(scheduledAt)
   end.setMinutes(end.getMinutes() + (durationMinutes ?? 60))
   return end
+}
+
+function interviewDetailsWillChange(
+  body: Record<string, unknown>,
+  existing: {
+    scheduledAt: Date
+    meetingLink: string | null
+    type: string
+    interviewerIds: string
+    duration: number | null
+    location: string | null
+    description: string | null
+  }
+): boolean {
+  if (body.scheduledAt !== undefined && new Date(String(body.scheduledAt)).getTime() !== existing.scheduledAt.getTime()) {
+    return true
+  }
+  if (body.meetingLink !== undefined && (body.meetingLink || null) !== existing.meetingLink) return true
+  if (body.type !== undefined && body.type !== existing.type) return true
+  if (body.duration !== undefined && body.duration !== existing.duration) return true
+  if (body.location !== undefined && (body.location || null) !== existing.location) return true
+  if (body.description !== undefined && (body.description || null) !== existing.description) return true
+  if (body.interviewerIds !== undefined) {
+    const next = JSON.stringify(body.interviewerIds)
+    if (next !== existing.interviewerIds) return true
+  }
+  return false
 }
 
 async function markPastScheduledAsCompleted(
@@ -228,19 +260,23 @@ async function sendScheduledAndRespond(
   body: Record<string, unknown>,
   req: import('express').Request & { auth?: { userId: string; role: string } }
 ) {
+  const synced = await prepareInterviewCalendar(row)
 
-  const candidate = await prisma.candidate.findUnique({
-    where: { id: String(body.candidateId) },
+  notifyInterviewScheduled({
+    id: synced.id,
+    type: synced.type,
+    scheduledAt: synced.scheduledAt,
+    meetingLink: synced.meetingLink,
+    location: synced.location,
+    description: synced.description,
+    duration: synced.duration,
+    interviewerIds: synced.interviewerIds,
+    candidateId: synced.candidateId,
+    requirementId: synced.requirementId,
+    calendarEventId: synced.calendarEventId,
+    calendarSequence: synced.calendarSequence,
+    planStageId: synced.planStageId,
   })
-  if (candidate?.email) {
-    await sendInterviewScheduledEmail({
-      to: candidate.email,
-      candidateName: candidate.name,
-      type: row.type,
-      scheduledAt: row.scheduledAt.toLocaleString(),
-      meetingLink: row.meetingLink ?? undefined,
-    })
-  }
 
   const stage = row.planStageId
     ? await prisma.interviewPlanStage.findUnique({ where: { id: row.planStageId } })
@@ -268,7 +304,7 @@ async function sendScheduledAndRespond(
     },
   })
 
-  const [enriched] = await enrichInterviews([row])
+  const [enriched] = await enrichInterviews([synced])
   res.status(201).json(enriched)
 }
 
@@ -353,22 +389,39 @@ router.patch('/:id', requireRoles(...INTERVIEW_SCHEDULERS), async (req, res) => 
   if (body.location !== undefined) data.location = body.location || null
   if (body.description !== undefined) data.description = body.description || null
 
+  if (interviewDetailsWillChange(body, existing)) {
+    data.calendarSequence = existing.calendarSequence + 1
+  }
+
   const row = await prisma.interview.update({ where: { id: req.params.id }, data })
 
   const rescheduled =
     body.scheduledAt !== undefined &&
     new Date(body.scheduledAt).getTime() !== existing.scheduledAt.getTime()
 
-  const candidate = await prisma.candidate.findUnique({ where: { id: row.candidateId } })
-  if (candidate?.email && (rescheduled || body.meetingLink !== undefined || body.type !== undefined)) {
-    await sendInterviewUpdatedEmail({
-      to: candidate.email,
-      candidateName: candidate.name,
-      type: row.type,
-      scheduledAt: row.scheduledAt.toLocaleString(),
-      meetingLink: row.meetingLink ?? undefined,
-      rescheduled,
-    })
+  const interviewDetailsChanged = interviewDetailsWillChange(body, existing)
+
+  let synced = row
+  if (interviewDetailsChanged) {
+    synced = await prepareInterviewCalendar(row)
+    notifyInterviewUpdated(
+      {
+        id: synced.id,
+        type: synced.type,
+        scheduledAt: synced.scheduledAt,
+        meetingLink: synced.meetingLink,
+        location: synced.location,
+        description: synced.description,
+        duration: synced.duration,
+        interviewerIds: synced.interviewerIds,
+        candidateId: synced.candidateId,
+        requirementId: synced.requirementId,
+        calendarEventId: synced.calendarEventId,
+        calendarSequence: synced.calendarSequence,
+        planStageId: synced.planStageId,
+      },
+      { rescheduled }
+    )
   }
 
   const stage = row.planStageId
@@ -399,7 +452,7 @@ router.patch('/:id', requireRoles(...INTERVIEW_SCHEDULERS), async (req, res) => 
     },
   })
 
-  const [enriched] = await enrichInterviews([row])
+  const [enriched] = await enrichInterviews([synced])
   res.json(enriched)
 })
 
@@ -427,6 +480,25 @@ router.patch('/:id/status', requireRoles(...INTERVIEW_SCHEDULERS), async (req, r
 
   const status = String(req.body.status ?? '')
   if (status === 'CANCELLED') {
+    const cancelledRow = await prisma.interview.update({
+      where: { id: row.id },
+      data: { calendarSequence: row.calendarSequence + 1 },
+    })
+    notifyInterviewCancelled({
+      id: cancelledRow.id,
+      type: cancelledRow.type,
+      scheduledAt: cancelledRow.scheduledAt,
+      meetingLink: cancelledRow.meetingLink,
+      location: cancelledRow.location,
+      description: cancelledRow.description,
+      duration: cancelledRow.duration,
+      interviewerIds: cancelledRow.interviewerIds,
+      candidateId: cancelledRow.candidateId,
+      requirementId: cancelledRow.requirementId,
+      calendarEventId: cancelledRow.calendarEventId,
+      calendarSequence: cancelledRow.calendarSequence,
+      planStageId: cancelledRow.planStageId,
+    })
     await logCandidateInterviewActivity({
       candidateId: row.candidateId,
       interviewId: row.id,

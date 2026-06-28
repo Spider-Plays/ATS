@@ -30,6 +30,10 @@ import {
   portalJobClosedReason,
   resolvePortalJobStatus,
 } from '../lib/portalApplicationStatus.js'
+import { assertCanRespondToOffer } from '../lib/offerPermissions.js'
+import { appendOfferHistory, loadOfferLetterContext } from '../lib/offerActions.js'
+import { notifyOfferStatusChange } from '../lib/emailDispatch.js'
+import { renderHtmlToPdf } from '../lib/offerPdf.js'
 
 const PORTAL_UPDATE_ACTIONS = [
   'APPLIED',
@@ -353,8 +357,8 @@ router.post('/profile/resume', handleUploadResume, async (req, res) => {
     data: {
       resumeFileName: req.file.originalname,
       resumeMimeType: mime,
-      resumeUrl: stored.url || null,
-      resumeStorageKey: stored.storageKey || null,
+      resumeUrl: null,
+      resumeStorageKey: null,
       resumeText: resumePayload.resumeText,
       primarySkills: resumePayload.primarySkills,
       secondarySkills: resumePayload.secondarySkills,
@@ -689,9 +693,164 @@ router.get('/me', async (req, res) => {
     requirementHidden: !!linkedRequirement && !requirementVisible,
     requirementMessage,
     interviews: interviews.map(mapInterview),
-    offers: offers.map(mapOffer),
+    offers: offers.map(mapOffer).filter((o) =>
+      ['SENT', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'].includes(o.status)
+    ),
     user: { name: user.name, email: user.email },
   })
+})
+
+async function assertPortalOfferAccess(
+  userEmail: string,
+  offerId: string
+): Promise<
+  | { offer: Awaited<ReturnType<typeof prisma.offer.findUnique>> & object; candidate: { email: string } }
+  | { error: string; status: number }
+> {
+  const offer = await prisma.offer.findUnique({ where: { id: offerId } })
+  if (!offer) return { error: 'Not found', status: 404 }
+  const candidate = await prisma.candidate.findUnique({ where: { id: offer.candidateId } })
+  if (!candidate || candidate.email.toLowerCase() !== userEmail.toLowerCase()) {
+    return { error: 'Forbidden', status: 403 }
+  }
+  return { offer, candidate }
+}
+
+router.get('/offers/:id', async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.auth!.userId } })
+  if (!user) return res.status(404).json({ error: 'User not found' })
+
+  const access = await assertPortalOfferAccess(user.email, req.params.id)
+  if ('error' in access && access.error) {
+    return res.status(access.status).json({ error: access.error })
+  }
+  if (!('offer' in access)) return res.status(500).json({ error: 'Unexpected error' })
+
+  const { offer } = access
+  if (!['SENT', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'].includes(offer.status)) {
+    return res.status(403).json({ error: 'Offer not available' })
+  }
+
+  const ctx = await loadOfferLetterContext(offer.id)
+  res.json({
+    offer: mapOffer(offer),
+    letterHtml: ctx?.letterHtml ?? offer.letterHtml,
+  })
+})
+
+router.get('/offers/:id/letter/pdf', async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.auth!.userId } })
+  if (!user) return res.status(404).json({ error: 'User not found' })
+
+  const access = await assertPortalOfferAccess(user.email, req.params.id)
+  if ('error' in access && access.error) {
+    return res.status(access.status).json({ error: access.error })
+  }
+  if (!('offer' in access)) return res.status(500).json({ error: 'Unexpected error' })
+
+  const { offer, candidate } = access
+  if (!['SENT', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'].includes(offer.status)) {
+    return res.status(403).json({ error: 'Offer not available' })
+  }
+
+  const ctx = await loadOfferLetterContext(offer.id)
+  if (!ctx?.letterHtml) return res.status(404).json({ error: 'Letter not found' })
+
+  const pdf = await renderHtmlToPdf(ctx.letterHtml)
+  const safeName = candidate.name.replace(/[^\w.-]+/g, '_').slice(0, 80)
+  res.setHeader('Content-Type', 'application/pdf')
+  res.setHeader('Content-Disposition', `attachment; filename="offer-${safeName}.pdf"`)
+  res.send(pdf)
+})
+
+router.post('/offers/:id/accept', async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.auth!.userId } })
+  if (!user) return res.status(404).json({ error: 'User not found' })
+
+  const access = await assertPortalOfferAccess(user.email, req.params.id)
+  if ('error' in access && access.error) {
+    return res.status(access.status).json({ error: access.error })
+  }
+  if (!('offer' in access)) return res.status(500).json({ error: 'Unexpected error' })
+
+  const { offer } = access
+  try {
+    assertCanRespondToOffer(offer)
+  } catch (e) {
+    return res.status(400).json({ error: e instanceof Error ? e.message : 'Cannot accept' })
+  }
+
+  const row = await prisma.offer.update({
+    where: { id: offer.id },
+    data: {
+      status: 'ACCEPTED',
+      respondedAt: new Date(),
+      respondedBy: 'CANDIDATE',
+      history: appendOfferHistory(
+        offer.history,
+        'ACCEPTED',
+        'Offer accepted by candidate via portal',
+        req.auth!.userId
+      ),
+      updatedAt: new Date(),
+    },
+  })
+
+  notifyOfferStatusChange(row, 'ACCEPTED')
+  await logActivity({
+    entityType: 'OFFER',
+    entityId: row.id,
+    action: 'ACCEPTED',
+    performedBy: req.auth!.userId,
+    performerRole: 'CANDIDATE',
+    details: { via: 'portal' },
+  })
+  res.json(mapOffer(row))
+})
+
+router.post('/offers/:id/decline', async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.auth!.userId } })
+  if (!user) return res.status(404).json({ error: 'User not found' })
+
+  const access = await assertPortalOfferAccess(user.email, req.params.id)
+  if ('error' in access && access.error) {
+    return res.status(access.status).json({ error: access.error })
+  }
+  if (!('offer' in access)) return res.status(500).json({ error: 'Unexpected error' })
+
+  const { offer } = access
+  try {
+    assertCanRespondToOffer(offer)
+  } catch (e) {
+    return res.status(400).json({ error: e instanceof Error ? e.message : 'Cannot decline' })
+  }
+
+  const row = await prisma.offer.update({
+    where: { id: offer.id },
+    data: {
+      status: 'DECLINED',
+      respondedAt: new Date(),
+      respondedBy: 'CANDIDATE',
+      history: appendOfferHistory(
+        offer.history,
+        'DECLINED',
+        'Offer declined by candidate via portal',
+        req.auth!.userId
+      ),
+      updatedAt: new Date(),
+    },
+  })
+
+  notifyOfferStatusChange(row, 'DECLINED')
+  await logActivity({
+    entityType: 'OFFER',
+    entityId: row.id,
+    action: 'DECLINED',
+    performedBy: req.auth!.userId,
+    performerRole: 'CANDIDATE',
+    details: { via: 'portal' },
+  })
+  res.json(mapOffer(row))
 })
 
 export default router

@@ -176,9 +176,9 @@ export function isAdminRole(role?: string | null): boolean {
   return role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN
 }
 
-/** Super Admin only — create/edit/delete users, assign roles, reset passwords. */
+/** Super Admin and Admin — create/edit/delete users, assign roles, reset passwords. */
 export function canManageUsers(role?: string | null): boolean {
-  return isSuperAdminRole(role)
+  return isSuperAdminRole(role) || role === ROLES.ADMIN
 }
 
 /** Admin hub (catalogs, role access, panels) — Admin and Super Admin. */
@@ -462,6 +462,34 @@ export const INTERVIEW_PLAN_EDIT_ROLES = [
 ] as const
 
 export const OFFER_MANAGER_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR_HEAD, ROLES.HR_MANAGER] as const
+
+export const OFFER_HR_APPROVAL_ROLES = [ROLES.HR_HEAD, ROLES.SUPER_ADMIN, ROLES.ADMIN] as const
+
+export const OFFER_EXEC_APPROVAL_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN] as const
+
+export function canApproveOfferHr(role?: string | null): boolean {
+  return OFFER_HR_APPROVAL_ROLES.includes(role as (typeof OFFER_HR_APPROVAL_ROLES)[number])
+}
+
+export function canApproveOfferExec(role?: string | null): boolean {
+  return OFFER_EXEC_APPROVAL_ROLES.includes(role as (typeof OFFER_EXEC_APPROVAL_ROLES)[number])
+}
+
+export function canApproveOfferDirectly(role?: string | null): boolean {
+  return role === ROLES.HR_HEAD || role === ROLES.SUPER_ADMIN
+}
+
+export function requiresHrHeadDelegationForOffer(role?: string | null): boolean {
+  return role === ROLES.ADMIN
+}
+
+export function requiresExecDelegationForOffer(role?: string | null): boolean {
+  return role === ROLES.ADMIN
+}
+
+export function canViewOfferCompensation(role?: string | null): boolean {
+  return OFFER_MANAGER_ROLES.includes(role as (typeof OFFER_MANAGER_ROLES)[number])
+}
 
 export function canScheduleInterviews(role?: string): boolean {
   return !!role && (INTERVIEW_SCHEDULER_ROLES as readonly string[]).includes(role)

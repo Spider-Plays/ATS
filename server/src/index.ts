@@ -3,6 +3,7 @@ import { env } from './config/env.js'
 import { assertPrismaClientModels, prisma } from './lib/prisma.js'
 import { ensureCandidateMilestoneColumns } from './lib/ensureCandidateMilestoneColumns.js'
 import { ensureReferralColumns } from './lib/ensureReferralColumns.js'
+import { startInterviewReminderJob } from './lib/emailDispatch.js'
 
 try {
   assertPrismaClientModels()
@@ -24,6 +25,7 @@ const server = app.listen(env.port, () => {
       try {
         await ensureCandidateMilestoneColumns()
         await ensureReferralColumns()
+        startInterviewReminderJob()
       } catch (e) {
         console.warn(
           'Could not verify optional DB columns:',

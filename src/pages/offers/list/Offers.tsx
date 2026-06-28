@@ -36,7 +36,7 @@ const Offers = () => {
                     requirement?.title,
                     requirement?.department,
                     offer.status,
-                    offer.baseSalary,
+                    offer.annualCtc ?? offer.baseSalary,
                 ],
                 searchTerm
             )
@@ -46,7 +46,9 @@ const Offers = () => {
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'DRAFT': return 'bg-slate-100 text-slate-600 border-slate-200'
+            case 'PENDING_HR_APPROVAL':
             case 'APPROVAL_PENDING': return 'bg-amber-100 text-amber-700 border-amber-200'
+            case 'PENDING_EXEC_APPROVAL': return 'bg-orange-100 text-orange-700 border-orange-200'
             case 'APPROVED': return 'bg-blue-100 text-blue-700 border-blue-200'
             case 'SENT': return 'bg-purple-100 text-purple-700 border-purple-200'
             case 'NEGOTIATION': return 'bg-orange-100 text-orange-700 border-orange-200'

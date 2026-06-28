@@ -234,14 +234,16 @@ const CandidateDashboard = () => {
           ) : (
             <ul className="space-y-3">
               {offers.map((o) => (
-                <li
-                  key={o.id}
-                  className="p-4 rounded-xl border border-slate-100 bg-slate-50 text-sm"
-                >
-                  <p className="font-bold text-slate-900">
-                    Base: {o.baseSalary.toLocaleString()}
-                  </p>
-                  <p className="text-slate-500 text-xs mt-1">Status: {o.status}</p>
+                <li key={o.id}>
+                  <Link
+                    to={`/portal/offers/${o.id}`}
+                    className="block p-4 rounded-xl border border-slate-100 bg-slate-50 text-sm hover:border-[#0f3d38]/30 transition-colors"
+                  >
+                    <p className="font-bold text-slate-900">
+                      CTC: Rs. {(o.annualCtc ?? o.baseSalary).toLocaleString('en-IN')}/-
+                    </p>
+                    <p className="text-slate-500 text-xs mt-1">Status: {o.status.replace(/_/g, ' ')}</p>
+                  </Link>
                 </li>
               ))}
             </ul>

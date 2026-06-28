@@ -360,6 +360,9 @@ export function CandidateInterviewScheduleForm({
             {errors.meetingLink && (
               <p className="text-xs font-bold text-red-500">{errors.meetingLink.message}</p>
             )}
+            <p className="text-xs text-primary/50 dark:text-white/50">
+              Leave blank to auto-create a Teams link. Calendar invites are emailed to everyone on the interview.
+            </p>
           </div>
         </div>
 

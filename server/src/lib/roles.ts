@@ -27,6 +27,10 @@ export const REQ_APPROVERS = ['HR_HEAD', 'SUPER_ADMIN', 'ADMIN'] as const
 
 export const OFFER_ROLES = ['SUPER_ADMIN', 'ADMIN', 'HR_HEAD', 'HR_MANAGER', 'TEAM_LEAD'] as const
 
+export const OFFER_HR_APPROVERS = ['HR_HEAD', 'SUPER_ADMIN', 'ADMIN'] as const
+
+export const OFFER_EXEC_APPROVERS = ['SUPER_ADMIN', 'ADMIN'] as const
+
 export const INTERVIEW_SCHEDULERS = [
   'SUPER_ADMIN',
   'ADMIN',

@@ -23,8 +23,7 @@ firebase.json
 .firebaserc
 firestore.rules
 
-# InsForge & AI agent skills
-.insforge
+# AI agent skills (local tooling)
 .agent
 .agents
 .augment

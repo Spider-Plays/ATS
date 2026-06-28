@@ -24,6 +24,7 @@ import {
 } from '../lib/resumeStorage.js'
 import { isReferralPortalRole } from '../lib/referralPortalRoles.js'
 import { ensureUserReferralCode } from '../lib/referralCode.js'
+import { notifyNewCandidate, notifyReferralSubmitted } from '../lib/emailDispatch.js'
 
 const router = Router()
 
@@ -471,6 +472,23 @@ router.post('/positions/:id/submit', async (req, res) => {
     },
   })
 
+  notifyReferralSubmitted(
+    { name: row.name, email: row.email, jobTitle: row.jobTitle },
+    { email: user.email, name: user.name },
+    { title: requirement.title, jobCode: requirement.jobCode }
+  )
+  notifyNewCandidate(
+    {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      jobTitle: row.jobTitle,
+      requirementId: row.requirementId,
+      source: row.source,
+    },
+    { referrerName: user.name }
+  )
+
   res.status(201).json({
     ...mapCandidate(row, { requirement }),
     referralRelationship: row.referralRelationship ?? undefined,
@@ -527,8 +545,8 @@ router.post('/referrals/:candidateId/resume', handleUploadResume, async (req, re
     data: {
       resumeFileName: req.file.originalname,
       resumeMimeType: mime,
-      resumeUrl: stored.url || null,
-      resumeStorageKey: stored.storageKey || null,
+      resumeUrl: null,
+      resumeStorageKey: null,
       resumeText: resumePayload.resumeText ?? row.resumeText,
       primarySkills: serializeSkills(
         existingPrimary.length ? existingPrimary : parsedPrimary

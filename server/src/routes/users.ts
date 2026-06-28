@@ -8,6 +8,7 @@ import { generateTempPassword } from '../lib/password.js'
 import { sanitizeFeatureTags } from '../lib/userTags.js'
 import { logTemporaryPassword } from '../lib/devPasswordLog.js'
 import { env } from '../config/env.js'
+import { notifyAdminPasswordReset, notifyStaffUserCreated } from '../lib/emailDispatch.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser)
@@ -34,7 +35,7 @@ router.get(
   res.json(users.map(mapUser))
 })
 
-router.post('/', requireRoles('SUPER_ADMIN'), async (req, res) => {
+router.post('/', requireRoles('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
   const body = z
     .object({
       email: z.string().email(),
@@ -77,6 +78,11 @@ router.post('/', requireRoles('SUPER_ADMIN'), async (req, res) => {
   if (!env.isProduction) {
     logTemporaryPassword('New user (share with member)', email, body.temporaryPassword)
   }
+
+  notifyStaffUserCreated(
+    { email: user.email, name: user.name, role: user.role },
+    body.temporaryPassword
+  )
 
   res.status(201).json({ user: mapUser(user) })
 })
@@ -190,6 +196,10 @@ router.post('/:id/reset-password', requireRoles('SUPER_ADMIN'), async (req, res)
 
   if (forceChangeOnLogin && !env.isProduction) {
     logTemporaryPassword('Admin temporary password (share with user)', target.email, plainPassword)
+  }
+
+  if (forceChangeOnLogin) {
+    notifyAdminPasswordReset({ email: target.email, name: target.name }, plainPassword, true)
   }
 
   res.json({

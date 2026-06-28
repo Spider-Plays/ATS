@@ -42,6 +42,7 @@ import {
   RequirementAccessError,
 } from '../lib/requirementAccess.js'
 import { assertCanChangeCandidateStatus } from '../lib/candidateStagePermissions.js'
+import { notifyCandidateStatusChange, notifyNewCandidate } from '../lib/emailDispatch.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
@@ -222,8 +223,8 @@ router.post('/:id/resume', requireRoles(...STAFF_MUTATE), handleUploadResume, as
       data: {
         resumeFileName: req.file.originalname,
         resumeMimeType: mime,
-        resumeUrl: stored.url || null,
-        resumeStorageKey: stored.storageKey || null,
+        resumeUrl: null,
+        resumeStorageKey: null,
         resumeText: resumePayload.resumeText,
         primarySkills: resumePayload.primarySkills,
         secondarySkills: resumePayload.secondarySkills,
@@ -426,6 +427,21 @@ router.post('/', requireRoles(...STAFF_MUTATE), async (req, res) => {
     performedBy: req.auth!.userId,
     details: { name: body.name, role: body.role },
   })
+  const creator = await prisma.user.findUnique({
+    where: { id: req.auth!.userId },
+    select: { name: true },
+  })
+  notifyNewCandidate(
+    {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      jobTitle: row.jobTitle,
+      requirementId: row.requirementId,
+      source: row.source,
+    },
+    { submittedBy: creator?.name }
+  )
   res.status(201).json(mapCandidate(row))
 })
 
@@ -545,6 +561,22 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
       performedBy: req.auth!.userId,
       details: Object.keys(req.body),
     })
+
+    if (b.status !== undefined && b.status !== existing.status) {
+      notifyCandidateStatusChange(
+        {
+          id: row.id,
+          email: row.email,
+          name: row.name,
+          status: row.status,
+          jobTitle: row.jobTitle,
+          requirementId: row.requirementId,
+          referredByUserId: row.referredByUserId,
+        },
+        existing.status
+      )
+    }
+
     res.json(mapCandidate(row, { requirement, recruiter }))
   } catch (err) {
     if (err instanceof CandidateAccessError) {
@@ -579,7 +611,14 @@ router.patch('/:id/status', requireRoles(...STAFF_MUTATE), async (req, res) => {
 
     const existing = await prisma.candidate.findUnique({
       where: { id: req.params.id },
-      select: { status: true },
+      select: {
+        status: true,
+        email: true,
+        name: true,
+        jobTitle: true,
+        requirementId: true,
+        referredByUserId: true,
+      },
     })
     if (!existing) {
       return res.status(404).json({ error: 'Candidate not found' })
@@ -641,6 +680,18 @@ router.patch('/:id/status', requireRoles(...STAFF_MUTATE), async (req, res) => {
       performerRole: req.auth!.role,
       details: activityDetails,
     })
+    notifyCandidateStatusChange(
+      {
+        id: row.id,
+        email: row.email,
+        name: row.name,
+        status: row.status,
+        jobTitle: row.jobTitle,
+        requirementId: row.requirementId,
+        referredByUserId: row.referredByUserId,
+      },
+      existing.status
+    )
     res.json(mapCandidate(row))
   } catch (err) {
     if (err instanceof CandidateAccessError) {

@@ -22,6 +22,7 @@ import departmentRoutes from './routes/departments.js'
 import clientRoutes from './routes/clients.js'
 import roleAccessRoutes from './routes/roleAccess.js'
 import interviewPanelRoutes from './routes/interviewPanels.js'
+import { m365Routes } from './integrations/m365/index.js'
 
 export const app = express()
 
@@ -44,8 +45,8 @@ function isAllowedOrigin(origin: string): boolean {
   if (!env.isProduction) return false
   return (
     /^https:\/\/(www\.)?stitch-ats\.in$/.test(normalized) ||
-    /^https:\/\/ats\.[\w-]+\.workers\.dev$/.test(normalized) ||
-    /^https:\/\/[\w-]+\.insforge\.site$/.test(normalized)
+    /^https:\/\/[\w-]+\.pages\.dev$/.test(normalized) ||
+    /^https:\/\/ats\.[\w-]+\.workers\.dev$/.test(normalized)
   )
 }
 
@@ -65,7 +66,7 @@ app.get('/', (_req, res) => {
   res.json({
     service: 'Stitch ATS',
     health: '/api/health',
-    hint: 'Open your Netlify site for the app UI — this URL is the API only.',
+    hint: 'Open your Cloudflare Pages site for the app UI — this URL is the API only.',
   })
 })
 
@@ -96,6 +97,7 @@ app.use('/api/departments', departmentRoutes)
 app.use('/api/clients', clientRoutes)
 app.use('/api/role-access', roleAccessRoutes)
 app.use('/api/interview-panels', interviewPanelRoutes)
+app.use('/api/integrations/m365', m365Routes)
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err)

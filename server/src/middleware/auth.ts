@@ -61,6 +61,9 @@ export async function requireActiveUser(req: Request, res: Response, next: NextF
     if (!user || user.status === 'DISABLED') {
       return res.status(403).json({ error: 'Account disabled' })
     }
+    // Authorize from the database role — JWT may be stale after role changes.
+    req.auth.role = user.role
+    req.auth.email = user.email
     next()
   } catch (err) {
     forwardDbError(err, next)

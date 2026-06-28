@@ -11,7 +11,7 @@ const assetsIgnorePath = path.join(distDir, '.assetsignore')
 
 if (existsSync(redirectsPath)) {
   unlinkSync(redirectsPath)
-  console.log('Removed dist/_redirects (not supported on Cloudflare Workers).')
+  console.log('Removed dist/_redirects (not used on Cloudflare Pages).')
 }
 
 writeFileSync(assetsIgnorePath, '_redirects\n', 'utf8')

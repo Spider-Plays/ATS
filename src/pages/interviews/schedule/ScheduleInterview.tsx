@@ -618,6 +618,10 @@ const ScheduleInterview = () => {
                             {errors.meetingLink && (
                                 <p className="text-xs font-bold text-red-500">{errors.meetingLink.message}</p>
                             )}
+                            <p className="text-xs text-primary/50 dark:text-white/50">
+                                Leave blank to auto-create a Microsoft Teams link. Calendar invites are emailed to the
+                                candidate and interviewers for Google and Microsoft calendars.
+                            </p>
                         </div>
                     </div>
                 </section>

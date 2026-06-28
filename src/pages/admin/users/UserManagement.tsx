@@ -281,10 +281,12 @@ const UserManagement = () => {
                             <Download size={18} />
                             Export
                         </button>
+                        {canManageUsers(currentUser?.role) && (
                         <button type="button" onClick={() => setIsAddUserOpen(true)} className={heroBtnPrimary}>
                             <UserPlus size={18} />
                             Add User
                         </button>
+                        )}
                     </div>
                 }
             />

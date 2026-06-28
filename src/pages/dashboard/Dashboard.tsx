@@ -24,6 +24,7 @@ import { api } from '@/services/api'
 import { useAuth } from '@/hooks/useAuth'
 import {
   canApproveRequirement,
+  canManageUsers,
   requiresHrHeadDelegationForApproval,
 } from '@/permissions'
 import { PageHero, heroBtnPrimary, heroBtnSecondary } from '@/components/layout/PageHero'
@@ -500,6 +501,7 @@ function AdminDashboard({
                 ))}
               </ul>
             )}
+            {canManageUsers(user?.role) && (
             <div className="px-4 pb-4">
               <Link
                 to="/admin/users"
@@ -509,6 +511,7 @@ function AdminDashboard({
                 Add team member
               </Link>
             </div>
+            )}
           </SectionCard>
         </div>
       </div>

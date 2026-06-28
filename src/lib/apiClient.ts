@@ -92,3 +92,20 @@ export async function fetchResumeBlob(candidateId: string): Promise<Blob | null>
 
   return res.blob()
 }
+
+export async function fetchApiBlob(path: string): Promise<Blob> {
+  const token = getToken()
+  const headers: Record<string, string> = {}
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(apiUrl(path), { headers })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    if (res.status === 401) {
+      clearToken()
+      window.dispatchEvent(new Event('auth:session-expired'))
+    }
+    throw new ApiError((body as { error?: string }).error || res.statusText, res.status)
+  }
+  return res.blob()
+}

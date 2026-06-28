@@ -44,6 +44,9 @@ const PortalAppliedJobs = lazyPage(() => import('./pages/candidate-portal/applie
 const PortalApplicationUpdates = lazyPage(
   () => import('./pages/candidate-portal/application-updates/PortalApplicationUpdates')
 )
+const PortalOfferDetail = lazyPage(
+  () => import('./pages/candidate-portal/offers/PortalOfferDetail')
+)
 const CandidateLogin = lazyPage(() => import('./pages/candidate-portal/login/CandidateLogin'))
 const CandidateSignup = lazyPage(() => import('./pages/candidate-portal/signup/CandidateSignup'))
 const PortalIndexRedirect = lazyPage(
@@ -145,6 +148,7 @@ const AppRoutes = () => {
           <Route path="jobs" element={<PortalJobs />} />
           <Route path="jobs/applied/:requirementId" element={<PortalApplicationUpdates />} />
           <Route path="jobs/:id" element={<PortalJobDetail />} />
+          <Route path="offers/:id" element={<PortalOfferDetail />} />
           <Route path="applied/:requirementId" element={<PortalAppliedJobs />} />
           <Route path="applied" element={<PortalAppliedJobs />} />
         </Route>

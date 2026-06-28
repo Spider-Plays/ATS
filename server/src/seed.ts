@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from './lib/prisma.js'
 import { withDbRetry } from './lib/dbRetry.js'
-import { ensureInsforgeAuthUser } from './lib/insforgeUsers.js'
 import { removeLegacyDevUsers } from './lib/legacyDevUsers.js'
 import { env } from './config/env.js'
 import { DEV_PASSWORD } from './config/devUsers.js'
@@ -79,7 +78,6 @@ async function main() {
 
   for (const u of SEED_USERS) {
     await upsertDevUser(u, u.role === 'VENDOR' ? vendorId : undefined)
-    await ensureInsforgeAuthUser(u.email, u.password, u.name)
   }
 
   const userCount = await prisma.user.count()

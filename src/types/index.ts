@@ -338,14 +338,64 @@ export interface Feedback {
     createdAt: string
 }
 
+export type OfferStatus =
+  | 'DRAFT'
+  | 'PENDING_HR_APPROVAL'
+  | 'PENDING_EXEC_APPROVAL'
+  | 'APPROVED'
+  | 'SENT'
+  | 'NEGOTIATION'
+  | 'ACCEPTED'
+  | 'DECLINED'
+  | 'WITHDRAWN'
+
+export type CompensationLine = {
+  key: string
+  label: string
+  annual: number
+  monthly: number
+}
+
+export type CompensationBreakdown = {
+  annualCtc: number
+  earnings: CompensationLine[]
+  gross: CompensationLine
+  employerContributions: CompensationLine[]
+  totalCtc: CompensationLine
+  employeeDeductions: CompensationLine[]
+  totalDeduction: CompensationLine
+  netPay: CompensationLine
+}
+
+export type OfferLetterMeta = {
+  candidateAddress?: string
+  positionTitle?: string
+  joiningDate?: string
+  clientCompanyName?: string
+  clientSiteAddress?: string
+  reportingTime?: string
+  acceptanceDeadlineDays?: number
+}
+
+export type OfferApprovalHistoryEntry = {
+  action: string
+  step?: string
+  by: string
+  at: string
+  role: string
+  onBehalfOf?: string
+  reason?: string
+}
+
 export interface Offer {
     id: string
     candidateId: string
     requirementId: string
     baseSalary: number
-    equity?: number // RSUs
-    bonus?: number // Percentage or fixed amount
-    status: 'DRAFT' | 'APPROVAL_PENDING' | 'APPROVED' | 'SENT' | 'NEGOTIATION' | 'ACCEPTED' | 'DECLINED' | 'WITHDRAWN'
+    annualCtc?: number
+    equity?: number
+    bonus?: number
+    status: OfferStatus
     history: {
         id: string
         date: string
@@ -353,7 +403,18 @@ export interface Offer {
         description: string
         userId: string
     }[]
-    letterContent?: string // HTML or text content
+    letterContent?: string
+    compensation?: CompensationBreakdown
+    letterMeta?: OfferLetterMeta
+    letterHtml?: string
+    approval?: Record<string, unknown>
+    approvalHistory?: OfferApprovalHistoryEntry[]
+    approvalStep?: string
+    rejectionReason?: string
+    validUntil?: string
+    sentAt?: string
+    respondedAt?: string
+    respondedBy?: string
     createdAt: string
     createdBy: string
 }

@@ -11,6 +11,7 @@ import { logActivity } from '../services/activityLog.js'
 import { INTERNAL_ROLES } from '../lib/roles.js'
 import { logTemporaryPassword } from '../lib/devPasswordLog.js'
 import { clientErrorMessage, EMAIL_NOT_CONFIGURED_DEV_HINT, EMAIL_NOT_CONFIGURED_WARNING } from '../lib/safeError.js'
+import { notifyVendorAssignment } from '../lib/emailDispatch.js'
 
 const router = Router()
 const VENDOR_MANAGERS = ['ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER'] as const
@@ -258,6 +259,11 @@ router.post('/:id/assignments', requireRoles(...VENDOR_MANAGERS), async (req, re
     where: { id: { in: requirements.map((r) => r.id) } },
     data: { visibleToVendors: true },
   })
+
+  notifyVendorAssignment(
+    { id: vendor.id, name: vendor.name },
+    requirements.map((r) => ({ title: r.title, jobCode: r.jobCode }))
+  )
 
   res.json({ assigned: requirements.map((r) => r.id) })
 })

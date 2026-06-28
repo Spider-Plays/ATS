@@ -10,7 +10,6 @@
         "build": "npm run build --prefix server && tsc && vite build",
         "build:client": "node scripts/build-client.mjs",
         "deploy:worker": "node scripts/strip-dist-redirects.mjs && npx wrangler deploy",
-        "vercel-build": "vite build",
         "build:client:check": "tsc && vite build",
         "db:setup": "npm run db:setup --prefix server",
         "db:clear": "npm run db:clear --prefix server",
@@ -18,19 +17,13 @@
         "db:seed": "npm run db:seed --prefix server",
         "db:seed-demo": "npm run db:seed-demo --prefix server",
         "db:reset-passwords": "npm run db:reset-passwords --prefix server",
-        "preview": "vite preview",
-        "insforge:setup": "node scripts/setup-insforge-env.mjs",
-        "insforge:config:apply": "npx @insforge/cli config apply --auto-approve",
-        "insforge:deploy:env": "node scripts/set-deployment-env.mjs",
-        "insforge:deploy:site": "node scripts/set-deployment-env.mjs && npm run build:client && node scripts/prepare-site-deploy.mjs && npx @insforge/cli deployments deploy site",
-        "insforge:deploy:api": "npx @insforge/cli compute deploy server --name stitch-ats-api --port 4000 --region sin --env-file server/.env"
+        "preview": "vite preview"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.1.0",
         "@dnd-kit/sortable": "^8.0.0",
         "@dnd-kit/utilities": "^3.2.2",
         "@hookform/resolvers": "^3.3.4",
-        "@insforge/sdk": "^1.4.3",
         "@tanstack/react-query": "^5.17.19",
         "@vitejs/plugin-react": "^4.2.1",
         "autoprefixer": "^10.4.18",
@@ -51,7 +44,6 @@
         "zustand": "^4.5.2"
     },
     "devDependencies": {
-        "@insforge/cli": "^0.1.96",
         "@types/react": "^18.2.64",
         "@types/react-dom": "^18.2.21",
         "concurrently": "^9.1.2",

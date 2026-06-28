@@ -302,8 +302,8 @@ async function attachResume(
         data: {
           resumeFileName: 'resume.pdf',
           resumeMimeType: 'application/pdf',
-          resumeUrl: stored.url || null,
-          resumeStorageKey: stored.storageKey || null,
+          resumeUrl: null,
+          resumeStorageKey: null,
           resumeText: mergedPayload.resumeText,
           primarySkills: skills?.primary?.length ? primarySkills : mergedPayload.primarySkills,
           secondarySkills: skills?.secondary?.length

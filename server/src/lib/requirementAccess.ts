@@ -48,7 +48,7 @@ export function requirementVisibleToAuth(
 
   switch (auth.role) {
     case 'RECRUITER':
-      return assigned || created
+      return assigned
     case 'HIRING_MANAGER':
       return created || isRequirementHiringManager(auth, requirement)
     case 'INTERVIEWER':

@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { m365Config } from '../integrations/m365/config.js'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
@@ -27,4 +28,6 @@ export const env = {
   resendApiKey: process.env.RESEND_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || 'Stitch ATS <onboarding@resend.dev>',
   appName: process.env.APP_NAME || 'Stitch ATS',
+  offerExecApprovalThreshold: Number(process.env.OFFER_EXEC_APPROVAL_THRESHOLD) || 2500000,
+  m365: m365Config,
 }

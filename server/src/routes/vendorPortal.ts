@@ -23,6 +23,7 @@ import {
   resolveResumeMime,
   saveResumeFile,
 } from '../lib/resumeStorage.js'
+import { notifyNewCandidate } from '../lib/emailDispatch.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles('VENDOR'))
@@ -369,6 +370,18 @@ router.post('/positions/:id/submit', async (req, res) => {
     },
   })
 
+  notifyNewCandidate(
+    {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      jobTitle: row.jobTitle,
+      requirementId: row.requirementId,
+      source: row.source,
+    },
+    { vendorName: ctx.vendor.name, submittedBy: ctx.user.name }
+  )
+
   res.status(201).json(mapCandidate(row, { requirement }))
 })
 
@@ -424,8 +437,8 @@ router.post('/submissions/:candidateId/resume', handleUploadResume, async (req, 
     data: {
       resumeFileName: req.file.originalname,
       resumeMimeType: mime,
-      resumeUrl: stored.url || null,
-      resumeStorageKey: stored.storageKey || null,
+      resumeUrl: null,
+      resumeStorageKey: null,
       resumeText: resumePayload.resumeText ?? row.resumeText,
       primarySkills: serializeSkills(
         existingPrimary.length ? existingPrimary : parsedPrimary

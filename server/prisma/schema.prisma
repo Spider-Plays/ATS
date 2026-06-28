@@ -193,11 +193,13 @@ model Interview {
   interviewerIds String   @default("[]")
   type           String
   status         String
-  meetingLink    String?
-  duration       Int?
-  location       String?
-  description    String?
-  createdAt      DateTime @default(now())
+  meetingLink       String?
+  duration          Int?
+  location          String?
+  description       String?
+  calendarEventId   String?
+  calendarSequence  Int      @default(0)
+  createdAt         DateTime @default(now())
   planStage      InterviewPlanStage? @relation(fields: [planStageId], references: [id], onDelete: SetNull)
 }
 
@@ -216,18 +218,31 @@ model Feedback {
 }
 
 model Offer {
-  id            String   @id @default(cuid())
-  candidateId   String
-  requirementId String
-  baseSalary    Float
-  equity        Float?
-  bonus         Float?
-  status        String
-  history       String   @default("[]")
-  letterContent String?
-  createdBy     String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String    @id @default(cuid())
+  candidateId       String
+  requirementId     String
+  baseSalary        Float
+  annualCtc         Float?
+  equity            Float?
+  bonus             Float?
+  status            String
+  history           String    @default("[]")
+  letterContent     String?
+  compensationJson  String    @default("{}")
+  letterMetaJson    String    @default("{}")
+  letterHtml        String?
+  letterPdfKey      String?
+  approval          String    @default("{}")
+  approvalHistory   String    @default("[]")
+  approvalStep      String?
+  rejectionReason   String?
+  validUntil        DateTime?
+  sentAt            DateTime?
+  respondedAt       DateTime?
+  respondedBy       String?
+  createdBy         String
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 model SkillCatalog {

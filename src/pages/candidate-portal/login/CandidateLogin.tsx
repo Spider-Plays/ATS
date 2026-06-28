@@ -3,21 +3,19 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { AlertCircle } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
-import { authApi, CANDIDATE_OAUTH_LOGIN_KEY } from '@/services/http/auth'
+import { authApi } from '@/services/http/auth'
 import { api } from '@/services/api'
 import { ApiError } from '@/lib/apiClient'
-import { insforgeConfigured } from '@/lib/insforge'
 import { portalHomePath } from '@/lib/portalWorkflow'
 import { postAuthPath } from '@/lib/loginRedirect'
 import { CandidateAuthShell } from '@/components/portal/CandidateAuthShell'
-import { InsforgeAuthMethods } from '@/components/portal/InsforgeAuthMethods'
 import { DevQuickLogin } from '@/dev/DevQuickLogin'
 import './login.css'
 
 const CandidateLogin = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, logout, user, refreshUser } = useAuth()
+  const { login, logout, user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -55,44 +53,6 @@ const CandidateLogin = () => {
     }
     void redirectAfterAuth()
   }, [user, navigate])
-
-  useEffect(() => {
-    if (!insforgeConfigured) return
-    if (!sessionStorage.getItem(CANDIDATE_OAUTH_LOGIN_KEY)) return
-
-    void (async () => {
-      setLoading(true)
-      setAuthError(null)
-      try {
-        const session = await authApi.completeCandidateOAuthLogin()
-        sessionStorage.removeItem(CANDIDATE_OAUTH_LOGIN_KEY)
-
-        if (session.user.role !== 'CANDIDATE') {
-          await logout()
-          setAuthError('This sign-in page is for candidates only. Use the team login instead.')
-          return
-        }
-
-        await refreshUser()
-        if (session.user.mustChangePassword) {
-          navigate(postAuthPath(session.user), { replace: true })
-          return
-        }
-        await redirectAfterAuth()
-      } catch (err: unknown) {
-        sessionStorage.removeItem(CANDIDATE_OAUTH_LOGIN_KEY)
-        setAuthError(
-          err instanceof ApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : 'Social sign-in could not be completed'
-        )
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [navigate, refreshUser, logout])
 
   const onSubmit = async (data: { email: string; password: string }) => {
     setLoading(true)
@@ -244,13 +204,6 @@ const CandidateLogin = () => {
 
       {mode === 'login' && (
         <>
-          <InsforgeAuthMethods
-            redirectPath="/portal/login"
-            oauthSessionKey={CANDIDATE_OAUTH_LOGIN_KEY}
-            disabled={loading}
-            onError={setAuthError}
-          />
-
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase">Email</label>

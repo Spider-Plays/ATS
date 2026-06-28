@@ -169,16 +169,58 @@ export function mapFeedback(f: DbFb) {
 }
 
 export function mapOffer(o: DbOffer) {
+  const annualCtc = o.annualCtc ?? o.baseSalary
+  let compensation = undefined
+  let letterMeta = undefined
+  let approval = undefined
+  let approvalHistory: unknown[] = []
+  try {
+    if (o.compensationJson && o.compensationJson !== '{}') {
+      compensation = JSON.parse(o.compensationJson)
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (o.letterMetaJson && o.letterMetaJson !== '{}') {
+      letterMeta = JSON.parse(o.letterMetaJson)
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (o.approval && o.approval !== '{}') approval = JSON.parse(o.approval)
+  } catch {
+    /* ignore */
+  }
+  try {
+    approvalHistory = JSON.parse(o.approvalHistory || '[]')
+  } catch {
+    /* ignore */
+  }
+
   return {
     id: o.id,
     candidateId: o.candidateId,
     requirementId: o.requirementId,
     baseSalary: o.baseSalary,
+    annualCtc,
     equity: o.equity ?? undefined,
     bonus: o.bonus ?? undefined,
     status: o.status,
     history: JSON.parse(o.history || '[]'),
     letterContent: o.letterContent ?? undefined,
+    compensation,
+    letterMeta,
+    letterHtml: o.letterHtml ?? undefined,
+    approval,
+    approvalHistory,
+    approvalStep: o.approvalStep ?? undefined,
+    rejectionReason: o.rejectionReason ?? undefined,
+    validUntil: o.validUntil?.toISOString(),
+    sentAt: o.sentAt?.toISOString(),
+    respondedAt: o.respondedAt?.toISOString(),
+    respondedBy: o.respondedBy ?? undefined,
     createdAt: o.createdAt.toISOString(),
     createdBy: o.createdBy,
   }

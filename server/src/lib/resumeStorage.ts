@@ -1,8 +1,6 @@
 import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
-import { insforgeEnv } from '../config/insforge.js'
-import { getInsforgeAdmin, RESUME_BUCKET } from './insforge.js'
 
 export const RESUME_UPLOAD_DIR =
   process.env.RESUME_UPLOAD_DIR || path.join(os.tmpdir(), 'stitch-ats-resumes')
@@ -29,9 +27,7 @@ const MIME_BY_EXT: Record<string, string> = {
 
 export type StoredResume = {
   mime: string
-  filePath?: string
-  storageKey?: string
-  url?: string
+  filePath: string
 }
 
 export function isAllowedResumeFile(mime: string, filename: string): boolean {
@@ -63,29 +59,15 @@ function resumeFilePath(candidateId: string, mime: string, filename?: string): s
   return path.join(RESUME_UPLOAD_DIR, `${candidateId}${resumeExtension(mime, filename)}`)
 }
 
-function resumeObjectKey(candidateId: string, mime: string, filename?: string): string {
-  return `candidates/${candidateId}${resumeExtension(mime, filename)}`
-}
-
 export async function saveResumeFile(
   candidateId: string,
   mime: string,
   buffer: Buffer,
   filename?: string,
-  existingStorageKey?: string | null
+  _existingStorageKey?: string | null
 ): Promise<StoredResume> {
   const resolvedMime = resolveResumeMime(mime, filename || '')
-  await deleteResumeFile(candidateId, existingStorageKey)
-
-  if (insforgeEnv.useStorage) {
-    const admin = getInsforgeAdmin()
-    const key = resumeObjectKey(candidateId, resolvedMime, filename)
-    const blob = new Blob([buffer], { type: resolvedMime })
-    const { data, error } = await admin.storage.from(RESUME_BUCKET).upload(key, blob)
-    if (error) throw new Error(error.message || 'Failed to upload resume to InsForge storage')
-    return { mime: resolvedMime, storageKey: data?.key || key, url: data?.url }
-  }
-
+  await deleteResumeFile(candidateId)
   await ensureResumeDir()
   const filePath = resumeFilePath(candidateId, resolvedMime, filename)
   await fs.writeFile(filePath, buffer)
@@ -94,15 +76,8 @@ export async function saveResumeFile(
 
 export async function deleteResumeFile(
   candidateId: string,
-  storageKey?: string | null
+  _storageKey?: string | null
 ): Promise<void> {
-  if (insforgeEnv.useStorage) {
-    const admin = getInsforgeAdmin()
-    const key = storageKey || resumeObjectKey(candidateId, 'application/pdf')
-    await admin.storage.from(RESUME_BUCKET).remove(key).catch(() => undefined)
-    return
-  }
-
   await ensureResumeDir()
   const files = await fs.readdir(RESUME_UPLOAD_DIR).catch(() => [] as string[])
   const prefix = `${candidateId}.`
@@ -115,14 +90,8 @@ export async function deleteResumeFile(
 
 export async function findResumeFile(
   candidateId: string,
-  storageKey?: string | null
+  _storageKey?: string | null
 ): Promise<StoredResume | null> {
-  if (insforgeEnv.useStorage) {
-    if (!storageKey) return null
-    const ext = path.extname(storageKey).toLowerCase()
-    return { mime: MIME_BY_EXT[ext] || 'application/octet-stream', storageKey }
-  }
-
   await ensureResumeDir()
   const files = await fs.readdir(RESUME_UPLOAD_DIR).catch(() => [] as string[])
   const match = files.find((f) => f.startsWith(`${candidateId}.`))
@@ -133,12 +102,5 @@ export async function findResumeFile(
 }
 
 export async function readResumeBuffer(stored: StoredResume): Promise<Buffer> {
-  if (stored.storageKey) {
-    const admin = getInsforgeAdmin()
-    const { data, error } = await admin.storage.from(RESUME_BUCKET).download(stored.storageKey)
-    if (error || !data) throw new Error(error?.message || 'Failed to download resume')
-    return Buffer.from(await data.arrayBuffer())
-  }
-  if (!stored.filePath) throw new Error('Resume file path missing')
   return fs.readFile(stored.filePath)
 }

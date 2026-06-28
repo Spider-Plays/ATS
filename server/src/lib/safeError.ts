@@ -12,7 +12,7 @@ export function emailDeliveryErrorMessage(detail?: string): string {
 }
 
 export const EMAIL_NOT_CONFIGURED_WARNING =
-  'Email is not configured. Set RESEND_API_KEY to deliver passwords securely.'
+  'Email is not configured. Set Microsoft 365 (M365_*) or RESEND_API_KEY to deliver passwords securely.'
 
 export const EMAIL_NOT_CONFIGURED_DEV_HINT =
   'Email is not configured. Temporary password was logged to the API server console (dev only).'

@@ -1,4 +1,4 @@
-import { apiRequest, uploadFormData } from '../../lib/apiClient'
+import { apiRequest, uploadFormData, apiUrl, getToken, ApiError, fetchApiBlob } from '../../lib/apiClient'
 import { Candidate, Interview, Offer, Requirement } from '../../types'
 
 export type PortalOpenPosition = {
@@ -118,4 +118,20 @@ export const portalService = {
   getPosition: (id: string) => apiRequest<PortalOpenPosition>(`/portal/positions/${id}`),
   applyToPosition: (id: string) =>
     apiRequest<PortalApplyResult>(`/portal/positions/${id}/apply`, { method: 'POST' }),
+  getOffer: async (id: string) => {
+    const token = getToken()
+    const headers: Record<string, string> = {}
+    if (token) headers.Authorization = `Bearer ${token}`
+    const res = await fetch(apiUrl(`/portal/offers/${id}`), { headers })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new ApiError((body as { error?: string }).error || res.statusText, res.status)
+    }
+    return res.json() as Promise<{ offer: Offer; letterHtml?: string }>
+  },
+  acceptOffer: (id: string) =>
+    apiRequest<Offer>(`/portal/offers/${id}/accept`, { method: 'POST', body: '{}' }),
+  declineOffer: (id: string) =>
+    apiRequest<Offer>(`/portal/offers/${id}/decline`, { method: 'POST', body: '{}' }),
+  downloadOfferLetterPdf: (id: string) => fetchApiBlob(`/portal/offers/${id}/letter/pdf`),
 }
