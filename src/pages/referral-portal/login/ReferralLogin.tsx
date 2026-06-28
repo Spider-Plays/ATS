@@ -9,24 +9,25 @@ import { APP_NAME } from '@/config/branding'
 import { StitchLogo } from '@/components/branding/StitchLogo'
 import { DevQuickLogin } from '@/dev/DevQuickLogin'
 import { isReferralPortalRole } from '@/permissions'
-import { postAuthPath } from '@/lib/loginRedirect'
+import { referralPortalPostAuthPath } from '@/lib/loginRedirect'
 import './login.css'
 
 const ReferralLogin = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { login, logout, user, allowedPages } = useAuth()
+  const { login, logout, user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
 
   const { register, handleSubmit } = useForm<{ email: string; password: string }>()
+  const referralFrom = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
 
   useEffect(() => {
     if (user && isReferralPortalRole(user.role)) {
-      navigate(postAuthPath(user, allowedPages), { replace: true })
+      navigate(referralPortalPostAuthPath(user, referralFrom), { replace: true })
     }
-  }, [user, allowedPages, navigate])
+  }, [user, referralFrom, navigate])
 
   const onSubmit = async (data: { email: string; password: string }) => {
     setLoading(true)
@@ -35,10 +36,16 @@ const ReferralLogin = () => {
       const session = await login(data.email, data.password)
       if (!isReferralPortalRole(session.user.role)) {
         await logout()
-        setAuthError('This sign-in is for employees using the referral portal.')
+        if (session.user.role === 'CANDIDATE') {
+          setAuthError('Use the candidate portal to sign in.')
+        } else if (session.user.role === 'VENDOR') {
+          setAuthError('Use the vendor portal to sign in.')
+        } else {
+          setAuthError('This account cannot access the employee referral portal.')
+        }
         return
       }
-      navigate(postAuthPath(session.user, session.allowedPages), { replace: true })
+      navigate(referralPortalPostAuthPath(session.user, referralFrom), { replace: true })
     } catch {
       setAuthError('Invalid email or password.')
     } finally {
@@ -86,13 +93,14 @@ const ReferralLogin = () => {
           </div>
           <div>
             <Link to="/login" className="text-xs font-bold text-violet-700 hover:underline">
-              Team login (recruiters)
+              Recruiter / HR login
             </Link>
             <h2 className="text-2xl font-black text-slate-900 dark:text-white mt-4">
               Sign in to {APP_NAME} Referrals
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              Use the account HR created for you, or your company email if you have portal access.
+              Use your company email and password — the same credentials as the main ATS for all
+              staff roles.
             </p>
           </div>
 
@@ -141,14 +149,15 @@ const ReferralLogin = () => {
 
           {import.meta.env.DEV && (
             <DevQuickLogin
-              filterRole="EMPLOYEE"
+              referralPortalOnly
+              primaryOnly
               onError={(msg) => setAuthError(msg || null)}
               onLoggedIn={() => navigate('/referral-portal/dashboard', { replace: true })}
             />
           )}
 
           <p className="text-xs text-center text-slate-400">
-            Recruiters and HR can also open referrals from the main app sidebar.
+            After sign-in you can also open referrals from the main app sidebar.
           </p>
         </div>
       </div>

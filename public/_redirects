@@ -1,0 +1,2 @@
+/api/*  https://stitch-ats-api-6dd11de4-0043-4523-80ec-1b8755a5d51c.fly.dev/api/:splat  200
+/*      /index.html  200

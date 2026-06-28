@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router, type Request } from 'express'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
@@ -11,6 +11,9 @@ import { requireAuth, requireActiveUser } from '../middleware/auth.js'
 import { authRateLimiter } from '../middleware/rateLimit.js'
 import { sendPasswordResetEmail } from '../services/email.js'
 import { recordUserLogin } from '../lib/recordLogin.js'
+import { insforgeEnv } from '../config/insforge.js'
+import { resolveInsforgeUser } from '../lib/insforgeAuth.js'
+import { ensureInsforgeAuthUser } from '../lib/insforgeUsers.js'
 
 const router = Router()
 
@@ -24,6 +27,90 @@ const registerCandidateSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email(),
   password: z.string().min(8, 'Password must be at least 8 characters'),
+})
+
+const provisionCandidateSchema = z.object({
+  accessToken: z.string().min(1),
+  firstName: z.string().min(1).optional(),
+  lastName: z.string().min(1).optional(),
+})
+
+async function issueAppSession(userId: string, email: string, role: string, req: Request) {
+  await recordUserLogin(userId, req)
+  const token = jwt.sign({ userId, email, role }, env.jwtSecret, { expiresIn: '7d' })
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  if (!user) throw new Error('User not found')
+  const allowedPages = await getAllowedPagesForRole(role)
+  return { token, user: mapUser(user), allowedPages }
+}
+
+function deriveCandidateName(
+  email: string,
+  profileName: string | undefined,
+  firstName?: string,
+  lastName?: string
+): string {
+  const fromForm = [firstName, lastName].filter(Boolean).join(' ').trim()
+  if (fromForm) return fromForm
+  const fromProfile = profileName?.trim()
+  if (fromProfile) return fromProfile
+  return email.split('@')[0] || 'Candidate'
+}
+
+router.post('/provision-candidate', authRateLimiter, async (req, res, next) => {
+  try {
+    if (!insforgeEnv.authEnabled) {
+      return res.status(503).json({ error: 'InsForge auth is not configured on the server' })
+    }
+
+    const parsed = provisionCandidateSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: parsed.error.errors[0]?.message || 'Invalid registration data',
+      })
+    }
+
+    const insforgeUser = await resolveInsforgeUser(parsed.data.accessToken)
+    if (!insforgeUser?.email) {
+      return res.status(401).json({ error: 'Invalid InsForge session' })
+    }
+
+    const email = insforgeUser.email.toLowerCase()
+    const profileName =
+      typeof insforgeUser.profile === 'object' && insforgeUser.profile !== null
+        ? (insforgeUser.profile as { name?: string }).name
+        : undefined
+
+    let user = await prisma.user.findUnique({ where: { email } })
+    let created = false
+
+    if (!user) {
+      created = true
+      const name = deriveCandidateName(email, profileName, parsed.data.firstName, parsed.data.lastName)
+      const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10)
+      user = await prisma.user.create({
+        data: {
+          email,
+          name,
+          passwordHash,
+          role: 'CANDIDATE',
+          status: 'ACTIVE',
+          department: 'Candidate',
+        },
+      })
+    } else if (user.role !== 'CANDIDATE') {
+      return res.status(409).json({
+        error: 'This email is already registered with a different account type.',
+      })
+    } else if (user.status === 'DISABLED') {
+      return res.status(403).json({ error: 'Account disabled' })
+    }
+
+    const session = await issueAppSession(user.id, user.email, user.role, req)
+    res.status(created ? 201 : 200).json(session)
+  } catch (err) {
+    next(err)
+  }
 })
 
 router.post('/register-candidate', authRateLimiter, async (req, res, next) => {
@@ -54,14 +141,41 @@ router.post('/register-candidate', authRateLimiter, async (req, res, next) => {
       },
     })
 
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      env.jwtSecret,
-      { expiresIn: '7d' }
-    )
+    await ensureInsforgeAuthUser(email, parsed.data.password, name)
 
-    const allowedPages = await getAllowedPagesForRole(user.role)
-    res.status(201).json({ token, user: mapUser(user), allowedPages })
+    const session = await issueAppSession(user.id, user.email, user.role, req)
+    res.status(201).json(session)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.post('/exchange', authRateLimiter, async (req, res, next) => {
+  try {
+    if (!insforgeEnv.authEnabled) {
+      return res.status(503).json({ error: 'InsForge auth is not configured on the server' })
+    }
+
+    const { accessToken } = z.object({ accessToken: z.string().min(1) }).parse(req.body)
+    const insforgeUser = await resolveInsforgeUser(accessToken)
+    if (!insforgeUser?.email) {
+      return res.status(401).json({ error: 'Invalid InsForge session' })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: insforgeUser.email.toLowerCase() },
+    })
+    if (!user) {
+      return res.status(403).json({
+        error: 'No ATS profile exists for this account. Contact your administrator.',
+      })
+    }
+    if (user.status === 'DISABLED') {
+      return res.status(403).json({ error: 'Account disabled' })
+    }
+
+    const session = await issueAppSession(user.id, user.email, user.role, req)
+    res.json(session)
   } catch (err) {
     next(err)
   }
@@ -82,16 +196,8 @@ router.post('/login', authRateLimiter, async (req, res, next) => {
       return res.status(403).json({ error: 'Account disabled' })
     }
 
-    await recordUserLogin(user.id, req)
-
-    const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      env.jwtSecret,
-      { expiresIn: '7d' }
-    )
-
-    const allowedPages = await getAllowedPagesForRole(user.role)
-    res.json({ token, user: mapUser(user), allowedPages })
+    const session = await issueAppSession(user.id, user.email, user.role, req)
+    res.json(session)
   } catch (err) {
     next(err)
   }

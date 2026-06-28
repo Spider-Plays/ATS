@@ -1,0 +1,2 @@
+ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "resumeStorageKey" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "resumeStorageKey" TEXT;

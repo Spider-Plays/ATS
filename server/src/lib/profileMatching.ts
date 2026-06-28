@@ -1,8 +1,7 @@
 import type { Candidate, Requirement } from '@prisma/client'
 import { deserializeSkills, normalizeSkillToken } from './skills.js'
 import { extractResumeText } from './resumeParse.js'
-import { findResumeFile } from './resumeStorage.js'
-import fs from 'fs/promises'
+import { findResumeFile, readResumeBuffer } from './resumeStorage.js'
 
 export type MatchBreakdown = {
   primaryScore: number
@@ -152,9 +151,9 @@ export async function loadCandidateResumeText(
   if (!candidate.resumeFileName) return ''
 
   try {
-    const stored = await findResumeFile(candidate.id)
+    const stored = await findResumeFile(candidate.id, candidate.resumeStorageKey)
     if (!stored) return ''
-    const buffer = await fs.readFile(stored.filePath)
+    const buffer = await readResumeBuffer(stored)
     return extractResumeText(buffer, stored.mime, candidate.resumeFileName)
   } catch {
     return ''

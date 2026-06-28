@@ -277,6 +277,7 @@ const Login = () => {
 
                         {mode === 'login' && import.meta.env.DEV && (
                             <DevQuickLogin
+                                primaryOnly
                                 onError={(msg) => {
                                     setAuthError(msg || null)
                                     setInfoMessage(null)

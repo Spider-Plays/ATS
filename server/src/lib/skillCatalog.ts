@@ -10,10 +10,23 @@ export type SkillCatalogEntry = {
 let cachedNames: string[] | null = null
 let cacheAt = 0
 const CACHE_MS = 60_000
+let defaultsSynced = false
 
 export async function ensureDefaultSkillCatalog(): Promise<void> {
-  const count = await prisma.skillCatalog.count()
-  if (count > 0) return
+  if (!defaultsSynced) {
+    await prisma.$transaction(
+      DEFAULT_SKILL_CATALOG.map((skill) =>
+        prisma.skillCatalog.upsert({
+          where: { name: skill.name },
+          create: { name: skill.name, category: skill.category },
+          update: { category: skill.category },
+        }),
+      ),
+    )
+    defaultsSynced = true
+    cachedNames = null
+    return
+  }
 
   await prisma.skillCatalog.createMany({
     data: DEFAULT_SKILL_CATALOG.map((s) => ({

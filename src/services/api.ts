@@ -10,6 +10,7 @@ export const api = {
         getPending: requirementService.getPending,
         getById: requirementService.getById,
         create: requirementService.create,
+        parseJobDescription: requirementService.parseJobDescription,
         update: requirementService.update,
         updateStatus: requirementService.updateStatus,
         updateHiringStage: requirementService.updateHiringStage,

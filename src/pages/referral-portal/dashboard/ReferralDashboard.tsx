@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Gift,
 } from 'lucide-react'
-import clsx from 'clsx'
+import { ReferralStatusBadge } from '@/components/referral-portal/ReferralStatusBadge'
+import { referralStatusLabel } from '@/lib/referralStatus'
 import './dashboard.css'
 
 const ReferralDashboard = () => {
@@ -143,7 +144,7 @@ const ReferralDashboard = () => {
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <StatusBadge status={r.status} />
+                    <ReferralStatusBadge status={r.status} className="py-1 rounded-md" />
                     {r.bonusAmount ? (
                       <p className="text-[10px] font-bold text-amber-700 mt-1">
                         ₹{r.bonusAmount.toLocaleString('en-IN')} bonus
@@ -177,7 +178,7 @@ const ReferralDashboard = () => {
               <ul className="space-y-2">
                 {stats.statusBreakdown.map((s) => (
                   <li key={s.status} className="flex justify-between text-sm font-medium">
-                    <span className="text-slate-600">{s.status}</span>
+                    <span className="text-slate-600">{referralStatusLabel(s.status)}</span>
                     <span className="font-bold">{s.count}</span>
                   </li>
                 ))}
@@ -220,23 +221,6 @@ function StatCard({
         </Link>
       )}
     </div>
-  )
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const hired = status === 'HIRED' || status === 'JOINED'
-  const rejected = status === 'REJECTED'
-  return (
-    <span
-      className={clsx(
-        'px-2 py-1 rounded-md text-[10px] font-bold uppercase border',
-        hired && 'bg-emerald-50 text-emerald-800 border-emerald-200',
-        rejected && 'bg-red-50 text-red-700 border-red-200',
-        !hired && !rejected && 'bg-slate-100 text-slate-700 border-slate-200'
-      )}
-    >
-      {status}
-    </span>
   )
 }
 

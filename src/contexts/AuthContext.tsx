@@ -176,7 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const logout = async () => {
 
-        authApi.logout()
+        await authApi.logout()
 
         setUser(null)
 

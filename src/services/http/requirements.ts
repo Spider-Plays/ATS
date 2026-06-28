@@ -1,4 +1,4 @@
-import { apiRequest } from '../../lib/apiClient'
+import { apiRequest, fetchResumeBlob, uploadFormData } from '../../lib/apiClient'
 import {
   CandidateInterviewProgress,
   InterviewPlan,
@@ -7,6 +7,12 @@ import {
   RequirementHiringStage,
   RequirementStatus,
 } from '../../types'
+
+export type ParsedJobDescriptionFields = {
+  jobDescription: string
+  primarySkills: string[]
+  secondarySkills: string[]
+}
 
 export const requirementService = {
   getAll: () => apiRequest<Requirement[]>('/requirements'),
@@ -23,6 +29,21 @@ export const requirementService = {
 
   create: (data: Omit<Requirement, 'id' | 'createdAt' | 'filled' | 'updatedAt'>) =>
     apiRequest<Requirement>('/requirements', { method: 'POST', body: JSON.stringify(data) }),
+
+  parseJobDescription: (input: string | File) => {
+    if (typeof input === 'string') {
+      return apiRequest<ParsedJobDescriptionFields>('/requirements/parse-job-description', {
+        method: 'POST',
+        body: JSON.stringify({ jobDescription: input }),
+      })
+    }
+    const formData = new FormData()
+    formData.append('resume', input)
+    return uploadFormData<ParsedJobDescriptionFields>(
+      '/requirements/parse-job-description',
+      formData
+    )
+  },
 
   update: (id: string, data: Partial<Requirement>, user?: { uid: string; role: string }) =>
     apiRequest<Requirement>(`/requirements/${id}`, {

@@ -172,19 +172,18 @@ const VendorsList = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-        <div className="panel-toolbar flex-1">
-          <ListSearchBar
-            value={searchTerm}
-            onChange={setSearchTerm}
-            placeholder="Search name, code, email, contact..."
-            className="max-w-none"
-          />
-        </div>
+      <div className="list-toolbar">
+        <ListSearchBar
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search name, code, email, contact..."
+          className="w-full min-w-0 max-w-none flex-1"
+        />
         <AnimatedTabNav
           layoutId="vendors-list-filters"
           variant="pill"
           uppercase
+          className="list-toolbar-filters shrink-0"
           aria-label="Filter vendors"
           tabs={VENDOR_FILTERS.map((tab) => ({ id: tab.id, label: tab.label }))}
           activeId={statusFilter}

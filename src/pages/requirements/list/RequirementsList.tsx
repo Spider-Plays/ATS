@@ -332,19 +332,18 @@ const RequirementsList = () => {
       </div>
 
       {/* Search + filter pills */}
-      <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
-        <div className="panel-toolbar flex-1">
-          <ListSearchBar
-            value={searchTerm}
-            onChange={setSearchTerm}
-            placeholder="Search title, department, job code, client, or recruiter..."
-            className="max-w-none"
-          />
-        </div>
+      <div className="list-toolbar">
+        <ListSearchBar
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search title, department, job code, client, or recruiter..."
+          className="w-full min-w-0 max-w-none flex-1"
+        />
         <AnimatedTabNav
           layoutId="requirements-list-filters"
           variant="pill"
           uppercase
+          className="list-toolbar-filters shrink-0"
           aria-label="Filter requirements"
           tabs={REQUIREMENT_FILTERS.map((tab) => ({ id: tab.id, label: tab.label }))}
           activeId={statusFilter}

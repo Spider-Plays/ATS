@@ -25,7 +25,34 @@ import interviewPanelRoutes from './routes/interviewPanels.js'
 
 export const app = express()
 
-app.use(cors({ origin: env.clientOrigin, credentials: true }))
+const devOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'http://localhost:3002',
+  'http://127.0.0.1:3002',
+  'http://localhost:3003',
+  'http://127.0.0.1:3003',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+]
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin) return callback(null, true)
+      if (!env.isProduction) {
+        if (devOrigins.includes(origin) || origin === env.clientOrigin) {
+          return callback(null, true)
+        }
+      }
+      if (origin === env.clientOrigin) return callback(null, true)
+      callback(null, false)
+    },
+    credentials: true,
+  })
+)
 app.use(express.json())
 
 app.get('/', (_req, res) => {

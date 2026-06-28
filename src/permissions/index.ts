@@ -44,18 +44,15 @@ export const VENDOR_MANAGER_ROLES = [
   ROLES.RECRUITER,
 ] as const
 
-/** Employee referral portal. */
-export const REFERRAL_PORTAL_ROLES = [
-  ROLES.EMPLOYEE,
-  ROLES.SUPER_ADMIN,
-  ROLES.ADMIN,
-  ROLES.HR_HEAD,
-  ROLES.HR_MANAGER,
-  ROLES.RECRUITER,
-  ROLES.TEAM_LEAD,
-  ROLES.HIRING_MANAGER,
-  ROLES.INTERVIEWER,
-] as const
+/** Roles that cannot use the employee referral portal. */
+export const REFERRAL_PORTAL_EXCLUDED_ROLES = [ROLES.CANDIDATE, ROLES.VENDOR] as const
+
+/** Employee referral portal — every role except candidate and vendor. */
+export const REFERRAL_PORTAL_ROLES = (
+  Object.values(ROLES) as AppRole[]
+).filter(
+  (role) => !(REFERRAL_PORTAL_EXCLUDED_ROLES as readonly string[]).includes(role)
+) as readonly Exclude<AppRole, (typeof REFERRAL_PORTAL_EXCLUDED_ROLES)[number]>[]
 
 // ─── Page access (sidebar / RequireAuth) ─────────────────────────────────────
 
@@ -197,7 +194,7 @@ export function roleMatchesAllowed(userRole: string, allowedRoles: readonly stri
 }
 
 export function isReferralPortalRole(role: string): boolean {
-  return (REFERRAL_PORTAL_ROLES as readonly string[]).includes(role)
+  return !(REFERRAL_PORTAL_EXCLUDED_ROLES as readonly string[]).includes(role)
 }
 
 export function canEditOwnedOrAdmin(

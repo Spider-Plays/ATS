@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/services/api'
 import { Gift } from 'lucide-react'
-import clsx from 'clsx'
+import { ReferralStatusBadge } from '@/components/referral-portal/ReferralStatusBadge'
 import './detail.css'
 
 const ReferralDetail = () => {
@@ -27,20 +27,7 @@ const ReferralDetail = () => {
             <h1 className="text-2xl font-black text-slate-900 dark:text-white">{candidate.name}</h1>
             <p className="text-sm text-slate-500">{candidate.email}</p>
           </div>
-          <span
-            className={clsx(
-              'px-3 py-1 rounded-lg text-xs font-bold uppercase border h-fit',
-              (candidate.status === 'HIRED' || candidate.status === 'JOINED') &&
-                'bg-emerald-50 text-emerald-800 border-emerald-200',
-              candidate.status === 'REJECTED' && 'bg-red-50 text-red-700 border-red-200',
-              candidate.status !== 'HIRED' &&
-                candidate.status !== 'JOINED' &&
-                candidate.status !== 'REJECTED' &&
-                'bg-slate-100 text-slate-700 border-slate-200'
-            )}
-          >
-            {candidate.status}
-          </span>
+          <ReferralStatusBadge status={candidate.status} className="px-3 py-1 rounded-lg text-xs h-fit" />
         </div>
 
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">

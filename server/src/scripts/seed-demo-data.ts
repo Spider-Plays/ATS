@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
 import { env } from '../config/env.js'
-import { DEV_USERS, DEV_PASSWORD } from '../config/devUsers.js'
+import { DEV_USERS, DEV_PASSWORD, devUserEmail, devUserName } from '../config/devUsers.js'
 import {
   DEMO_CANDIDATES,
   DEMO_PORTAL_USERS,
@@ -18,8 +18,189 @@ import {
 import { computeMatchScore } from '../lib/profileMatching.js'
 import { findCandidateByEmail } from '../lib/candidateDuplicate.js'
 import { ensureInterviewPlan } from '../lib/interviewPlan.js'
+import { removeLegacyDevUsers } from '../lib/legacyDevUsers.js'
+import { migrateRequirementJobCodes } from '../lib/jobCode.js'
+import type { DemoCandidateSeed } from '../config/demoData.js'
 
 const FRESH = process.argv.includes('--fresh')
+const FORCE = process.argv.includes('--force')
+
+type InterviewProgress = NonNullable<DemoCandidateSeed['interviewProgress']>
+
+async function ensureStageInterview(
+  candidate: { id: string; requirementId: string | null },
+  stage: { id: string; interviewType: string; defaultDuration: number },
+  opts: { scheduledAt: Date; status: 'SCHEDULED' | 'COMPLETED'; interviewerId: string }
+) {
+  const existing = await prisma.interview.findFirst({
+    where: { candidateId: candidate.id, planStageId: stage.id },
+  })
+  if (existing) return existing
+
+  const interview = await prisma.interview.create({
+    data: {
+      candidateId: candidate.id,
+      requirementId: candidate.requirementId!,
+      planStageId: stage.id,
+      scheduledAt: opts.scheduledAt,
+      interviewerIds: JSON.stringify([opts.interviewerId]),
+      type: stage.interviewType,
+      status: opts.status,
+      duration: stage.defaultDuration,
+      meetingLink: 'https://meet.google.com/demo-stitch-ats',
+    },
+  })
+
+  if (opts.status === 'COMPLETED') {
+    await prisma.feedback.create({
+      data: {
+        interviewId: interview.id,
+        interviewerId: opts.interviewerId,
+        candidateId: candidate.id,
+        rating: 4,
+        technicalRating: 4,
+        communicationRating: 4,
+        comments:
+          'Strong candidate — solid technical depth and clear communication. Recommend proceeding to the next round.',
+        recommendation: 'HIRE',
+      },
+    })
+  }
+  return interview
+}
+
+async function seedInterviewsForCandidate(
+  candidate: { id: string; email: string; requirementId: string | null },
+  progress: InterviewProgress,
+  interviewerId: string
+) {
+  if (!candidate.requirementId) return
+  const existing = await prisma.interview.findFirst({ where: { candidateId: candidate.id } })
+  if (existing) return
+
+  const plan = await ensureInterviewPlan(candidate.requirementId)
+  const stages = plan.stages
+  if (stages.length === 0) return
+
+  const day = 24 * 60 * 60 * 1000
+  const now = Date.now()
+
+  if (progress === 'l1-scheduled') {
+    await ensureStageInterview(candidate, stages[0], {
+      scheduledAt: new Date(now + 3 * day),
+      status: 'SCHEDULED',
+      interviewerId,
+    })
+    return
+  }
+
+  if (progress === 'l1-done-l2-scheduled') {
+    await ensureStageInterview(candidate, stages[0], {
+      scheduledAt: new Date(now - 5 * day),
+      status: 'COMPLETED',
+      interviewerId,
+    })
+    if (stages[1]) {
+      await ensureStageInterview(candidate, stages[1], {
+        scheduledAt: new Date(now + 2 * day),
+        status: 'SCHEDULED',
+        interviewerId,
+      })
+    }
+    return
+  }
+
+  for (let i = 0; i < Math.min(stages.length, 3); i++) {
+    await ensureStageInterview(candidate, stages[i], {
+      scheduledAt: new Date(now - (10 - i * 3) * day),
+      status: 'COMPLETED',
+      interviewerId,
+    })
+  }
+}
+
+async function seedInterviewRounds(
+  candidateSeeds: Map<string, DemoCandidateSeed>,
+  userByEmail: Map<string, string>
+) {
+  const interviewerId =
+    userByEmail.get(devUserEmail('INTERVIEWER')) ?? userByEmail.get(devUserEmail('ADMIN'))!
+  if (!interviewerId) return
+
+  const candidates = await prisma.candidate.findMany({
+    where: { requirementId: { not: null } },
+  })
+
+  for (const c of candidates) {
+    const seed = candidateSeeds.get(c.email.toLowerCase())
+    const progress = seed?.interviewProgress
+    if (progress) {
+      await seedInterviewsForCandidate(c, progress, interviewerId)
+      continue
+    }
+    if (c.status === 'INTERVIEW') {
+      await seedInterviewsForCandidate(c, 'l1-scheduled', interviewerId)
+    }
+  }
+}
+
+async function seedOffers(candidateSeeds: Map<string, DemoCandidateSeed>, recruiterId: string) {
+  const candidates = await prisma.candidate.findMany({
+    where: {
+      status: { in: ['OFFER', 'HIRED', 'JOINED'] },
+      requirementId: { not: null },
+    },
+  })
+
+  for (const c of candidates) {
+    const existing = await prisma.offer.findFirst({ where: { candidateId: c.id } })
+    if (existing) continue
+
+    const seed = candidateSeeds.get(c.email.toLowerCase())
+    const offerStatus =
+      seed?.offerStatus ?? (c.status === 'OFFER' ? 'PENDING' : 'ACCEPTED')
+
+    const role = (c.role ?? '').toLowerCase()
+    const baseSalary = role.includes('design')
+      ? 2_200_000
+      : role.includes('devops') || role.includes('sre') || role.includes('platform')
+        ? 2_600_000
+        : role.includes('product manager')
+          ? 3_000_000
+          : 2_800_000
+
+    const history: { action: string; at: string; by: string }[] = [
+      { action: 'CREATED', at: new Date().toISOString(), by: recruiterId },
+    ]
+    if (offerStatus === 'SENT' || offerStatus === 'ACCEPTED') {
+      history.push({ action: 'SENT', at: new Date().toISOString(), by: recruiterId })
+    }
+    if (offerStatus === 'ACCEPTED') {
+      history.push({ action: 'ACCEPTED', at: new Date().toISOString(), by: c.id })
+    }
+
+    await prisma.offer.create({
+      data: {
+        candidateId: c.id,
+        requirementId: c.requirementId!,
+        baseSalary,
+        bonus: 200_000,
+        status: offerStatus,
+        createdBy: recruiterId,
+        history: JSON.stringify(history),
+      },
+    })
+  }
+}
+
+async function syncRequirementFilledCounts(reqByCode: Map<string, { id: string }>) {
+  for (const [, req] of reqByCode) {
+    const filled = await prisma.candidate.count({
+      where: { requirementId: req.id, status: { in: ['HIRED', 'JOINED'] } },
+    })
+    await prisma.requirement.update({ where: { id: req.id }, data: { filled } })
+  }
+}
 
 async function clearHiringData() {
   console.log('Clearing existing hiring data...')
@@ -115,13 +296,14 @@ async function attachResume(
       const parsed = await extractResumeText(buffer, 'application/pdf', 'resume.pdf')
       const merged = [snippet, parsed].filter(Boolean).join('\n\n')
       const mergedPayload = buildCandidateResumePayload(merged)
-      await saveResumeFile(candidateId, 'application/pdf', buffer, 'resume.pdf')
+      const stored = await saveResumeFile(candidateId, 'application/pdf', buffer, 'resume.pdf')
       await prisma.candidate.update({
         where: { id: candidateId },
         data: {
           resumeFileName: 'resume.pdf',
           resumeMimeType: 'application/pdf',
-          resumeUrl: null,
+          resumeUrl: stored.url || null,
+          resumeStorageKey: stored.storageKey || null,
           resumeText: mergedPayload.resumeText,
           primarySkills: skills?.primary?.length ? primarySkills : mergedPayload.primarySkills,
           secondarySkills: skills?.secondary?.length
@@ -149,12 +331,21 @@ async function attachResume(
 }
 
 async function main() {
-  if (env.isProduction) {
-    console.error('Refusing to seed demo data in production.')
+  if (env.isProduction && !FORCE) {
+    console.error('Refusing to seed demo data in production. Pass --force to override.')
     process.exit(1)
   }
 
   if (FRESH) await clearHiringData()
+
+  const legacyCleanup = await removeLegacyDevUsers(prisma)
+  const legacyRemoved =
+    legacyCleanup.merged + legacyCleanup.deleted + legacyCleanup.patternDeleted
+  if (legacyRemoved > 0) {
+    console.log(
+      `Removed ${legacyRemoved} legacy user(s) (merged ${legacyCleanup.merged}, deleted ${legacyCleanup.deleted + legacyCleanup.patternDeleted}).`
+    )
+  }
 
   console.log('Seeding demo users...')
   const vendor = await prisma.vendor.upsert({
@@ -162,15 +353,15 @@ async function main() {
     update: {
       name: 'Demo Staffing Co',
       status: 'ACTIVE',
-      email: 'demo-vendor@staffing.local.test',
-      contactName: 'Sarah Vendor',
+      email: 'staffing@Stitch.com',
+      contactName: 'Raghavendra Murthy',
     },
     create: {
       name: 'Demo Staffing Co',
       code: DEMO_VENDOR_CODE,
-      email: 'demo-vendor@staffing.local.test',
+      email: 'staffing@Stitch.com',
       status: 'ACTIVE',
-      contactName: 'Sarah Vendor',
+      contactName: 'Raghavendra Murthy',
       phone: '+91 98765 43210',
     },
   })
@@ -196,8 +387,12 @@ async function main() {
   }
 
   const recruiterId =
-    userByEmail.get('dev-recruiter@local.test') ??
-    userByEmail.get('dev-admin@local.test')!
+    userByEmail.get(devUserEmail('RECRUITER')) ?? userByEmail.get(devUserEmail('ADMIN'))!
+
+  const jobCodeMigration = await migrateRequirementJobCodes()
+  if (jobCodeMigration.updated > 0) {
+    console.log(`Migrated ${jobCodeMigration.updated} requirement job code(s) to REQ format.`)
+  }
 
   console.log('Seeding requirements...')
   const reqByCode = new Map<string, { id: string; title: string }>()
@@ -284,7 +479,7 @@ async function main() {
     }
   }
 
-  const vendorUserId = userByEmail.get('dev-vendor@local.test')
+  const vendorUserId = userByEmail.get(devUserEmail('VENDOR'))
 
   async function upsertCandidate(
     data: {
@@ -367,8 +562,10 @@ async function main() {
   }
 
   console.log('Seeding candidates...')
+  const candidateSeeds = new Map<string, DemoCandidateSeed>()
   let idx = 0
   for (const c of DEMO_CANDIDATES) {
+    candidateSeeds.set(c.email.toLowerCase(), c)
     await upsertCandidate(
       {
         ...c,
@@ -387,6 +584,18 @@ async function main() {
     if (!requirement) continue
 
     const snippet = `${p.name} — applied via candidate portal. Motivated applicant for ${requirement.title}.`
+    const portalSeed: DemoCandidateSeed = {
+      email: p.email,
+      name: p.name,
+      role: requirement.title,
+      status: 'APPLIED',
+      source: 'Candidate Portal',
+      jobCode: p.applyToJobCode,
+      phone: '+91 90000 00000',
+      location: 'India',
+      resumeSnippet: snippet,
+    }
+    candidateSeeds.set(p.email.toLowerCase(), portalSeed)
     await upsertCandidate(
       {
         email: p.email,
@@ -404,82 +613,33 @@ async function main() {
   }
 
   // Ensure dev-candidate portal account is linked (self-applied)
-  const devCandUser = userByEmail.get('dev-candidate@local.test')
+  const devCandUser = userByEmail.get(devUserEmail('CANDIDATE'))
   if (devCandUser) {
-    const req = reqByCode.get('DEMO-SWE-01')
+    const req = reqByCode.get('REQ28062026001')
     if (req) {
       await upsertCandidate(
         {
-          email: 'dev-candidate@local.test',
-          name: 'Dev Candidate',
+          email: devUserEmail('CANDIDATE'),
+          name: devUserName('CANDIDATE'),
           role: req.title,
           status: 'APPLIED',
           source: 'Candidate Portal',
-          jobCode: 'DEMO-SWE-01',
+          jobCode: 'REQ28062026001',
           resumeSnippet:
-            'Dev Candidate — self-applied via portal for Senior Software Engineer. TypeScript, React, Node.js.',
+            `${devUserName('CANDIDATE')} — self-applied via portal for Senior Software Engineer. TypeScript, React, Node.js.`,
         },
         idx++
       )
     }
   }
 
-  // Interviews for candidates in INTERVIEW status
-  const interviewCandidates = await prisma.candidate.findMany({
-    where: { status: 'INTERVIEW', requirementId: { not: null } },
-  })
-  const interviewerId = userByEmail.get('dev-interviewer@local.test')!
-  for (const c of interviewCandidates) {
-    const existing = await prisma.interview.findFirst({
-      where: { candidateId: c.id },
-    })
-    if (existing) continue
-    const plan = await ensureInterviewPlan(c.requirementId!)
-    const firstStage = plan.stages[0]
-    if (!firstStage) continue
-    await prisma.interview.create({
-      data: {
-        candidateId: c.id,
-        requirementId: c.requirementId!,
-        planStageId: firstStage.id,
-        scheduledAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-        interviewerIds: JSON.stringify([interviewerId]),
-        type: firstStage.interviewType,
-        status: 'SCHEDULED',
-        duration: firstStage.defaultDuration,
-        meetingLink: 'https://meet.example.com/demo-interview',
-      },
-    })
-  }
+  // Interview rounds + feedback from demo metadata
+  await seedInterviewRounds(candidateSeeds, userByEmail)
 
-  // Offer for OFFER status candidate
-  const offerCandidate = await prisma.candidate.findFirst({
-    where: { status: 'OFFER', email: 'demo.cand04@local.test' },
-  })
-  if (offerCandidate?.requirementId) {
-    const existingOffer = await prisma.offer.findFirst({
-      where: { candidateId: offerCandidate.id },
-    })
-    if (!existingOffer) {
-      await prisma.offer.create({
-        data: {
-          candidateId: offerCandidate.id,
-          requirementId: offerCandidate.requirementId,
-          baseSalary: 2800000,
-          bonus: 200000,
-          status: 'PENDING',
-          createdBy: recruiterId,
-          history: JSON.stringify([
-            {
-              action: 'CREATED',
-              at: new Date().toISOString(),
-              by: recruiterId,
-            },
-          ]),
-        },
-      })
-    }
-  }
+  // Offers for OFFER / HIRED / JOINED candidates
+  await seedOffers(candidateSeeds, recruiterId)
+
+  await syncRequirementFilledCounts(reqByCode)
 
   const counts = await Promise.all([
     prisma.user.count(),
@@ -493,7 +653,7 @@ async function main() {
   console.log(`  Users: ${counts[0]} (password: ${DEV_PASSWORD})`)
   console.log(`  Requirements: ${counts[1]}`)
   console.log(`  Candidates: ${counts[2]} (${counts[3]} self-applied, ${counts[4]} vendor)`)
-  console.log('  Portal browse-only: demo.portal-browse@local.test, demo.portal-browse2@local.test')
+  console.log('  Portal browse-only: karan.joshi@Stitch.com, meera.shah@Stitch.com')
   console.log('  Re-run with --fresh to replace hiring data.\n')
 }
 

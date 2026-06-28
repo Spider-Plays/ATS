@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Users, ListFilter } from 'lucide-react'
-import clsx from 'clsx'
+import { Users } from 'lucide-react'
 import { api } from '../../services/api'
 import type { Candidate } from '../../types'
 import { ListSearchBar } from '../ui/ListSearchBar'
 import { EmptyState } from '../ui/EmptyState'
 import { CandidateListItem } from '../candidates/CandidateListItem'
+import { AnimatedTabNav } from '../motion/AnimatedTabNav'
 import { InterviewStatCard } from '../interviews/InterviewStatCard'
 import {
   CANDIDATE_FILTERS,
@@ -109,33 +109,23 @@ export function TaggedCandidatesList({
         />
       </div>
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-        <div className="app-card flex-1 p-3">
-          <ListSearchBar
-            value={searchTerm}
-            onChange={setSearchTerm}
-            placeholder="Search name, email, job title, client..."
-            className="max-w-none"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2 items-center">
-          <ListFilter size={16} className="text-muted-foreground hidden sm:block" />
-          {CANDIDATE_FILTERS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setStatusFilter(tab.id)}
-              className={clsx(
-                'px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all',
-                statusFilter === tab.id
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'app-card text-primary/70 dark:text-muted-foreground border-primary/10 hover:bg-primary/5'
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="list-toolbar">
+        <ListSearchBar
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search name, email, job title, client..."
+          className="w-full min-w-0 max-w-none flex-1"
+        />
+        <AnimatedTabNav
+          layoutId="tagged-candidates-filters"
+          variant="pill"
+          uppercase
+          className="list-toolbar-filters shrink-0"
+          aria-label="Filter candidates"
+          tabs={CANDIDATE_FILTERS.map((tab) => ({ id: tab.id, label: tab.label }))}
+          activeId={statusFilter}
+          onChange={(id) => setStatusFilter(id as CandidateFilter)}
+        />
       </div>
 
       {isLoading ? (

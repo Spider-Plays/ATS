@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,8 +11,10 @@ import {
   CheckCircle2,
   FileText,
   Info,
+  Loader2,
   MapPin,
   Sparkles,
+  Upload,
   User,
   Users,
 } from 'lucide-react'
@@ -135,6 +137,7 @@ const NewRequirement = () => {
   const { user } = useAuth()
   const { addToast } = useToastStore()
   const [currentStep, setCurrentStep] = useState(0)
+  const jdFileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
@@ -191,6 +194,50 @@ const NewRequirement = () => {
   })
 
   const formValues = watch()
+
+  const applyExtractedSkills = (data: {
+    jobDescription?: string
+    primarySkills: string[]
+    secondarySkills: string[]
+  }) => {
+    if (data.jobDescription) {
+      setValue('jobDescription', data.jobDescription, { shouldValidate: true })
+    }
+    setValue('primarySkills', data.primarySkills, { shouldValidate: true })
+    setValue('secondarySkills', data.secondarySkills)
+    return data.primarySkills.length + data.secondarySkills.length
+  }
+
+  const parseJdMutation = useMutation({
+    mutationFn: (input: string | File) => api.requirements.parseJobDescription(input),
+    onSuccess: (data) => {
+      const count = applyExtractedSkills(data)
+      if (count > 0) {
+        addToast(`Extracted ${count} skill${count === 1 ? '' : 's'} from job description`, 'success')
+      } else {
+        addToast('No matching skills found — select skills manually', 'info')
+      }
+    },
+    onError: (err: unknown) => {
+      const msg =
+        err instanceof ApiError ? err.message : 'Could not parse job description'
+      addToast(msg, 'info')
+    },
+  })
+
+  const handleExtractSkills = () => {
+    const jd = formValues.jobDescription?.trim() ?? ''
+    if (jd.length < 20) {
+      addToast('Enter at least 20 characters in the job description first', 'info')
+      return
+    }
+    parseJdMutation.mutate(jd)
+  }
+
+  const handleJdFile = (file: File | null) => {
+    if (!file) return
+    parseJdMutation.mutate(file)
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: RequirementFormValues) => {
@@ -639,8 +686,75 @@ const NewRequirement = () => {
                     Skills & job description
                   </h2>
                   <p className="text-sm text-primary/50 dark:text-white/50 mt-1">
-                    Used for candidate matching and the public job posting.
+                    Paste or upload a job description — we&apos;ll extract skills for matching.
                   </p>
+                </div>
+
+                <div className="space-y-2">
+                  <FieldLabel required>Job description</FieldLabel>
+                  <div
+                    className={clsx(
+                      'rounded-xl border border-dashed border-primary/15 dark:border-white/15 p-4 mb-2',
+                      'bg-primary/[0.02] dark:bg-white/[0.02]'
+                    )}
+                  >
+                    <input
+                      ref={jdFileInputRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      className="hidden"
+                      onChange={(e) => {
+                        handleJdFile(e.target.files?.[0] ?? null)
+                        e.target.value = ''
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={parseJdMutation.isPending}
+                      onClick={() => jdFileInputRef.current?.click()}
+                      className="flex items-center gap-2 text-sm font-bold text-primary/70 dark:text-white/70 hover:text-primary dark:hover:text-white disabled:opacity-50"
+                    >
+                      {parseJdMutation.isPending ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Upload size={16} />
+                      )}
+                      Upload PDF or DOCX to fill description and extract skills
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <FileText
+                      size={18}
+                      className="absolute left-3 top-4 text-primary/35 dark:text-white/35"
+                    />
+                    <textarea
+                      className={clsx(
+                        inputClass,
+                        'pl-10 h-56 resize-none leading-relaxed'
+                      )}
+                      placeholder="Responsibilities, qualifications, required skills, nice-to-have skills…"
+                      {...register('jobDescription')}
+                    />
+                  </div>
+                  <FieldError message={errors.jobDescription?.message} />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[11px] text-muted-foreground">
+                      Minimum 20 characters · {(formValues.jobDescription ?? '').length} entered
+                    </p>
+                    <button
+                      type="button"
+                      disabled={parseJdMutation.isPending}
+                      onClick={handleExtractSkills}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary/10 dark:bg-white/10 text-primary dark:text-white hover:bg-primary/15 disabled:opacity-50"
+                    >
+                      {parseJdMutation.isPending ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Sparkles size={14} />
+                      )}
+                      Extract skills from description
+                    </button>
+                  </div>
                 </div>
 
                 <Controller
@@ -663,28 +777,6 @@ const NewRequirement = () => {
                     />
                   )}
                 />
-
-                <div className="space-y-2">
-                  <FieldLabel required>Job description</FieldLabel>
-                  <div className="relative">
-                    <FileText
-                      size={18}
-                      className="absolute left-3 top-4 text-primary/35 dark:text-white/35"
-                    />
-                    <textarea
-                      className={clsx(
-                        inputClass,
-                        'pl-10 h-56 resize-none leading-relaxed'
-                      )}
-                      placeholder="Responsibilities, qualifications, and role expectations…"
-                      {...register('jobDescription')}
-                    />
-                  </div>
-                  <FieldError message={errors.jobDescription?.message} />
-                  <p className="text-[11px] text-muted-foreground">
-                    Minimum 20 characters · {(formValues.jobDescription ?? '').length} entered
-                  </p>
-                </div>
               </div>
             )}
 

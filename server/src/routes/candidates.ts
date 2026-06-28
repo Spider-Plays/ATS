@@ -10,6 +10,7 @@ import { handleUploadResume } from '../middleware/uploadResume.js'
 import {
   deleteResumeFile,
   findResumeFile,
+  readResumeBuffer,
   isAllowedResumeFile,
   resolveResumeMime,
   saveResumeFile,
@@ -167,10 +168,10 @@ router.get('/:id/resume', async (req, res) => {
     if (!row) return res.status(404).json({ error: 'Not found' })
     if (!row.resumeFileName) return res.status(404).json({ error: 'No resume uploaded' })
 
-    const stored = await findResumeFile(row.id)
+    const stored = await findResumeFile(row.id, row.resumeStorageKey)
     if (!stored) return res.status(404).json({ error: 'Resume file missing' })
 
-    const buffer = await fs.readFile(stored.filePath)
+    const buffer = await readResumeBuffer(stored)
     res.setHeader('Content-Type', row.resumeMimeType || stored.mime)
     res.setHeader(
       'Content-Disposition',
@@ -197,7 +198,7 @@ router.post('/:id/resume', requireRoles(...STAFF_MUTATE), handleUploadResume, as
     }
 
     const mime = resolveResumeMime(req.file.mimetype, req.file.originalname)
-    await saveResumeFile(row.id, mime, req.file.buffer, req.file.originalname)
+    const stored = await saveResumeFile(row.id, mime, req.file.buffer, req.file.originalname, row.resumeStorageKey)
 
     let resumePayload: ReturnType<typeof buildCandidateResumePayload> = {
       resumeText: null,
@@ -221,7 +222,8 @@ router.post('/:id/resume', requireRoles(...STAFF_MUTATE), handleUploadResume, as
       data: {
         resumeFileName: req.file.originalname,
         resumeMimeType: mime,
-        resumeUrl: null,
+        resumeUrl: stored.url || null,
+        resumeStorageKey: stored.storageKey || null,
         resumeText: resumePayload.resumeText,
         primarySkills: resumePayload.primarySkills,
         secondarySkills: resumePayload.secondarySkills,
@@ -277,13 +279,14 @@ router.delete('/:id/resume', async (req, res) => {
   const row = await prisma.candidate.findUnique({ where: { id: req.params.id } })
   if (!row) return res.status(404).json({ error: 'Not found' })
 
-  await deleteResumeFile(row.id)
+  await deleteResumeFile(row.id, row.resumeStorageKey)
   const updated = await prisma.candidate.update({
     where: { id: row.id },
     data: {
       resumeFileName: null,
       resumeMimeType: null,
       resumeUrl: null,
+      resumeStorageKey: null,
       updatedAt: new Date(),
     },
   })
@@ -671,7 +674,7 @@ router.delete('/:id', requireRoles('ADMIN'), async (req, res) => {
     }),
   ])
 
-  await deleteResumeFile(row.id)
+  await deleteResumeFile(row.id, row.resumeStorageKey)
   await prisma.candidate.delete({ where: { id: row.id } })
   if (row.requirementId) await syncRequirementFilled(row.requirementId)
 

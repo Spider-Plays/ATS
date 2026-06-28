@@ -12,3 +12,10 @@ export function postAuthPath(user: User, allowedPages: PageKey[] = [], from = '/
   if (isAdminRole(user.role)) return '/admin'
   return from === '/' ? '/dashboard' : from
 }
+
+/** After sign-in on the employee referral portal (staff + dedicated employee accounts). */
+export function referralPortalPostAuthPath(user: User, from?: string): string {
+  if (user.mustChangePassword) return '/set-password'
+  if (from?.startsWith('/referral-portal') && from !== '/referral-portal/login') return from
+  return '/referral-portal/dashboard'
+}

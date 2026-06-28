@@ -17,8 +17,7 @@ import {
   buildInterviewListWhere,
   CandidateAccessError,
 } from '../lib/candidateAccess.js'
-import { findResumeFile } from '../lib/resumeStorage.js'
-import fs from 'fs/promises'
+import { findResumeFile, readResumeBuffer } from '../lib/resumeStorage.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
@@ -143,10 +142,10 @@ router.get('/:id/candidate-resume', async (req, res) => {
     if (!row) return res.status(404).json({ error: 'Candidate not found' })
     if (!row.resumeFileName) return res.status(404).json({ error: 'No resume uploaded' })
 
-    const stored = await findResumeFile(row.id)
+    const stored = await findResumeFile(row.id, row.resumeStorageKey)
     if (!stored) return res.status(404).json({ error: 'Resume file missing' })
 
-    const buffer = await fs.readFile(stored.filePath)
+    const buffer = await readResumeBuffer(stored)
     res.setHeader('Content-Type', row.resumeMimeType || stored.mime)
     res.setHeader(
       'Content-Disposition',

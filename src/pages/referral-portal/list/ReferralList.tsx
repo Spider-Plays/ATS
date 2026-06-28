@@ -5,7 +5,8 @@ import { api } from '@/services/api'
 import { ListSearchBar } from '@/components/ui/ListSearchBar'
 import { matchesAnySearch } from '@/lib/textSearch'
 import { EmptyState } from '@/components/ui/EmptyState'
-import clsx from 'clsx'
+import { ReferralStatusBadge } from '@/components/referral-portal/ReferralStatusBadge'
+import { matchesReferralStatusSearch, referralStatusLabel } from '@/lib/referralStatus'
 import './list.css'
 
 const ReferralList = () => {
@@ -19,9 +20,9 @@ const ReferralList = () => {
     () =>
       referrals.filter((c) =>
         matchesAnySearch(
-          [c.name, c.email, c.status, c.jobTitle, c.role, c.referralRelationship],
+          [c.name, c.email, c.jobTitle, c.role, c.referralRelationship, referralStatusLabel(c.status)],
           search
-        )
+        ) || matchesReferralStatusSearch(c.status, search)
       ),
     [referrals, search]
   )
@@ -100,20 +101,7 @@ const ReferralList = () => {
                     {c.referralRelationship ?? '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={clsx(
-                        'px-2 py-0.5 rounded text-[10px] font-bold uppercase border',
-                        (c.status === 'HIRED' || c.status === 'JOINED') &&
-                          'bg-emerald-50 text-emerald-800 border-emerald-200',
-                        c.status === 'REJECTED' && 'bg-red-50 text-red-700 border-red-200',
-                        c.status !== 'HIRED' &&
-                          c.status !== 'JOINED' &&
-                          c.status !== 'REJECTED' &&
-                          'bg-slate-100 text-slate-700 border-slate-200'
-                      )}
-                    >
-                      {c.status}
-                    </span>
+                    <ReferralStatusBadge status={c.status} />
                   </td>
                   <td className="px-4 py-3 text-slate-500">
                     {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—'}

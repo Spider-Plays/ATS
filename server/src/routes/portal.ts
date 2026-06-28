@@ -324,7 +324,7 @@ router.post('/profile/resume', handleUploadResume, async (req, res) => {
   }
 
   const mime = resolveResumeMime(req.file.mimetype, req.file.originalname)
-  await saveResumeFile(candidate.id, mime, req.file.buffer, req.file.originalname)
+  const stored = await saveResumeFile(candidate.id, mime, req.file.buffer, req.file.originalname, candidate.resumeStorageKey)
 
   let resumePayload = {
     resumeText: null as string | null,
@@ -353,7 +353,8 @@ router.post('/profile/resume', handleUploadResume, async (req, res) => {
     data: {
       resumeFileName: req.file.originalname,
       resumeMimeType: mime,
-      resumeUrl: null,
+      resumeUrl: stored.url || null,
+      resumeStorageKey: stored.storageKey || null,
       resumeText: resumePayload.resumeText,
       primarySkills: resumePayload.primarySkills,
       secondarySkills: resumePayload.secondarySkills,

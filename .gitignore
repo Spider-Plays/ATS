@@ -1,5 +1,6 @@
 node_modules
 dist
+site
 .env
 .env.local
 *.log
@@ -21,3 +22,18 @@ code.html
 firebase.json
 .firebaserc
 firestore.rules
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf

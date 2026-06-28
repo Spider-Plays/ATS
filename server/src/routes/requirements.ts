@@ -56,6 +56,10 @@ import {
   CandidateAccessError,
 } from '../lib/candidateAccess.js'
 import { hasOrgWideAccess } from '../lib/orgAccess.js'
+import { getCatalogSkillNames } from '../lib/skillCatalog.js'
+import { extractResumeText } from '../lib/resumeParse.js'
+import { parseJobDescriptionSkills } from '../lib/jdParse.js'
+import { handleUploadResume } from '../middleware/uploadResume.js'
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
 
@@ -76,6 +80,47 @@ router.get('/pending', async (req, res) => {
   })
   res.json(rows.map(mapRequirement))
 })
+
+router.post(
+  '/parse-job-description',
+  requireRoles(...STAFF_MUTATE, 'HIRING_MANAGER'),
+  handleUploadResume,
+  async (req, res) => {
+    try {
+      let text =
+        typeof req.body?.jobDescription === 'string' ? req.body.jobDescription.trim() : ''
+
+      if (req.file) {
+        const fileText = await extractResumeText(
+          req.file.buffer,
+          req.file.mimetype,
+          req.file.originalname
+        )
+        text = fileText || text
+      }
+
+      if (!text || text.length < 20) {
+        return res.status(422).json({
+          error:
+            'Job description must be at least 20 characters. Paste text or upload a PDF/DOCX.',
+        })
+      }
+
+      const catalog = await getCatalogSkillNames()
+      const { primarySkills, secondarySkills } = parseJobDescriptionSkills(text, catalog)
+      res.json({
+        jobDescription: text.slice(0, 50_000),
+        primarySkills,
+        secondarySkills,
+      })
+    } catch (err) {
+      console.error('Job description parse failed:', err)
+      const message =
+        err instanceof Error ? err.message : 'Could not parse job description'
+      res.status(422).json({ error: message })
+    }
+  }
+)
 
 router.get('/:id/matching-profiles', async (req, res) => {
   try {
@@ -426,7 +471,7 @@ router.post('/', requireRoles(...STAFF_MUTATE, 'HIRING_MANAGER'), async (req, re
 
   const row = await prisma.requirement.create({
     data: {
-      jobCode: generateJobCode(),
+      jobCode: await generateJobCode(),
       client: clientName,
       title: body.title,
       department: body.department,

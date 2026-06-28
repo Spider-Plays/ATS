@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { DEV_LOGIN_ACCOUNTS } from './devLoginAccounts'
+import { DEV_LOGIN_PASSWORD } from './devCredentials'
 import { resolveDevLoginRedirect } from './resolveDevLoginRedirect'
 import { ApiError } from '../lib/apiClient'
-import type { PageKey } from '@/permissions'
+import { isReferralPortalRole, type PageKey } from '@/permissions'
 import type { User } from '../types'
 import clsx from 'clsx'
 
@@ -21,6 +22,10 @@ type DevQuickLoginProps = {
   onSuccess?: () => void
   /** Show only accounts for this role (e.g. candidate portal login). */
   filterRole?: string
+  /** Show all staff + employee accounts (excludes candidate and vendor). */
+  referralPortalOnly?: boolean
+  /** Show one primary account per role (canonical demo emails). */
+  primaryOnly?: boolean
 }
 
 export function DevQuickLogin({
@@ -28,11 +33,16 @@ export function DevQuickLogin({
   onLoggedIn,
   onSuccess,
   filterRole,
+  referralPortalOnly,
+  primaryOnly,
 }: DevQuickLoginProps) {
   const navigate = useNavigate()
-  const accounts = filterRole
-    ? DEV_LOGIN_ACCOUNTS.filter((a) => a.role === filterRole)
-    : DEV_LOGIN_ACCOUNTS
+  const accounts = DEV_LOGIN_ACCOUNTS.filter((account) => {
+    if (filterRole && account.role !== filterRole) return false
+    if (referralPortalOnly && !isReferralPortalRole(account.role)) return false
+    if (primaryOnly && !account.primary) return false
+    return true
+  })
   const { login } = useAuth()
   const [loadingEmail, setLoadingEmail] = useState<string | null>(null)
 
@@ -58,11 +68,11 @@ export function DevQuickLogin({
           )
         } else if (err.status === 401) {
           onError(
-            'Invalid credentials — run: npm run db:seed --prefix server (creates dev-employee@local.test)'
+            'Invalid credentials — run: npm run db:seed --prefix server (creates employee@Stitch.com)'
           )
         } else if (err.status === 0 || err.message.includes('fetch')) {
           onError(
-            'Cannot reach API. Run npm run dev from the project root (client + server on port 4000).'
+            'Cannot reach API. Run npm run dev from the project root. If login works in production but not locally, clear VITE_API_BASE_URL in .env (use .env.development proxy) and restart.'
           )
         } else {
           onError(err.message)
@@ -96,7 +106,7 @@ export function DevQuickLogin({
             Dev quick login
           </p>
           <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 mt-0.5">
-            Password for all: <span className="font-mono font-bold">DevTest123!</span> — seed with{' '}
+            Password for all: <span className="font-mono font-bold">{DEV_LOGIN_PASSWORD}</span> — seed with{' '}
             <span className="font-mono">npm run db:seed --prefix server</span>
           </p>
         </div>

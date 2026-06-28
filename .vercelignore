@@ -1,0 +1,10 @@
+server/
+migrations/
+.cursor/
+.insforge/
+.agent/
+.agents/
+stitch/
+stitch 2.0/
+*.md
+!README.md

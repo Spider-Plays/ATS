@@ -391,7 +391,7 @@ router.post('/submissions/:candidateId/resume', handleUploadResume, async (req, 
   if (!row) return res.status(404).json({ error: 'Submission not found' })
 
   const mime = resolveResumeMime(req.file.mimetype, req.file.originalname)
-  await saveResumeFile(row.id, mime, req.file.buffer, req.file.originalname)
+  const stored = await saveResumeFile(row.id, mime, req.file.buffer, req.file.originalname, row.resumeStorageKey)
 
   let resumePayload: ReturnType<typeof buildCandidateResumePayload> = {
     resumeText: null,
@@ -424,7 +424,8 @@ router.post('/submissions/:candidateId/resume', handleUploadResume, async (req, 
     data: {
       resumeFileName: req.file.originalname,
       resumeMimeType: mime,
-      resumeUrl: null,
+      resumeUrl: stored.url || null,
+      resumeStorageKey: stored.storageKey || null,
       resumeText: resumePayload.resumeText ?? row.resumeText,
       primarySkills: serializeSkills(
         existingPrimary.length ? existingPrimary : parsedPrimary

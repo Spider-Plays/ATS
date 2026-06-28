@@ -29,7 +29,8 @@
         }
     },
     "include": [
-        "src"
+        "src",
+        "server/src/config/devUsers.registry.json"
     ],
     "references": [
         {

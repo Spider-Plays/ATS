@@ -1,5 +1,7 @@
 const TOKEN_KEY = 'stitch_auth_token'
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') || ''
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
@@ -33,7 +35,7 @@ export async function apiRequest<T>(
   }
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`/api${path}`, { ...options, headers })
+  const res = await fetch(`${API_BASE}/api${path}`, { ...options, headers })
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
@@ -53,7 +55,7 @@ export async function uploadFormData<T>(path: string, formData: FormData): Promi
   const headers: Record<string, string> = {}
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`/api${path}`, { method: 'POST', body: formData, headers })
+  const res = await fetch(`${API_BASE}/api${path}`, { method: 'POST', body: formData, headers })
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
@@ -72,7 +74,7 @@ export async function fetchResumeBlob(candidateId: string): Promise<Blob | null>
   const headers: Record<string, string> = {}
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`/api/candidates/${candidateId}/resume`, { headers })
+  const res = await fetch(`${API_BASE}/api/candidates/${candidateId}/resume`, { headers })
 
   if (res.status === 404) return null
   if (!res.ok) {
