@@ -1,5 +1,18 @@
 const DEFAULT_API_ORIGIN = 'https://stitch-ats.onrender.com'
 
+const NO_CACHE_PATHS = new Set(['/', '/index.html', '/build-id.txt'])
+
+function withNoCache(response) {
+  const headers = new Headers(response.headers)
+  headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+  headers.set('Pragma', 'no-cache')
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
 /** Serve Vite build from ASSETS; proxy /api/* to Render (same-origin, no CORS). */
 export default {
   async fetch(request, env) {
@@ -11,14 +24,23 @@ export default {
       const headers = new Headers(request.headers)
       headers.set('Host', new URL(apiOrigin).host)
 
-      return fetch(target, {
+      const upstream = await fetch(target, {
         method: request.method,
         headers,
         body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
         redirect: 'manual',
       })
+
+      if (url.pathname === '/api/health') {
+        return withNoCache(upstream)
+      }
+      return upstream
     }
 
-    return env.ASSETS.fetch(request)
+    const assetResponse = await env.ASSETS.fetch(request)
+    if (NO_CACHE_PATHS.has(url.pathname)) {
+      return withNoCache(assetResponse)
+    }
+    return assetResponse
   },
 }

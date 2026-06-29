@@ -3,6 +3,7 @@ import 'express-async-errors'
 import cors from 'cors'
 import { Prisma } from '@prisma/client'
 import { env } from './config/env.js'
+import { resolveApiBuildId } from './config/buildId.js'
 import { prisma } from './lib/prisma.js'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
@@ -76,11 +77,13 @@ app.get('/', (_req, res) => {
 })
 
 app.get('/api/health', async (_req, res) => {
+  const buildId = resolveApiBuildId()
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
   try {
     await prisma.$queryRaw`SELECT 1`
-    res.json({ ok: true, database: 'connected' })
+    res.json({ ok: true, database: 'connected', buildId })
   } catch {
-    res.status(503).json({ ok: false, database: 'unavailable' })
+    res.status(503).json({ ok: false, database: 'unavailable', buildId })
   }
 })
 
