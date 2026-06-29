@@ -272,7 +272,7 @@ const Login = () => {
                                     <span className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                                 ) : (
                                     <>
-                                        Sign in
+                                        Login
                                         <span className="material-symbols-outlined !text-lg">arrow_forward</span>
                                     </>
                                 )}
