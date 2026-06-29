@@ -60,21 +60,42 @@ Preview-specific API URL: edit `[env.preview.vars] API_ORIGIN` in `wrangler.toml
 
 ## QA staging (full stack)
 
-Isolated QA environment at **https://qa.stitch-ats.in** — separate Neon database, staging Render API, and Cloudflare Pages preview. Production (`stitch-ats.in`) is untouched.
+Isolated QA at **https://qa.stitch-ats.in** — separate Neon DB, staging Render API, and Cloudflare Worker **`ats-qa`**. Production **https://stitch-ats.in** uses worker **`ats`**.
 
 | Component | Production | QA staging |
 |-----------|------------|------------|
-| Frontend | `stitch-ats.in` (branch `main`) | `qa.stitch-ats.in` (branch `qa`) |
-| API | `stitch-ats-api` on Render | `stitch-ats-api-staging` on Render |
-| Database | Neon `main` branch | Neon `staging` branch |
-| Pages `API_ORIGIN` | Production env var → prod API | Preview env var → staging API |
+| Git branch | **`main`** | **`qa`** |
+| Frontend | Worker `ats` → stitch-ats.in | Worker `ats-qa` → qa.stitch-ats.in |
+| API | stitch-ats.onrender.com | ats-0dtj.onrender.com |
+| Database | Neon `production` branch | Neon `qa` branch |
+| Runtime var | `API_ORIGIN` → prod API | `API_ORIGIN` → staging API |
+
+### Release workflow (test on QA, then production)
+
+See **[docs/qa/RELEASE_WORKFLOW.md](docs/qa/RELEASE_WORKFLOW.md)** for the full guide.
+
+```bash
+# 1. Develop on qa branch → deploys qa.stitch-ats.in + staging API
+git checkout qa
+git push origin qa
+
+# 2. After QA sign-off → deploy production
+git checkout main
+git merge qa
+git push origin main
+```
+
+**Cloudflare:** worker `ats` builds **`main`** only; worker `ats-qa` builds **non-`main`** branches (`qa`).  
+**Render:** production API → branch **`main`**; staging API → branch **`qa`**.
+
+Manual deploy: `npm run deploy:worker:qa` (QA) or `npm run deploy:worker` (prod).  
+Verify: `npm run verify:qa-staging`
+
+Tester docs: [docs/qa/STAGING_ENVIRONMENT.md](docs/qa/STAGING_ENVIRONMENT.md)
 
 ### One-time infrastructure setup
 
-**1. Neon — staging branch**
-
-1. Neon console → your project → **Branches** → create branch `staging` from `main` (or empty).
-2. Copy the **pooled** connection string for the branch.
+**1. Neon** — create child branch `qa` from `production`, then:
 
 ```powershell
 $env:STAGING_DATABASE_URL="postgresql://...@ep-xxx-pooler....neon.tech/neondb?sslmode=require"
@@ -82,47 +103,9 @@ $env:QA_ADMIN_PASSWORD="<secure-password>"
 npm run db:setup-staging
 ```
 
-Demo staff accounts use password `password` (see `server/src/config/devUsers.registry.json`). Bootstrap admin: `qa-admin@stitch-ats.in` when `QA_ADMIN_PASSWORD` is set.
+**2. Render** — staging web service (root dir `server`), branch **`qa`**, env: staging `DATABASE_URL`, new `JWT_SECRET`, `CLIENT_ORIGIN=https://qa.stitch-ats.in,http://localhost:3000`, `APP_URL=https://qa.stitch-ats.in`.
 
-**2. Render — staging API**
-
-Blueprint in [`server/render.yaml`](server/render.yaml) defines `stitch-ats-api-staging`. In the Render dashboard:
-
-- Apply blueprint or create the service manually (root dir `server`, same build/start as production).
-- Set secrets: `DATABASE_URL` (staging Neon branch), `JWT_SECRET` (new value — not production).
-- Confirm health: `https://stitch-ats-api-staging.onrender.com/api/health`
-
-**3. Cloudflare Pages**
-
-| Setting | Value |
-|---------|-------|
-| Production branch | `main` |
-| Preview deployments | Enabled; auto-build branch `qa` |
-| **Preview** env var `API_ORIGIN` | `https://stitch-ats-api-staging.onrender.com` |
-| **Production** env var `API_ORIGIN` | `https://stitch-ats.onrender.com` |
-| Custom domain (Preview) | `qa.stitch-ats.in` → your Pages project |
-
-DNS: CNAME `qa` → `<project>.pages.dev` (Cloudflare shows the exact target when adding the custom domain).
-
-Optional: [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) on `qa.stitch-ats.in` to restrict the site to your team.
-
-### QA deploy workflow
-
-Push or merge to the `qa` branch — Cloudflare builds a preview deployment automatically.
-
-Manual deploy:
-
-```bash
-npm run deploy:pages:qa
-```
-
-After infrastructure is live, verify:
-
-```bash
-npm run verify:qa-staging
-```
-
-Tester documentation: [docs/qa/STAGING_ENVIRONMENT.md](docs/qa/STAGING_ENVIRONMENT.md).
+**3. Cloudflare** — worker **`ats-qa`**, deploy `npm run deploy:worker:qa`, runtime `API_ORIGIN=https://ats-0dtj.onrender.com`, domain **`qa.stitch-ats.in`**. Production worker **`ats`** unchanged on **`main`**.
 
 
 ## QA / Testing

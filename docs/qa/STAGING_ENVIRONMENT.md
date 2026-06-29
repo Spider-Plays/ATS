@@ -15,10 +15,20 @@
 | Vendor portal | https://qa.stitch-ats.in/login (VENDOR role) |
 | Referral portal | https://qa.stitch-ats.in/referral-portal/login |
 
-**API health (direct):** https://stitch-ats-api-staging.onrender.com/api/health  
+**API health (direct):** https://ats-0dtj.onrender.com/api/health  
 **API health (via frontend proxy):** https://qa.stitch-ats.in/api/health
 
 ---
+
+## Release workflow (developers)
+
+New code lands on QA first, then production. Full guide: [RELEASE_WORKFLOW.md](./RELEASE_WORKFLOW.md)
+
+| Step | Action |
+|------|--------|
+| Test | Push to **`qa`** branch → https://qa.stitch-ats.in updates |
+| Release | Merge **`qa`** → **`main`** → https://stitch-ats.in updates |
+
 
 ## Test credentials
 
@@ -65,5 +75,6 @@ Same as [TESTER_SETUP.md](./TESTER_SETUP.md):
 
 ## Related
 
+- [RELEASE_WORKFLOW.md](./RELEASE_WORKFLOW.md) — qa branch → main release process
 - [TESTER_SETUP.md](./TESTER_SETUP.md) — browser support, bug workflow
 - [README.md](../../README.md#qa-staging-full-stack) — infrastructure setup for devops

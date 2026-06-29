@@ -3,7 +3,8 @@
 **Document version:** 1.0  
 **Last updated:** June 2026  
 **Environment:** Production — https://stitch-ats.in  
-**QA staging:** https://qa.stitch-ats.in — see [STAGING_ENVIRONMENT.md](./STAGING_ENVIRONMENT.md)
+**QA staging:** https://qa.stitch-ats.in — see [STAGING_ENVIRONMENT.md](./STAGING_ENVIRONMENT.md)  
+**Release workflow:** [RELEASE_WORKFLOW.md](./RELEASE_WORKFLOW.md) — test on `qa` branch, release via `main`
 
 ---
 

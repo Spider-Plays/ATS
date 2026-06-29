@@ -8,7 +8,7 @@
  */
 const QA_ORIGIN = (process.env.QA_ORIGIN || 'https://qa.stitch-ats.in').replace(/\/$/, '')
 const STAGING_API_ORIGIN = (
-  process.env.STAGING_API_ORIGIN || 'https://stitch-ats-api-staging.onrender.com'
+  process.env.STAGING_API_ORIGIN || 'https://ats-0dtj.onrender.com'
 ).replace(/\/$/, '')
 const PROD_API_ORIGIN = (process.env.PROD_API_ORIGIN || 'https://stitch-ats.onrender.com').replace(
   /\/$/,
