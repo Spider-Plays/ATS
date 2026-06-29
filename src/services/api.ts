@@ -1,4 +1,4 @@
-import { requirementService, candidateService, userService, interviewService, offerService, feedbackService, searchService, portalService, skillService, departmentService, clientService, interviewPanelService } from './http'
+import { requirementService, candidateService, userService, interviewService, offerService, offerSettingsService, feedbackService, searchService, portalService, skillService, departmentService, clientService, interviewPanelService } from './http'
 import { vendorService } from './http/vendors'
 import { vendorPortalService } from './http/vendorPortal'
 import { referralPortalService } from './http/referralPortal'
@@ -161,6 +161,7 @@ export const api = {
         submit: offerService.submit,
         approveHr: offerService.approveHr,
         approveExec: offerService.approveExec,
+        approveStage: offerService.approveStage,
         reject: offerService.reject,
         send: offerService.send,
         withdraw: offerService.withdraw,
@@ -168,6 +169,16 @@ export const api = {
         revise: offerService.revise,
         accept: offerService.accept,
         decline: offerService.decline,
+        rollbackApproval: offerService.rollbackApproval,
         remove: offerService.remove,
+    },
+    offerSettings: {
+        getCompensationConfig: offerSettingsService.getCompensationConfig,
+        updateCompensationConfig: offerSettingsService.updateCompensationConfig,
+        previewCompensation: offerSettingsService.previewCompensation,
+        getLetterTemplate: offerSettingsService.getLetterTemplate,
+        updateLetterTemplate: offerSettingsService.updateLetterTemplate,
+        resetLetterTemplate: offerSettingsService.resetLetterTemplate,
+        previewLetterTemplate: offerSettingsService.previewLetterTemplate,
     },
 }

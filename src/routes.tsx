@@ -66,6 +66,10 @@ const FeedbackForm = lazyPage(() => import('./pages/feedback/form/FeedbackForm')
 const Offers = lazyPage(() => import('./pages/offers/list/Offers'))
 const NewOffer = lazyPage(() => import('./pages/offers/new/NewOffer'))
 const OfferDetail = lazyPage(() => import('./pages/offers/detail/OfferDetail'))
+const OfferCompensationConfig = lazyPage(
+  () => import('./pages/offers/compensation-config/OfferCompensationConfig')
+)
+const OfferLetterTemplate = lazyPage(() => import('./pages/offers/letter-template/OfferLetterTemplate'))
 const Notifications = lazyPage(() => import('./pages/notifications/list/Notifications'))
 const Settings = lazyPage(() => import('./pages/settings/account/Settings'))
 const NotFound = lazyPage(() => import('./pages/not-found/NotFound'))
@@ -215,6 +219,7 @@ const AppRoutes = () => {
               'ADMIN',
               'HR_HEAD',
               'HR_MANAGER',
+              'FINANCE_HEAD',
               'RECRUITER',
               'TEAM_LEAD',
               'HIRING_MANAGER',
@@ -243,6 +248,8 @@ const AppRoutes = () => {
         <Route path="interviews/:id/edit" element={<ScheduleInterview />} />
         <Route path="interviews/:id/feedback" element={<FeedbackForm />} />
         <Route path="offers" element={<Offers />} />
+        <Route path="offers/compensation-config" element={<OfferCompensationConfig />} />
+        <Route path="offers/letter-template" element={<OfferLetterTemplate />} />
         <Route path="offers/new" element={<NewOffer />} />
         <Route path="offers/:id" element={<OfferDetail />} />
         <Route path="features/careers" element={<CareersCandidates />} />

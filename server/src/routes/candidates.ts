@@ -49,6 +49,9 @@ const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
 
 router.get('/', async (req, res) => {
+  if (req.auth!.role === 'INTERVIEWER') {
+    return res.status(403).json({ error: 'Forbidden' })
+  }
   try {
   const auth = req.auth!
   const listWhere = await buildCandidateListWhere(auth)
@@ -670,20 +673,21 @@ router.patch('/:id/status', requireRoles(...STAFF_MUTATE), async (req, res) => {
     const activityDetails: Record<string, unknown> = { newStatus: status }
 
     if (status === 'OFFER') {
-      if (!milestone?.offerDate || !milestone?.offerMonth || !milestone?.offerQuarter) {
-        return res.status(400).json({ error: 'Offer date, month, and quarter are required' })
+      const expectedCTC = milestone?.expectedCTC?.trim()
+      if (!expectedCTC || !milestone?.offerMonth || !milestone?.offerQuarter) {
+        return res.status(400).json({ error: 'Expected CTC, month, and quarter are required' })
       }
       if (!milestone.expectedJoiningDate) {
         return res.status(400).json({ error: 'Expected joining date is required' })
       }
-      data.offerDate = parseDateField(milestone.offerDate, 'offer date')
+      data.expectedCTC = expectedCTC
       data.offerMonth = milestone.offerMonth
       data.offerQuarter = milestone.offerQuarter
       data.expectedJoiningDate = parseDateField(
         milestone.expectedJoiningDate,
         'expected joining date'
       )
-      activityDetails.offerDate = milestone.offerDate
+      activityDetails.expectedCTC = expectedCTC
       activityDetails.offerMonth = milestone.offerMonth
       activityDetails.offerQuarter = milestone.offerQuarter
       activityDetails.expectedJoiningDate = milestone.expectedJoiningDate

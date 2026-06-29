@@ -13,6 +13,7 @@ import {
   canManageRequirementPosting,
 } from '@/permissions'
 import { Modal } from '../ui/Modal'
+import { AppDatePicker } from '../ui/AppDatePicker'
 
 type RequirementPortalControlsProps = {
   requirement: Requirement
@@ -378,11 +379,10 @@ export function RequirementPortalControls({
               <label className="text-xs font-bold uppercase tracking-wider text-primary/60 dark:text-white/60">
                 Closure date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
+              <AppDatePicker
                 value={closedAt}
-                onChange={(e) => setClosedAt(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-primary/10 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-primary dark:text-white"
+                onChange={setClosedAt}
+                aria-label="Closure date"
               />
             </div>
             <div className="flex gap-3 justify-end pt-2">

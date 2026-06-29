@@ -1,5 +1,8 @@
-import 'dotenv/config'
+import { databaseHostLabel } from '../config/loadEnv.js'
 
+const host = databaseHostLabel()
+const envLabel = process.env.ATS_ENV === 'staging' ? 'QA staging (.env.staging)' : 'default (.env)'
+console.log(`Checking database [${envLabel}${host ? ` → ${host}` : ''}]`)
 const url = process.env.DATABASE_URL ?? ''
 
 if (!url.startsWith('postgresql://')) {

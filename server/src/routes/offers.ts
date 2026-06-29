@@ -8,9 +8,11 @@ import {
   OFFER_EXEC_APPROVERS,
   OFFER_HR_APPROVERS,
   OFFER_ROLES,
+  OFFER_VIEW_ROLES,
 } from '../lib/roles.js'
 import {
   assertCanViewCandidate,
+  assertCanViewOffer,
   buildOfferListWhere,
   CandidateAccessError,
 } from '../lib/candidateAccess.js'
@@ -25,6 +27,7 @@ import {
 import {
   buildOfferApprovalRecord,
   parseOfferApprovalBody,
+  assertApprovalCommentRequired,
 } from '../lib/offerApproval.js'
 import {
   appendApprovalHistory,
@@ -32,6 +35,7 @@ import {
   buildOfferCreateData,
   loadOfferLetterContext,
 } from '../lib/offerActions.js'
+import { getOfferApprovalRollbackTarget } from '../lib/offerApprovalRollback.js'
 import {
   assertCanApproveOfferExec,
   assertCanApproveOfferHr,
@@ -39,37 +43,63 @@ import {
   assertCanSubmitOffer,
   nextStatusAfterHrApproval,
 } from '../lib/offerPermissions.js'
-import { canEditOfferFields } from '../lib/offerTransitions.js'
+import {
+  parseApprovalChainJson,
+  serializeApprovalChain,
+  usesApprovalChain,
+  validateApprovalChain,
+  getSubmitStateForChain,
+  getCurrentStage,
+  nextStatusAfterStageApproval,
+  type OfferApprovalChain,
+} from '../lib/offerApprovalChain.js'
+import {
+  assertCanApproveOfferStage,
+  assertCanEditOffer,
+} from '../lib/offerPermissions.js'
+import { canEditOfferDetails } from '../lib/offerTransitions.js'
 import {
   calculateCompensationBreakdown,
   getAnnualCtcFromOffer,
 } from '../lib/offerCompensation.js'
 import { buildLetterMetaJson, parseLetterMetaJson } from '../lib/offerLetterRender.js'
+import { getCompensationConfig } from '../lib/offerSettings.js'
 import { env } from '../config/env.js'
 import { renderHtmlToPdf } from '../lib/offerPdf.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
 
-router.get('/pending', async (req, res) => {
-  const step = req.query.step === 'exec' ? 'PENDING_EXEC_APPROVAL' : 'PENDING_HR_APPROVAL'
+const requireOfferViewer = requireRoles(...OFFER_VIEW_ROLES)
+
+router.get('/pending', requireOfferViewer, async (req, res) => {
+  const step = req.query.step
   const listWhere = await buildOfferListWhere(req.auth!)
+  let statusFilter: string | { in: string[] }
+  if (step === 'exec') {
+    statusFilter = 'PENDING_EXEC_APPROVAL'
+  } else if (step === 'chain') {
+    statusFilter = 'PENDING_APPROVAL'
+  } else {
+    statusFilter = { in: ['PENDING_HR_APPROVAL', 'PENDING_APPROVAL'] }
+  }
   const rows = await prisma.offer.findMany({
-    where: { ...listWhere, status: step },
+    where: { ...listWhere, status: statusFilter },
     orderBy: { createdAt: 'desc' },
   })
   res.json(rows.map(mapOffer))
 })
 
-router.post('/preview-compensation', requireRoles(...OFFER_ROLES), (req, res) => {
+router.post('/preview-compensation', requireRoles(...OFFER_ROLES), async (req, res) => {
   const annualCtc = Number(req.body.annualCtc)
   if (!annualCtc || annualCtc < 1000) {
     return res.status(400).json({ error: 'annualCtc must be at least 1000' })
   }
-  res.json(calculateCompensationBreakdown(annualCtc))
+  const config = await getCompensationConfig()
+  res.json(calculateCompensationBreakdown(annualCtc, config))
 })
 
-router.get('/', async (req, res) => {
+router.get('/', requireOfferViewer, async (req, res) => {
   const listWhere = await buildOfferListWhere(req.auth!)
   const rows = await prisma.offer.findMany({
     where: listWhere,
@@ -78,7 +108,7 @@ router.get('/', async (req, res) => {
   res.json(rows.map(mapOffer))
 })
 
-router.get('/by-candidate/:candidateId', async (req, res) => {
+router.get('/by-candidate/:candidateId', requireOfferViewer, async (req, res) => {
   try {
     await assertCanViewCandidate(req.auth!, req.params.candidateId)
   } catch (err) {
@@ -87,51 +117,54 @@ router.get('/by-candidate/:candidateId', async (req, res) => {
     }
     throw err
   }
+  const listWhere = await buildOfferListWhere(req.auth!)
   const rows = await prisma.offer.findMany({
-    where: { candidateId: req.params.candidateId },
+    where: { candidateId: req.params.candidateId, ...listWhere },
     orderBy: { createdAt: 'desc' },
   })
   res.json(rows.map(mapOffer))
 })
 
-router.get('/:id/letter', async (req, res) => {
-  const ctx = await loadOfferLetterContext(req.params.id)
-  if (!ctx) return res.status(404).json({ error: 'Not found' })
+router.get('/:id/letter', requireOfferViewer, async (req, res) => {
   try {
-    await assertCanViewCandidate(req.auth!, ctx.offer.candidateId)
+    const ctx = await loadOfferLetterContext(req.params.id)
+    if (!ctx) return res.status(404).json({ error: 'Not found' })
+    await assertCanViewOffer(req.auth!, ctx.offer.id)
+    res.type('html').send(ctx.letterHtml)
   } catch (err) {
     if (err instanceof CandidateAccessError) {
       return res.status(403).json({ error: err.message })
     }
-    throw err
+    console.error('Offer letter preview failed:', err)
+    return res.status(500).json({ error: 'Failed to render offer letter preview' })
   }
-  res.type('html').send(ctx.letterHtml)
 })
 
-router.get('/:id/letter/pdf', async (req, res) => {
-  const ctx = await loadOfferLetterContext(req.params.id)
-  if (!ctx) return res.status(404).json({ error: 'Not found' })
+router.get('/:id/letter/pdf', requireOfferViewer, async (req, res) => {
   try {
-    await assertCanViewCandidate(req.auth!, ctx.offer.candidateId)
+    const ctx = await loadOfferLetterContext(req.params.id)
+    if (!ctx) return res.status(404).json({ error: 'Not found' })
+    await assertCanViewOffer(req.auth!, ctx.offer.id)
+
+    const pdf = await renderHtmlToPdf(ctx.letterHtml)
+    const safeName = ctx.candidate.name.replace(/[^\w.-]+/g, '_').slice(0, 80)
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="offer-${safeName}.pdf"`)
+    res.send(pdf)
   } catch (err) {
     if (err instanceof CandidateAccessError) {
       return res.status(403).json({ error: err.message })
     }
-    throw err
+    console.error('Offer letter PDF failed:', err)
+    return res.status(500).json({ error: 'Failed to generate offer letter PDF' })
   }
-
-  const pdf = await renderHtmlToPdf(ctx.letterHtml)
-  const safeName = ctx.candidate.name.replace(/[^\w.-]+/g, '_').slice(0, 80)
-  res.setHeader('Content-Type', 'application/pdf')
-  res.setHeader('Content-Disposition', `attachment; filename="offer-${safeName}.pdf"`)
-  res.send(pdf)
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireOfferViewer, async (req, res) => {
   const row = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!row) return res.status(404).json({ error: 'Not found' })
   try {
-    await assertCanViewCandidate(req.auth!, row.candidateId)
+    await assertCanViewOffer(req.auth!, row.id)
   } catch (err) {
     if (err instanceof CandidateAccessError) {
       return res.status(403).json({ error: err.message })
@@ -145,18 +178,38 @@ router.post('/', requireRoles(...OFFER_ROLES), async (req, res) => {
   const body = req.body
   const candidate = await prisma.candidate.findUnique({ where: { id: body.candidateId } })
   if (!candidate) return res.status(400).json({ error: 'Candidate not found' })
+  try {
+    await assertCanViewCandidate(req.auth!, body.candidateId)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
+  if (candidate.status !== 'OFFER') {
+    return res.status(400).json({
+      error: 'Move the candidate to Offer stage in the pipeline before creating an offer.',
+    })
+  }
   const requirement = await prisma.requirement.findUnique({
     where: { id: body.requirementId },
   })
   if (!requirement) return res.status(400).json({ error: 'Requirement not found' })
 
   const createdAt = new Date().toISOString()
-  const data = buildOfferCreateData({
+  const approvalChain = body.approvalChain as OfferApprovalChain | undefined
+  if (approvalChain) {
+    const chainError = validateApprovalChain(approvalChain)
+    if (chainError) return res.status(400).json({ error: chainError })
+  }
+
+  const data = await buildOfferCreateData({
     candidateId: body.candidateId,
     requirementId: body.requirementId,
     annualCtc: body.annualCtc ?? body.baseSalary,
     letterMeta: body.letterMeta,
-    createdBy: body.createdBy ?? req.auth!.userId,
+    createdBy: req.auth!.userId,
+    approvalChain,
   })
 
   const row = await prisma.offer.create({
@@ -187,6 +240,14 @@ router.post('/', requireRoles(...OFFER_ROLES), async (req, res) => {
 router.patch('/:id', requireRoles(...OFFER_ROLES), async (req, res) => {
   const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!existing) return res.status(404).json({ error: 'Not found' })
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
 
   if (req.body.status !== undefined) {
     return res.status(400).json({
@@ -194,8 +255,20 @@ router.patch('/:id', requireRoles(...OFFER_ROLES), async (req, res) => {
     })
   }
 
-  if (!canEditOfferFields(existing.status)) {
-    return res.status(400).json({ error: 'Offer can only be edited in draft or negotiation' })
+  if (!canEditOfferDetails(req.auth!.role, existing.status)) {
+    return res.status(400).json({ error: 'You cannot edit this offer at its current stage' })
+  }
+
+  try {
+    assertCanEditOffer(req.auth!, existing)
+  } catch (e) {
+    return res.status(403).json({ error: e instanceof Error ? e.message : 'Not allowed' })
+  }
+
+  const approvalChain = req.body.approvalChain as OfferApprovalChain | undefined
+  if (approvalChain) {
+    const chainError = validateApprovalChain(approvalChain)
+    if (chainError) return res.status(400).json({ error: chainError })
   }
 
   const annualCtc =
@@ -208,6 +281,7 @@ router.patch('/:id', requireRoles(...OFFER_ROLES), async (req, res) => {
   const letterMeta = req.body.letterMeta as Record<string, unknown> | undefined
   const prevMeta = parseLetterMetaJson(existing.letterMetaJson)
   const mergedMeta = letterMeta ? { ...prevMeta, ...letterMeta } : prevMeta
+  const compConfig = await getCompensationConfig()
 
   const row = await prisma.offer.update({
     where: { id: req.params.id },
@@ -215,10 +289,13 @@ router.patch('/:id', requireRoles(...OFFER_ROLES), async (req, res) => {
       ...(annualCtc > 0 && {
         annualCtc,
         baseSalary: annualCtc,
-        compensationJson: JSON.stringify(calculateCompensationBreakdown(annualCtc)),
+        compensationJson: JSON.stringify(calculateCompensationBreakdown(annualCtc, compConfig)),
       }),
       ...(letterMeta && {
         letterMetaJson: JSON.stringify(mergedMeta),
+      }),
+      ...(approvalChain && {
+        approvalChainJson: serializeApprovalChain(approvalChain),
       }),
       ...(req.body.letterContent !== undefined && { letterContent: req.body.letterContent }),
       updatedAt: new Date(),
@@ -238,11 +315,57 @@ router.patch('/:id', requireRoles(...OFFER_ROLES), async (req, res) => {
 router.post('/:id/submit', requireRoles(...OFFER_ROLES), async (req, res) => {
   const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!existing) return res.status(404).json({ error: 'Not found' })
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
 
   try {
     assertCanSubmitOffer(req.auth!, existing)
   } catch (e) {
     return res.status(400).json({ error: e instanceof Error ? e.message : 'Cannot submit' })
+  }
+
+  if (usesApprovalChain(existing)) {
+    const chain = parseApprovalChainJson(existing.approvalChainJson)
+    const chainError = validateApprovalChain(chain)
+    if (chainError) return res.status(400).json({ error: chainError })
+
+    const submitState = getSubmitStateForChain(chain)
+    const firstStage = chain.stages[0]!
+    const record = buildOfferApprovalRecord('REQUESTED', req.auth!, firstStage.label)
+    const row = await prisma.offer.update({
+      where: { id: req.params.id },
+      data: {
+        status: submitState.status,
+        approvalStep: submitState.approvalStep,
+        approval: JSON.stringify(record.approval),
+        approvalHistory: appendApprovalHistory(existing.approvalHistory, record.historyEntry),
+        rejectionReason: null,
+        history: appendOfferHistory(
+          existing.history,
+          'SUBMITTED_FOR_APPROVAL',
+          `Submitted for ${firstStage.label} approval`,
+          req.auth!.userId
+        ),
+        updatedAt: new Date(),
+      },
+    })
+
+    await logActivity({
+      entityType: 'OFFER',
+      entityId: row.id,
+      action: 'SUBMITTED_FOR_APPROVAL',
+      performedBy: req.auth!.userId,
+      performerRole: req.auth!.role,
+      details: { stage: firstStage.label },
+    })
+    notifyOfferSubmittedForApproval(row)
+    return res.json(mapOffer(row))
   }
 
   const record = buildOfferApprovalRecord('REQUESTED', req.auth!, 'HR')
@@ -286,8 +409,15 @@ router.post('/:id/approve-hr', requireRoles(...OFFER_HR_APPROVERS), async (req, 
     return res.status(403).json({ error: e instanceof Error ? e.message : 'Not allowed' })
   }
 
+  let comment: string
+  try {
+    comment = assertApprovalCommentRequired(opts)
+  } catch (e) {
+    return res.status(400).json({ error: e instanceof Error ? e.message : 'Comment required' })
+  }
+
   const nextStatus = nextStatusAfterHrApproval(existing)
-  const record = buildOfferApprovalRecord('APPROVED', req.auth!, 'HR', opts)
+  const record = buildOfferApprovalRecord('APPROVED', req.auth!, 'HR', { ...opts, comment })
   const row = await prisma.offer.update({
     where: { id: req.params.id },
     data: {
@@ -299,8 +429,8 @@ router.post('/:id/approve-hr', requireRoles(...OFFER_HR_APPROVERS), async (req, 
         existing.history,
         'APPROVED',
         nextStatus === 'PENDING_EXEC_APPROVAL'
-          ? 'HR approved — pending executive approval'
-          : 'HR approved',
+          ? `HR approved — pending executive approval. Comment: ${comment}`
+          : `HR approved. Comment: ${comment}`,
         req.auth!.userId
       ),
       updatedAt: new Date(),
@@ -335,7 +465,14 @@ router.post('/:id/approve-exec', requireRoles(...OFFER_EXEC_APPROVERS), async (r
     return res.status(403).json({ error: e instanceof Error ? e.message : 'Not allowed' })
   }
 
-  const record = buildOfferApprovalRecord('APPROVED', req.auth!, 'EXEC', opts)
+  let comment: string
+  try {
+    comment = assertApprovalCommentRequired(opts)
+  } catch (e) {
+    return res.status(400).json({ error: e instanceof Error ? e.message : 'Comment required' })
+  }
+
+  const record = buildOfferApprovalRecord('APPROVED', req.auth!, 'EXEC', { ...opts, comment })
   const row = await prisma.offer.update({
     where: { id: req.params.id },
     data: {
@@ -346,7 +483,7 @@ router.post('/:id/approve-exec', requireRoles(...OFFER_EXEC_APPROVERS), async (r
       history: appendOfferHistory(
         existing.history,
         'APPROVED',
-        'Executive approval granted',
+        `Executive approval granted. Comment: ${comment}`,
         req.auth!.userId
       ),
       updatedAt: new Date(),
@@ -365,10 +502,121 @@ router.post('/:id/approve-exec', requireRoles(...OFFER_EXEC_APPROVERS), async (r
   res.json(mapOffer(row))
 })
 
-router.post('/:id/reject', requireRoles(...OFFER_HR_APPROVERS, ...OFFER_EXEC_APPROVERS), async (req, res) => {
+router.post('/:id/approve-stage', requireRoles(...INTERNAL_ROLES), async (req, res) => {
+  const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
+  if (!existing) return res.status(404).json({ error: 'Not found' })
+
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+    assertCanApproveOfferStage(req.auth!, existing)
+  } catch (e) {
+    if (e instanceof CandidateAccessError) {
+      return res.status(403).json({ error: e.message })
+    }
+    return res.status(403).json({ error: e instanceof Error ? e.message : 'Not allowed' })
+  }
+
+  const opts = parseOfferApprovalBody(req.body)
+  let comment: string
+  try {
+    comment = assertApprovalCommentRequired(opts)
+  } catch (e) {
+    return res.status(400).json({ error: e instanceof Error ? e.message : 'Comment required' })
+  }
+
+  const stage = getCurrentStage(existing)
+  const stageLabel = stage?.label ?? 'Approval'
+  const record = buildOfferApprovalRecord('APPROVED', req.auth!, stageLabel, { comment })
+  const next = nextStatusAfterStageApproval(existing)
+
+  const historyDescription =
+    next.status === 'APPROVED'
+      ? `${stageLabel} approved — offer fully approved. Comment: ${comment}`
+      : `${stageLabel} approved — pending next stage. Comment: ${comment}`
+
+  const row = await prisma.offer.update({
+    where: { id: req.params.id },
+    data: {
+      status: next.status,
+      approvalStep: next.approvalStep,
+      approval: JSON.stringify(record.approval),
+      approvalHistory: appendApprovalHistory(existing.approvalHistory, record.historyEntry),
+      history: appendOfferHistory(
+        existing.history,
+        'APPROVED',
+        historyDescription,
+        req.auth!.userId
+      ),
+      updatedAt: new Date(),
+    },
+  })
+
+  await logActivity({
+    entityType: 'OFFER',
+    entityId: row.id,
+    action: 'APPROVED',
+    performedBy: req.auth!.userId,
+    performerRole: req.auth!.role,
+    details: { stage: stageLabel, nextStatus: next.status },
+  })
+
+  if (next.status === 'APPROVED') {
+    notifyOfferApproved(row)
+  } else {
+    notifyOfferSubmittedForApproval(row)
+  }
+  res.json(mapOffer(row))
+})
+
+router.post('/:id/reject', requireRoles(...OFFER_HR_APPROVERS, ...OFFER_EXEC_APPROVERS, ...INTERNAL_ROLES), async (req, res) => {
   const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!existing) return res.status(404).json({ error: 'Not found' })
   const opts = parseOfferApprovalBody(req.body)
+
+  if (existing.status === 'PENDING_APPROVAL' && usesApprovalChain(existing)) {
+    try {
+      await assertCanViewOffer(req.auth!, existing.id)
+      assertCanApproveOfferStage(req.auth!, existing)
+    } catch (e) {
+      if (e instanceof CandidateAccessError) {
+        return res.status(403).json({ error: e.message })
+      }
+      return res.status(403).json({ error: e instanceof Error ? e.message : 'Not allowed' })
+    }
+
+    const stage = getCurrentStage(existing)
+    const stageLabel = stage?.label ?? 'Approval'
+    const record = buildOfferApprovalRecord('REJECTED', req.auth!, stageLabel, opts)
+    const row = await prisma.offer.update({
+      where: { id: req.params.id },
+      data: {
+        status: 'DRAFT',
+        approvalStep: null,
+        approval: JSON.stringify(record.approval),
+        approvalHistory: appendApprovalHistory(existing.approvalHistory, record.historyEntry),
+        rejectionReason: opts.reason ?? 'Rejected',
+        history: appendOfferHistory(
+          existing.history,
+          'REJECTED',
+          opts.reason ?? `Rejected at ${stageLabel}`,
+          req.auth!.userId
+        ),
+        updatedAt: new Date(),
+      },
+    })
+
+    await logActivity({
+      entityType: 'OFFER',
+      entityId: row.id,
+      action: 'REJECTED',
+      performedBy: req.auth!.userId,
+      performerRole: req.auth!.role,
+      details: { stage: stageLabel, reason: opts.reason },
+    })
+    notifyOfferRejected(row)
+    return res.json(mapOffer(row))
+  }
+
   const step = existing.status === 'PENDING_EXEC_APPROVAL' ? 'EXEC' : 'HR'
 
   try {
@@ -412,9 +660,105 @@ router.post('/:id/reject', requireRoles(...OFFER_HR_APPROVERS, ...OFFER_EXEC_APP
   res.json(mapOffer(row))
 })
 
+router.post('/:id/rollback-approval', requireRoles('SUPER_ADMIN'), async (req, res) => {
+  const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
+  if (!existing) return res.status(404).json({ error: 'Not found' })
+
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
+
+  const target = getOfferApprovalRollbackTarget(existing)
+  if (!target) {
+    return res.status(400).json({ error: 'This offer cannot be rolled back further' })
+  }
+
+  const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim() : undefined
+  const rollbackEntry = {
+    action: 'ROLLED_BACK' as const,
+    fromStatus: existing.status,
+    toStatus: target.status,
+    by: req.auth!.userId,
+    at: new Date().toISOString(),
+    role: req.auth!.role,
+    ...(reason ? { reason } : {}),
+  }
+
+  const data: {
+    status: string
+    approvalStep: string | null
+    rejectionReason: null
+    approvalHistory: string
+    history: string
+    updatedAt: Date
+    approval?: string
+    sentAt?: null
+    validUntil?: null
+  } = {
+    status: target.status,
+    approvalStep: target.approvalStep,
+    rejectionReason: null,
+    approvalHistory: appendApprovalHistory(existing.approvalHistory, rollbackEntry),
+    history: appendOfferHistory(
+      existing.history,
+      'ROLLED_BACK',
+      target.description,
+      req.auth!.userId
+    ),
+    updatedAt: new Date(),
+  }
+
+  if (target.status === 'DRAFT') {
+    data.approval = '{}'
+  } else if (target.status !== 'APPROVED' && target.approvalStep) {
+    const stepLabel =
+      target.status === 'PENDING_APPROVAL'
+        ? parseApprovalChainJson(existing.approvalChainJson).stages.find(
+            (s) => s.id === target.approvalStep
+          )?.label ?? 'Approval'
+        : target.approvalStep
+    const record = buildOfferApprovalRecord('REQUESTED', req.auth!, stepLabel)
+    data.approval = JSON.stringify(record.approval)
+  }
+
+  if (existing.status === 'SENT' && target.status === 'APPROVED') {
+    data.sentAt = null
+    data.validUntil = null
+  }
+
+  const row = await prisma.offer.update({
+    where: { id: existing.id },
+    data,
+  })
+
+  await logActivity({
+    entityType: 'OFFER',
+    entityId: row.id,
+    action: 'ROLLED_BACK',
+    performedBy: req.auth!.userId,
+    performerRole: req.auth!.role,
+    details: { fromStatus: existing.status, toStatus: target.status, reason },
+  })
+
+  res.json(mapOffer(row))
+})
+
 router.post('/:id/send', requireRoles(...OFFER_ROLES), async (req, res) => {
   const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!existing) return res.status(404).json({ error: 'Not found' })
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
 
   try {
     assertCanSendOffer(existing)
@@ -469,6 +813,14 @@ router.post('/:id/send', requireRoles(...OFFER_ROLES), async (req, res) => {
 router.post('/:id/withdraw', requireRoles(...OFFER_ROLES), async (req, res) => {
   const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!existing) return res.status(404).json({ error: 'Not found' })
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
   if (!['APPROVED', 'SENT'].includes(existing.status)) {
     return res.status(400).json({ error: 'Only approved or sent offers can be withdrawn' })
   }
@@ -500,6 +852,14 @@ router.post('/:id/withdraw', requireRoles(...OFFER_ROLES), async (req, res) => {
 router.post('/:id/negotiate', requireRoles(...OFFER_ROLES), async (req, res) => {
   const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!existing) return res.status(404).json({ error: 'Not found' })
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
   if (existing.status !== 'SENT') {
     return res.status(400).json({ error: 'Only sent offers can enter negotiation' })
   }
@@ -531,6 +891,14 @@ router.post('/:id/negotiate', requireRoles(...OFFER_ROLES), async (req, res) => 
 router.post('/:id/revise', requireRoles(...OFFER_ROLES), async (req, res) => {
   const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!existing) return res.status(404).json({ error: 'Not found' })
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
   if (existing.status !== 'NEGOTIATION') {
     return res.status(400).json({ error: 'Only offers in negotiation can be revised' })
   }
@@ -565,6 +933,14 @@ router.post('/:id/revise', requireRoles(...OFFER_ROLES), async (req, res) => {
 router.post('/:id/accept', requireRoles(...OFFER_ROLES), async (req, res) => {
   const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!existing) return res.status(404).json({ error: 'Not found' })
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
   if (existing.status !== 'SENT') {
     return res.status(400).json({ error: 'Only sent offers can be accepted' })
   }
@@ -599,6 +975,14 @@ router.post('/:id/accept', requireRoles(...OFFER_ROLES), async (req, res) => {
 router.post('/:id/decline', requireRoles(...OFFER_ROLES), async (req, res) => {
   const existing = await prisma.offer.findUnique({ where: { id: req.params.id } })
   if (!existing) return res.status(404).json({ error: 'Not found' })
+  try {
+    await assertCanViewOffer(req.auth!, existing.id)
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    throw err
+  }
   if (existing.status !== 'SENT') {
     return res.status(400).json({ error: 'Only sent offers can be declined' })
   }

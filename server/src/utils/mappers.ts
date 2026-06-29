@@ -1,6 +1,7 @@
 import type { User as DbUser, Requirement as DbReq, Candidate as DbCand, Interview as DbInt, Feedback as DbFb, Offer as DbOffer, ActivityLog as DbLog } from '@prisma/client'
 import { defaultUserAvatarUrl } from '../lib/userAvatar.js'
 import { parseFeatureTags } from '../lib/userTags.js'
+import { parseApprovalChainJson } from '../lib/offerApprovalChain.js'
 
 export function mapUser(u: DbUser) {
   return {
@@ -193,8 +194,42 @@ export function mapOffer(o: DbOffer) {
   } catch {
     /* ignore */
   }
+  let approvalChain: { id: string; label: string; approverIds: string[] }[] = []
+  try {
+    const chain = parseApprovalChainJson(o.approvalChainJson)
+    approvalChain = chain.stages
+  } catch {
+    /* ignore */
+  }
   try {
     approvalHistory = JSON.parse(o.approvalHistory || '[]')
+  } catch {
+    /* ignore */
+  }
+
+  let history: {
+    id: string
+    date: string
+    action: string
+    description: string
+    userId: string
+  }[] = []
+  try {
+    const rawHistory = JSON.parse(o.history || '[]') as Array<Record<string, unknown>>
+    history = rawHistory.map((item) => ({
+      id: typeof item.id === 'string' ? item.id : crypto.randomUUID(),
+      date:
+        (typeof item.date === 'string' && item.date) ||
+        (typeof item.at === 'string' && item.at) ||
+        (typeof item.createdAt === 'string' && item.createdAt) ||
+        '',
+      action: typeof item.action === 'string' ? item.action : 'UPDATED',
+      description: typeof item.description === 'string' ? item.description : '',
+      userId:
+        (typeof item.userId === 'string' && item.userId) ||
+        (typeof item.by === 'string' && item.by) ||
+        '',
+    }))
   } catch {
     /* ignore */
   }
@@ -208,13 +243,14 @@ export function mapOffer(o: DbOffer) {
     equity: o.equity ?? undefined,
     bonus: o.bonus ?? undefined,
     status: o.status,
-    history: JSON.parse(o.history || '[]'),
+    history,
     letterContent: o.letterContent ?? undefined,
     compensation,
     letterMeta,
     letterHtml: o.letterHtml ?? undefined,
     approval,
     approvalHistory,
+    approvalChain: approvalChain.length ? approvalChain : undefined,
     approvalStep: o.approvalStep ?? undefined,
     rejectionReason: o.rejectionReason ?? undefined,
     validUntil: o.validUntil?.toISOString(),

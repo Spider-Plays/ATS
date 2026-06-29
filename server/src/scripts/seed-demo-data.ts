@@ -7,6 +7,7 @@ import {
   DEMO_PORTAL_USERS,
   DEMO_REQUIREMENTS,
   DEMO_VENDOR_CODE,
+  type DemoPortalUserSeed,
 } from '../config/demoData.js'
 import { serializeSkills } from '../lib/skills.js'
 import { saveResumeFile } from '../lib/resumeStorage.js'
@@ -21,6 +22,7 @@ import { findCandidateByEmail } from '../lib/candidateDuplicate.js'
 import { ensureInterviewPlan } from '../lib/interviewPlan.js'
 import { removeLegacyDevUsers } from '../lib/legacyDevUsers.js'
 import { migrateRequirementJobCodes } from '../lib/jobCode.js'
+import { logActivity } from '../services/activityLog.js'
 import type { DemoCandidateSeed } from '../config/demoData.js'
 
 const FRESH = process.argv.includes('--fresh')
@@ -203,6 +205,45 @@ async function syncRequirementFilledCounts(reqByCode: Map<string, { id: string }
   }
 }
 
+async function ensurePortalApplicationLog(
+  candidateId: string,
+  userId: string,
+  requirement: { id: string; jobCode: string | null; title: string },
+  userName: string
+) {
+  const logs = await prisma.activityLog.findMany({
+    where: {
+      entityType: 'CANDIDATE',
+      entityId: candidateId,
+      action: 'APPLIED',
+    },
+  })
+  const already = logs.some((l) => {
+    try {
+      const d = JSON.parse(l.details || '{}') as { requirementId?: string }
+      return d.requirementId === requirement.id
+    } catch {
+      return false
+    }
+  })
+  if (already) return
+
+  await logActivity({
+    entityType: 'CANDIDATE',
+    entityId: candidateId,
+    action: 'APPLIED',
+    performedBy: userId,
+    performerName: userName,
+    performerRole: 'CANDIDATE',
+    details: {
+      requirementId: requirement.id,
+      jobCode: requirement.jobCode,
+      title: requirement.title,
+      via: 'seed',
+    },
+  })
+}
+
 async function clearHiringData() {
   console.log('Clearing existing hiring data...')
   await prisma.$transaction([
@@ -329,6 +370,21 @@ async function main() {
   if (env.isProduction && !FORCE) {
     console.error('Refusing to seed demo data in production. Pass --force to override.')
     process.exit(1)
+  }
+
+  if (FRESH && !FORCE) {
+    const host = process.env.DATABASE_URL ?? ''
+    const looksProduction =
+      host.includes('weathered-math') ||
+      process.env.RENDER === 'true' ||
+      process.env.NODE_ENV === 'production'
+    if (looksProduction) {
+      console.error(
+        'Refusing --fresh wipe on a production database.\n' +
+          'Use a local or QA staging DATABASE_URL, or pass --force if you truly intend to wipe this DB.'
+      )
+      process.exit(1)
+    }
   }
 
   if (FRESH) await clearHiringData()
@@ -488,6 +544,11 @@ async function main() {
       location?: string
       totalExperience?: string
       currentCompany?: string
+      currentCTC?: string
+      expectedCTC?: string
+      noticePeriod?: string
+      pan?: string
+      linkedIn?: string
       primarySkills?: string[]
       secondarySkills?: string[]
       resumeSnippet: string
@@ -510,6 +571,11 @@ async function main() {
       location: data.location ?? null,
       totalExperience: data.totalExperience ?? null,
       currentCompany: data.currentCompany ?? null,
+      currentCTC: data.currentCTC ?? null,
+      expectedCTC: data.expectedCTC ?? null,
+      noticePeriod: data.noticePeriod ?? null,
+      pan: data.pan?.trim().toUpperCase() ?? null,
+      linkedIn: data.linkedIn ?? null,
       primarySkills: data.primarySkills
         ? serializeSkills(data.primarySkills)
         : skillsPayload.primarySkills,
@@ -574,58 +640,68 @@ async function main() {
     )
   }
 
-  console.log('Seeding portal self-applications...')
-  for (const p of DEMO_PORTAL_USERS) {
-    if (!p.applyToJobCode) continue
-    const requirement = reqByCode.get(p.applyToJobCode)
-    if (!requirement) continue
+  async function seedPortalUser(p: DemoPortalUserSeed) {
+    const requirement = p.applyToJobCode ? reqByCode.get(p.applyToJobCode) : undefined
+    const snippet =
+      p.resumeSnippet ??
+      (requirement
+        ? `${p.name} — applied via candidate portal for ${requirement.title}.`
+        : `${p.name} — candidate portal profile.`)
 
-    const snippet = `${p.name} — applied via candidate portal. Motivated applicant for ${requirement.title}.`
     const portalSeed: DemoCandidateSeed = {
       email: p.email,
       name: p.name,
-      role: requirement.title,
-      status: 'APPLIED',
-      source: 'Candidate Portal',
+      role: requirement?.title ?? 'Candidate',
+      status: p.status ?? (p.applyToJobCode ? 'APPLIED' : 'SOURCED'),
+      source: p.applyToJobCode ? 'Candidate Portal' : 'Candidate Portal',
       jobCode: p.applyToJobCode,
-      phone: '+91 90000 00000',
-      location: 'India',
+      phone: p.phone,
+      location: p.location,
+      totalExperience: p.totalExperience,
+      currentCompany: p.currentCompany,
+      primarySkills: p.primarySkills,
+      secondarySkills: p.secondarySkills,
       resumeSnippet: snippet,
+      interviewProgress: p.interviewProgress,
     }
     candidateSeeds.set(p.email.toLowerCase(), portalSeed)
-    await upsertCandidate(
-      {
-        email: p.email,
-        name: p.name,
-        role: requirement.title,
-        status: 'APPLIED',
-        source: 'Candidate Portal',
-        jobCode: p.applyToJobCode,
-        phone: '+91 90000 00000',
-        location: 'India',
-        resumeSnippet: snippet,
+
+    const row = await upsertCandidate({
+      email: p.email,
+      name: p.name,
+      role: requirement?.title ?? p.name,
+      status: portalSeed.status,
+      source: 'Candidate Portal',
+      jobCode: p.applyToJobCode,
+      phone: p.phone,
+      location: p.location,
+      totalExperience: p.totalExperience,
+      currentCompany: p.currentCompany,
+      currentCTC: p.currentCTC,
+      expectedCTC: p.expectedCTC,
+      noticePeriod: p.noticePeriod,
+      pan: p.pan,
+      linkedIn: p.linkedIn,
+      primarySkills: p.primarySkills,
+      secondarySkills: p.secondarySkills,
+      resumeSnippet: snippet,
+    })
+
+    const userId = userByEmail.get(p.email.toLowerCase())
+    if (userId && requirement) {
+      const fullReq = await prisma.requirement.findUnique({
+        where: { id: requirement.id },
+        select: { id: true, jobCode: true, title: true },
+      })
+      if (fullReq) {
+        await ensurePortalApplicationLog(row.id, userId, fullReq, p.name)
       }
-    )
+    }
   }
 
-  // Ensure dev-candidate portal account is linked (self-applied)
-  const devCandUser = userByEmail.get(devUserEmail('CANDIDATE'))
-  if (devCandUser) {
-    const req = reqByCode.get('REQ28062026001')
-    if (req) {
-      await upsertCandidate(
-        {
-          email: devUserEmail('CANDIDATE'),
-          name: devUserName('CANDIDATE'),
-          role: req.title,
-          status: 'APPLIED',
-          source: 'Candidate Portal',
-          jobCode: 'REQ28062026001',
-          resumeSnippet:
-            `${devUserName('CANDIDATE')} — self-applied via portal for Senior Software Engineer. TypeScript, React, Node.js.`,
-        }
-      )
-    }
+  console.log('Seeding portal accounts (profiles, resumes, applications)...')
+  for (const p of DEMO_PORTAL_USERS) {
+    await seedPortalUser(p)
   }
 
   // Interview rounds + feedback from demo metadata
@@ -648,7 +724,11 @@ async function main() {
   console.log(`  Users: ${counts[0]} (password: ${DEV_PASSWORD})`)
   console.log(`  Requirements: ${counts[1]}`)
   console.log(`  Candidates: ${counts[2]} (${counts[3]} self-applied, ${counts[4]} vendor)`)
-  console.log('  Portal browse-only: karan.joshi@stitch-ats.in, meera.shah@stitch-ats.in')
+  console.log('  Candidate portal logins (password: password):')
+  for (const p of DEMO_PORTAL_USERS) {
+    const applied = p.applyToJobCode ? ` → ${p.applyToJobCode}` : ' (profile only, no application)'
+    console.log(`    ${p.email}${applied}`)
+  }
   console.log('  Re-run with --fresh to replace hiring data.\n')
 }
 

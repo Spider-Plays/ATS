@@ -338,6 +338,7 @@ const CandidateProfile = () => {
           open
           targetStatus={stageModal.status}
           candidateName={stageModal.candidateName}
+          initialExpectedCTC={stageModal.expectedCTC}
           onClose={closeStageModal}
           onConfirm={handleStageModalConfirm}
           isSubmitting={stageSubmitting}

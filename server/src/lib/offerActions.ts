@@ -2,13 +2,14 @@ import { prisma } from './prisma.js'
 import {
   calculateCompensationBreakdown,
   getAnnualCtcFromOffer,
-  type CompensationBreakdown,
+  resolveOfferCompensationBreakdown,
 } from './offerCompensation.js'
 import {
   buildLetterMetaJson,
   parseLetterMetaJson,
   renderOfferLetterHtml,
 } from './offerLetterRender.js'
+import { getCompensationConfig, getOfferLetterTemplate } from './offerSettings.js'
 
 export type OfferLetterMetaInput = {
   candidateAddress?: string
@@ -32,17 +33,21 @@ export async function loadOfferLetterContext(offerId: string) {
 
   const meta = parseLetterMetaJson(offer.letterMetaJson)
   const annualCtc = getAnnualCtcFromOffer(offer)
-  const breakdown =
-    offer.compensationJson && offer.compensationJson !== '{}'
-      ? (JSON.parse(offer.compensationJson) as CompensationBreakdown)
-      : calculateCompensationBreakdown(annualCtc)
+  const [compConfig, letterTemplate] = await Promise.all([
+    getCompensationConfig(),
+    getOfferLetterTemplate(),
+  ])
+  const breakdown = resolveOfferCompensationBreakdown(offer, compConfig)
 
   const joiningDateRaw =
     (typeof meta.joiningDate === 'string' && meta.joiningDate) ||
     candidate.expectedJoiningDate?.toISOString().slice(0, 10) ||
     new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10)
 
-  const joiningDate = new Date(joiningDateRaw)
+  const parsedJoiningDate = new Date(joiningDateRaw)
+  const joiningDate = Number.isNaN(parsedJoiningDate.getTime())
+    ? new Date(Date.now() + 14 * 86400000)
+    : parsedJoiningDate
   const positionTitle =
     (typeof meta.positionTitle === 'string' && meta.positionTitle) ||
     candidate.role ||
@@ -81,20 +86,23 @@ export async function loadOfferLetterContext(offerId: string) {
         typeof meta.reportingTime === 'string' ? meta.reportingTime : undefined,
       annualCtc,
       breakdown,
+      template: letterTemplate,
     }),
   }
 }
 
-export function buildOfferCreateData(body: {
+export async function buildOfferCreateData(body: {
   candidateId: string
   requirementId: string
   annualCtc?: number
   baseSalary?: number
   letterMeta?: OfferLetterMetaInput
   createdBy: string
+  approvalChain?: { stages: { id: string; label: string; approverIds: string[] }[] }
 }) {
   const annualCtc = body.annualCtc ?? body.baseSalary ?? 0
-  const breakdown = calculateCompensationBreakdown(annualCtc)
+  const compConfig = await getCompensationConfig()
+  const breakdown = calculateCompensationBreakdown(annualCtc, compConfig)
   const letterMetaJson = buildLetterMetaJson({
     candidateAddress: body.letterMeta?.candidateAddress ?? '',
     positionTitle: body.letterMeta?.positionTitle ?? '',
@@ -105,6 +113,10 @@ export function buildOfferCreateData(body: {
     acceptanceDeadlineDays: body.letterMeta?.acceptanceDeadlineDays,
   })
 
+  const approvalChainJson = body.approvalChain
+    ? JSON.stringify(body.approvalChain.stages)
+    : '[]'
+
   return {
     candidateId: body.candidateId,
     requirementId: body.requirementId,
@@ -113,6 +125,7 @@ export function buildOfferCreateData(body: {
     status: 'DRAFT',
     compensationJson: JSON.stringify(breakdown),
     letterMetaJson,
+    approvalChainJson,
     createdBy: body.createdBy,
   }
 }

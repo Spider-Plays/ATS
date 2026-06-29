@@ -342,6 +342,7 @@ export type OfferStatus =
   | 'DRAFT'
   | 'PENDING_HR_APPROVAL'
   | 'PENDING_EXEC_APPROVAL'
+  | 'PENDING_APPROVAL'
   | 'APPROVED'
   | 'SENT'
   | 'NEGOTIATION'
@@ -367,6 +368,40 @@ export type CompensationBreakdown = {
   netPay: CompensationLine
 }
 
+export type CompensationConfig = {
+  basicPercentOfCtc: number
+  hraPercentOfBasic: number
+  statBonusPercentOfBasic: number
+  ltaPercentOfBasic: number
+  mealAllowanceAnnual: number
+  mobileAllowanceAnnual: number
+  siteAllowanceAnnual: number
+  employerPfPercentOfBasic: number
+  pfAdminPercentOfBasic: number
+  insuranceAnnual: number
+  employerLwfAnnual: number
+  employeeLwfAnnual: number
+}
+
+export type OfferLetterOrgSettings = {
+  legalEntityName: string
+  returnAddress: string
+  timesheetAddress: string
+  reportingTime: string
+  acceptanceDeadlineDays: number
+  annualLeaveDays: number
+  noticePeriodDays: number
+  reviewPeriodMonths: number
+}
+
+export type OfferLetterTemplate = {
+  orgSettings: OfferLetterOrgSettings
+  coverPageHtml: string
+  agreementIntroHtml: string
+  clausePages: string[]
+  declarationPageHtml: string
+}
+
 export type OfferLetterMeta = {
   candidateAddress?: string
   positionTitle?: string
@@ -385,6 +420,17 @@ export type OfferApprovalHistoryEntry = {
   role: string
   onBehalfOf?: string
   reason?: string
+  comment?: string
+}
+
+export type OfferApprovalStage = {
+  id: string
+  label: string
+  approverIds: string[]
+}
+
+export type OfferApprovalChain = {
+  stages: OfferApprovalStage[]
 }
 
 export interface Offer {
@@ -409,6 +455,7 @@ export interface Offer {
     letterHtml?: string
     approval?: Record<string, unknown>
     approvalHistory?: OfferApprovalHistoryEntry[]
+    approvalChain?: OfferApprovalStage[]
     approvalStep?: string
     rejectionReason?: string
     validUntil?: string
@@ -424,6 +471,7 @@ export type UserRole =
   | 'ADMIN'
   | 'HR_HEAD'
   | 'HR_MANAGER'
+  | 'FINANCE_HEAD'
   | 'RECRUITER'
   | 'TEAM_LEAD'
   | 'HIRING_MANAGER'

@@ -91,7 +91,25 @@ const Sidebar = () => {
             to="/offers"
             icon="card_giftcard"
             label="Offers"
-            active={path.startsWith('/offers')}
+            active={path.startsWith('/offers') && !path.startsWith('/offers/compensation-config') && !path.startsWith('/offers/letter-template')}
+            variant={navVariant}
+          />
+        )}
+        {show('offer_compensation_config') && (
+          <SidebarNavItem
+            to="/offers/compensation-config"
+            icon="payments"
+            label="Salary Breakdown"
+            active={path.startsWith('/offers/compensation-config')}
+            variant={navVariant}
+          />
+        )}
+        {show('offer_letter_template') && (
+          <SidebarNavItem
+            to="/offers/letter-template"
+            icon="description"
+            label="Offer Letter"
+            active={path.startsWith('/offers/letter-template')}
             variant={navVariant}
           />
         )}

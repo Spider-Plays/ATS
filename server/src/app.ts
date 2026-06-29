@@ -23,6 +23,7 @@ import departmentRoutes from './routes/departments.js'
 import clientRoutes from './routes/clients.js'
 import roleAccessRoutes from './routes/roleAccess.js'
 import interviewPanelRoutes from './routes/interviewPanels.js'
+import offerSettingsRoutes from './routes/offerSettings.js'
 import { m365Routes } from './integrations/m365/index.js'
 
 export const app = express()
@@ -105,6 +106,7 @@ app.use('/api/departments', departmentRoutes)
 app.use('/api/clients', clientRoutes)
 app.use('/api/role-access', roleAccessRoutes)
 app.use('/api/interview-panels', interviewPanelRoutes)
+app.use('/api/offer-settings', offerSettingsRoutes)
 app.use('/api/integrations/m365', m365Routes)
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

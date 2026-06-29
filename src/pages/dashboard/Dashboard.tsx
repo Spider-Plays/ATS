@@ -28,6 +28,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   canApproveRequirement,
   canManageUsers,
+  canViewOffers,
   isAdminRole,
   requiresHrHeadDelegationForApproval,
 } from '@/permissions'
@@ -865,11 +866,9 @@ function RecruiterDashboard({
 
 function InterviewerDashboard({
   interviews,
-  candidates,
   user,
 }: {
   interviews: Interview[]
-  candidates: Candidate[]
   user: User | null
 }) {
   const metrics = useMemo(() => interviewerMetrics(interviews), [interviews])
@@ -895,20 +894,37 @@ function InterviewerDashboard({
     [interviews]
   )
 
-  const myCandidates = useMemo(() => {
+  const myInterviewCandidates = useMemo(() => {
     const nextByCandidate = new Map<string, number>()
-    for (const iv of interviews.filter(isUpcoming)) {
-      const t = new Date(iv.scheduledAt).getTime()
-      const prev = nextByCandidate.get(iv.candidateId)
-      if (prev == null || t < prev) nextByCandidate.set(iv.candidateId, t)
+    const byId = new Map<
+      string,
+      { candidateId: string; name: string; jobTitle?: string; nextInterviewId?: string }
+    >()
+    for (const iv of interviews) {
+      if (!iv.candidateId) continue
+      if (!byId.has(iv.candidateId)) {
+        byId.set(iv.candidateId, {
+          candidateId: iv.candidateId,
+          name: iv.candidateName ?? 'Candidate',
+          jobTitle: iv.candidateRole,
+        })
+      }
+      if (isUpcoming(iv)) {
+        const t = new Date(iv.scheduledAt).getTime()
+        const prev = nextByCandidate.get(iv.candidateId)
+        if (prev == null || t < prev) {
+          nextByCandidate.set(iv.candidateId, t)
+          byId.get(iv.candidateId)!.nextInterviewId = iv.id
+        }
+      }
     }
-    return [...candidates].sort((a, b) => {
-      const ta = nextByCandidate.get(a.id) ?? Number.POSITIVE_INFINITY
-      const tb = nextByCandidate.get(b.id) ?? Number.POSITIVE_INFINITY
+    return [...byId.values()].sort((a, b) => {
+      const ta = nextByCandidate.get(a.candidateId) ?? Number.POSITIVE_INFINITY
+      const tb = nextByCandidate.get(b.candidateId) ?? Number.POSITIVE_INFINITY
       if (ta !== tb) return ta - tb
       return a.name.localeCompare(b.name)
     })
-  }, [candidates, interviews])
+  }, [interviews])
 
   const firstName = user?.name?.split(' ')[0] ?? 'there'
 
@@ -963,7 +979,6 @@ function InterviewerDashboard({
 
       <div className="flex flex-wrap gap-2">
         <QuickLink to="/interviews" icon={Video} label="My interviews" />
-        <QuickLink to="/candidates" icon={Users} label="My candidates" />
         <QuickLink to="/notifications" icon={Activity} label="Notifications" />
       </div>
 
@@ -1081,17 +1096,17 @@ function InterviewerDashboard({
 
         <div className="space-y-8">
           <SectionCard
-            title="My candidates"
+            title="Assigned candidates"
             action={
               <Link
-                to="/candidates"
+                to="/interviews"
                 className="text-xs font-bold text-primary dark:text-blue-400 hover:underline"
               >
-                View all
+                View interviews
               </Link>
             }
           >
-            {myCandidates.length === 0 ? (
+            {myInterviewCandidates.length === 0 ? (
               <EmptyState
                 icon="person"
                 title="No candidates yet"
@@ -1099,17 +1114,22 @@ function InterviewerDashboard({
               />
             ) : (
               <ul className="p-4 space-y-1">
-                {myCandidates.slice(0, 8).map((c) => {
+                {myInterviewCandidates.slice(0, 8).map((c) => {
                   const nextIv = interviews
-                    .filter((i) => i.candidateId === c.id && isUpcoming(i))
+                    .filter((i) => i.candidateId === c.candidateId && isUpcoming(i))
                     .sort(
                       (a, b) =>
                         new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
                     )[0]
+                  const interviewLink = nextIv
+                    ? `/interviews/${nextIv.id}/resume`
+                    : c.nextInterviewId
+                      ? `/interviews/${c.nextInterviewId}/resume`
+                      : '/interviews'
                   return (
-                    <li key={c.id}>
+                    <li key={c.candidateId}>
                       <Link
-                        to={`/candidates/${c.id}`}
+                        to={interviewLink}
                         className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-primary/5 dark:hover:bg-white/5 transition-colors"
                       >
                         <div className="size-9 rounded-xl bg-primary/10 flex items-center justify-center font-bold text-primary dark:text-white text-sm">
@@ -1120,7 +1140,7 @@ function InterviewerDashboard({
                             {c.name}
                           </p>
                           <p className="text-xs text-primary/50 dark:text-white/50 truncate">
-                            {c.jobTitle || c.role || '—'}
+                            {c.jobTitle || '—'}
                             {nextIv
                               ? ` · ${formatInterviewDay(new Date(nextIv.scheduledAt))} ${formatInterviewTime(new Date(nextIv.scheduledAt))}`
                               : ''}
@@ -1170,6 +1190,7 @@ const Dashboard = () => {
   const { data: candidates = [], isLoading: loadingCands } = useQuery({
     queryKey: ['candidates'],
     queryFn: api.candidates.list,
+    enabled: !isInterviewer,
   })
   const { data: interviews = [], isLoading: loadingInts } = useQuery({
     queryKey: ['interviews'],
@@ -1179,7 +1200,7 @@ const Dashboard = () => {
   const { data: offers = [], isLoading: loadingOffers } = useQuery({
     queryKey: ['offers'],
     queryFn: api.offers.list,
-    enabled: !isPlatformAdmin && !isInterviewer,
+    enabled: canViewOffers(role) && !isPlatformAdmin,
   })
   const { data: activityLogs = [], isLoading: loadingLogs } = useQuery({
     queryKey: ['activityLogs', 'dashboard'],
@@ -1218,7 +1239,7 @@ const Dashboard = () => {
   )
 
   const isLoading = isInterviewer
-    ? loadingCands || loadingInts
+    ? loadingInts
     : isAdminOrHR
       ? isPlatformAdmin
         ? loadingReqs ||
@@ -1243,11 +1264,7 @@ const Dashboard = () => {
   return (
     <div className="max-w-7xl mx-auto">
       {isInterviewer ? (
-        <InterviewerDashboard
-          interviews={scopedInterviews}
-          candidates={candidates}
-          user={user}
-        />
+        <InterviewerDashboard interviews={scopedInterviews} user={user} />
       ) : isAdminOrHR ? (
         <AdminDashboard
           requirements={requirements}

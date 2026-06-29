@@ -13,6 +13,8 @@ import {
   type OfferMilestoneInput,
 } from '../../lib/candidateMilestones'
 import { candidateStatusLabel } from '@/pages/candidates/_shared/candidate.utils'
+import { MonthYearSelect } from '../ui/MonthYearSelect'
+import { AppDatePicker } from '../ui/AppDatePicker'
 import { AppSelect } from '../ui/AppSelect'
 import { quarterSelectOptions } from '../../lib/selectOptions'
 
@@ -26,13 +28,14 @@ type CandidateStageDetailsModalProps = {
   open: boolean
   targetStatus: 'OFFER' | 'HIRED'
   candidateName: string
+  initialExpectedCTC?: string
   onClose: () => void
   onConfirm: (milestone: OfferMilestoneInput | HiredMilestoneInput) => void
   isSubmitting?: boolean
 }
 
-const emptyOffer = (): OfferMilestoneInput => ({
-  offerDate: '',
+const emptyOffer = (expectedCTC = ''): OfferMilestoneInput => ({
+  expectedCTC,
   offerMonth: '',
   offerQuarter: '',
   expectedJoiningDate: '',
@@ -48,31 +51,21 @@ export function CandidateStageDetailsModal({
   open,
   targetStatus,
   candidateName,
+  initialExpectedCTC,
   onClose,
   onConfirm,
   isSubmitting,
 }: CandidateStageDetailsModalProps) {
-  const [offer, setOffer] = useState<OfferMilestoneInput>(emptyOffer)
+  const [offer, setOffer] = useState<OfferMilestoneInput>(emptyOffer())
   const [hired, setHired] = useState<HiredMilestoneInput>(emptyHired)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
-    setOffer(emptyOffer())
+    setOffer(emptyOffer(initialExpectedCTC?.trim() ?? ''))
     setHired(emptyHired())
     setError(null)
-  }, [open, targetStatus])
-
-  const syncOfferFromDate = (isoDate: string) => {
-    const d = parseIsoDate(isoDate)
-    if (!d) return
-    setOffer((prev) => ({
-      ...prev,
-      offerDate: isoDate,
-      offerMonth: monthFromIsoDate(isoDate),
-      offerQuarter: quarterFromDate(d),
-    }))
-  }
+  }, [open, targetStatus, initialExpectedCTC])
 
   const syncHiredFromDate = (isoDate: string) => {
     const d = parseIsoDate(isoDate)
@@ -93,7 +86,7 @@ export function CandidateStageDetailsModal({
         setError(err)
         return
       }
-      onConfirm(offer)
+      onConfirm({ ...offer, expectedCTC: offer.expectedCTC.trim() })
     } else {
       const err = validateHiredMilestone(hired)
       if (err) {
@@ -141,25 +134,25 @@ export function CandidateStageDetailsModal({
           {targetStatus === 'OFFER' ? (
             <>
               <div>
-                <label className={labelClass}>Date of offer</label>
+                <label className={labelClass}>Expected CTC</label>
                 <input
-                  type="date"
+                  type="text"
                   required
                   className={inputClass}
-                  value={offer.offerDate}
-                  onChange={(e) => syncOfferFromDate(e.target.value)}
+                  placeholder="e.g. 24 LPA"
+                  value={offer.expectedCTC}
+                  onChange={(e) =>
+                    setOffer((prev) => ({ ...prev, expectedCTC: e.target.value }))
+                  }
                 />
               </div>
               <div>
                 <label className={labelClass}>Month of offer</label>
-                <input
-                  type="month"
-                  required
-                  className={inputClass}
+                <MonthYearSelect
                   value={offer.offerMonth}
-                  onChange={(e) =>
-                    setOffer((prev) => ({ ...prev, offerMonth: e.target.value }))
-                  }
+                  onChange={(offerMonth) => setOffer((prev) => ({ ...prev, offerMonth }))}
+                  monthAriaLabel="Month of offer"
+                  yearAriaLabel="Year of offer"
                 />
               </div>
               <div>
@@ -174,14 +167,13 @@ export function CandidateStageDetailsModal({
               </div>
               <div>
                 <label className={labelClass}>Expected joining date</label>
-                <input
-                  type="date"
-                  required
-                  className={inputClass}
+                <AppDatePicker
                   value={offer.expectedJoiningDate}
-                  onChange={(e) =>
-                    setOffer((prev) => ({ ...prev, expectedJoiningDate: e.target.value }))
+                  onChange={(expectedJoiningDate) =>
+                    setOffer((prev) => ({ ...prev, expectedJoiningDate }))
                   }
+                  placeholder="Select date"
+                  aria-label="Expected joining date"
                 />
               </div>
             </>
@@ -189,24 +181,20 @@ export function CandidateStageDetailsModal({
             <>
               <div>
                 <label className={labelClass}>Date of joining</label>
-                <input
-                  type="date"
-                  required
-                  className={inputClass}
+                <AppDatePicker
                   value={hired.joiningDate}
-                  onChange={(e) => syncHiredFromDate(e.target.value)}
+                  onChange={syncHiredFromDate}
+                  placeholder="Select date"
+                  aria-label="Date of joining"
                 />
               </div>
               <div>
                 <label className={labelClass}>Month of joining</label>
-                <input
-                  type="month"
-                  required
-                  className={inputClass}
+                <MonthYearSelect
                   value={hired.joiningMonth}
-                  onChange={(e) =>
-                    setHired((prev) => ({ ...prev, joiningMonth: e.target.value }))
-                  }
+                  onChange={(joiningMonth) => setHired((prev) => ({ ...prev, joiningMonth }))}
+                  monthAriaLabel="Month of joining"
+                  yearAriaLabel="Year of joining"
                 />
               </div>
               <div>

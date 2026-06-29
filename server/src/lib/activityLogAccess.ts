@@ -16,7 +16,7 @@ import {
 
 } from './candidateAccess.js'
 
-import { hasOrgWideAccess } from './orgAccess.js'
+import { hasOrgWideAccess, isAdminRole } from './orgAccess.js'
 import { requirementIdsForAuth } from './requirementAccess.js'
 
 
@@ -151,6 +151,18 @@ async function scopedActivityWhere(
 
 
 
+const PIPELINE_ACTIVITY_ENTITY_TYPES = new Set([
+  'CANDIDATE',
+  'REQUIREMENT',
+  'INTERVIEW',
+  'OFFER',
+])
+
+function filterActivityLogsForRole(logs: ActivityLog[], role: string): ActivityLog[] {
+  if (isAdminRole(role)) return logs
+  return logs.filter((log) => PIPELINE_ACTIVITY_ENTITY_TYPES.has(log.entityType))
+}
+
 export async function listActivityLogsForAuth(
 
   auth: { userId: string; role: string; name?: string },
@@ -161,7 +173,7 @@ export async function listActivityLogsForAuth(
 
   const where = await scopedActivityWhere(auth)
 
-  return prisma.activityLog.findMany({
+  const rows = await prisma.activityLog.findMany({
 
     where,
 
@@ -170,6 +182,8 @@ export async function listActivityLogsForAuth(
     take: limit,
 
   })
+
+  return filterActivityLogsForRole(rows, auth.role)
 
 }
 

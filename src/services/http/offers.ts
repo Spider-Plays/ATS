@@ -1,11 +1,12 @@
 import { apiRequest, apiUrl, getToken, fetchApiBlob } from '../../lib/apiClient'
-import { Offer, OfferLetterMeta, CompensationBreakdown } from '../../types'
+import { Offer, OfferLetterMeta, CompensationBreakdown, OfferApprovalChain } from '../../types'
 
 export type OfferCreateInput = {
   candidateId: string
   requirementId: string
   annualCtc: number
   letterMeta?: OfferLetterMeta
+  approvalChain?: OfferApprovalChain
   createdBy: string
   status?: Offer['status']
   history?: Offer['history']
@@ -48,20 +49,31 @@ export const offerService = {
   create: (data: OfferCreateInput) =>
     apiRequest<Offer>('/offers', { method: 'POST', body: JSON.stringify(data) }),
 
-  update: (id: string, data: Partial<Offer> & { letterMeta?: OfferLetterMeta }) =>
-    apiRequest<Offer>(`/offers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  update: (
+    id: string,
+    data: Omit<Partial<Offer>, 'approvalChain'> & {
+      letterMeta?: OfferLetterMeta
+      approvalChain?: OfferApprovalChain
+    }
+  ) => apiRequest<Offer>(`/offers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   submit: (id: string) =>
     apiRequest<Offer>(`/offers/${id}/submit`, { method: 'POST', body: '{}' }),
 
-  approveHr: (id: string, options?: { onBehalfOfHrHead?: boolean }) =>
+  approveHr: (id: string, options?: { onBehalfOfHrHead?: boolean; comment?: string }) =>
     apiRequest<Offer>(`/offers/${id}/approve-hr`, {
       method: 'POST',
       body: JSON.stringify(options ?? {}),
     }),
 
-  approveExec: (id: string, options?: { onBehalfOfExec?: boolean }) =>
+  approveExec: (id: string, options?: { onBehalfOfExec?: boolean; comment?: string }) =>
     apiRequest<Offer>(`/offers/${id}/approve-exec`, {
+      method: 'POST',
+      body: JSON.stringify(options ?? {}),
+    }),
+
+  approveStage: (id: string, options?: { comment?: string }) =>
+    apiRequest<Offer>(`/offers/${id}/approve-stage`, {
       method: 'POST',
       body: JSON.stringify(options ?? {}),
     }),
@@ -86,6 +98,12 @@ export const offerService = {
 
   decline: (id: string) =>
     apiRequest<Offer>(`/offers/${id}/decline`, { method: 'POST', body: '{}' }),
+
+  rollbackApproval: (id: string, body?: { reason?: string }) =>
+    apiRequest<Offer>(`/offers/${id}/rollback-approval`, {
+      method: 'POST',
+      body: JSON.stringify(body ?? {}),
+    }),
 
   remove: (id: string) => apiRequest<void>(`/offers/${id}`, { method: 'DELETE' }),
 }

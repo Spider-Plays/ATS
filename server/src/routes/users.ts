@@ -20,6 +20,7 @@ const staffRoles = [
   'ADMIN',
   'HR_HEAD',
   'HR_MANAGER',
+  'FINANCE_HEAD',
   'RECRUITER',
   'TEAM_LEAD',
   'HIRING_MANAGER',

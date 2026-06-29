@@ -124,6 +124,7 @@ const ROLE_ORDER: UserRole[] = [
   'SUPER_ADMIN',
   'ADMIN',
   'HR_HEAD',
+  'FINANCE_HEAD',
   'HR_MANAGER',
   'RECRUITER',
   'TEAM_LEAD',

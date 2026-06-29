@@ -234,6 +234,7 @@ model Offer {
   letterPdfKey      String?
   approval          String    @default("{}")
   approvalHistory   String    @default("[]")
+  approvalChainJson String    @default("[]")
   approvalStep      String?
   rejectionReason   String?
   validUntil        DateTime?
@@ -288,5 +289,12 @@ model ActivityLog {
 model RolePageAccess {
   role      String   @id
   pages     String
+  updatedAt DateTime @updatedAt
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedBy String?
   updatedAt DateTime @updatedAt
 }

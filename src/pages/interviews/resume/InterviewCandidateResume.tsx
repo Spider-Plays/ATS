@@ -102,7 +102,7 @@ const InterviewCandidateResume = () => {
           {interview.stageName ?? interview.type.replace(/_/g, ' ')} ·{' '}
           {new Date(interview.scheduledAt).toLocaleString()}
         </p>
-        {candidate && (
+        {candidate && user?.role !== 'INTERVIEWER' && (
           <Link
             to={`/candidates/${candidate.id}?tab=resume`}
             className="inline-block mt-2 text-xs font-bold text-primary dark:text-white hover:underline"

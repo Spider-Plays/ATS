@@ -15,7 +15,7 @@ import { notifyVendorAssignment } from '../lib/emailDispatch.js'
 import { buildVendorListWhere } from '../lib/vendorAccess.js'
 
 const router = Router()
-const VENDOR_MANAGERS = ['ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER'] as const
+const VENDOR_MANAGERS = ['ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER', 'TEAM_LEAD'] as const
 
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
 

@@ -43,12 +43,38 @@ export function isActiveCandidate(candidate: Candidate): boolean {
   return !isTerminalStatus(candidate.status)
 }
 
+export function isOfferStageCandidate(candidate: Candidate): boolean {
+  return candidate.status === 'OFFER'
+}
+
 export function isHighMatch(candidate: Candidate, threshold = 80): boolean {
   return candidate.matchScore >= threshold
 }
 
 export function candidateStatusLabel(status: CandidateStatus): string {
   return STAGE_GROUP_TITLES[status] ?? status.replace(/_/g, ' ')
+}
+
+export function candidateStageIndex(status: CandidateStatus): number {
+  const idx = CANDIDATE_STAGE_ORDER.indexOf(status)
+  return idx === -1 ? CANDIDATE_STAGE_ORDER.length : idx
+}
+
+export function isBackwardCandidateStageMove(
+  current: CandidateStatus,
+  next: CandidateStatus
+): boolean {
+  if (current === next || next === 'REJECTED') return false
+  return candidateStageIndex(next) < candidateStageIndex(current)
+}
+
+export function requiresCandidateStageChangeConfirmation(
+  current: CandidateStatus,
+  next: CandidateStatus
+): boolean {
+  if (current === next) return false
+  if (next === 'REJECTED' || next === 'OFFER') return true
+  return isBackwardCandidateStageMove(current, next)
 }
 
 export function candidateStatusClass(status: CandidateStatus): string {

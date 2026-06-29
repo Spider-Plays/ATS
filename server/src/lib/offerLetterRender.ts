@@ -1,5 +1,9 @@
 import type { CompensationBreakdown } from './offerCompensation.js'
-import { DEFAULT_ORG_SETTINGS, EMPLOYMENT_CLAUSE_PAGES } from './offerLetterLegal.js'
+import {
+  DEFAULT_OFFER_LETTER_TEMPLATE,
+  mergeOfferLetterTemplate,
+  type OfferLetterTemplate,
+} from './offerLetterTemplate.js'
 import { getOfferLetterLogoHtml } from './offerBrandAssets.js'
 import { amountToIndianWords, formatIndianCurrency } from './numberToWords.js'
 
@@ -15,7 +19,7 @@ export type OfferLetterContext = {
   acceptanceDeadlineDays?: number
   annualCtc: number
   breakdown: CompensationBreakdown
-  org?: Partial<typeof DEFAULT_ORG_SETTINGS>
+  template?: OfferLetterTemplate
 }
 
 function escapeHtml(value: string): string {
@@ -156,7 +160,8 @@ function applyClausePlaceholders(
 }
 
 export function renderOfferLetterHtml(ctx: OfferLetterContext): string {
-  const org = { ...DEFAULT_ORG_SETTINGS, ...ctx.org }
+  const letterTemplate = mergeOfferLetterTemplate(ctx.template ?? DEFAULT_OFFER_LETTER_TEMPLATE)
+  const org = letterTemplate.orgSettings
   const letterDate = ctx.letterDate ?? new Date()
   const joiningFormatted = formatLongDate(ctx.joiningDate)
   const ctcFormatted = formatIndianCurrency(ctx.annualCtc)
@@ -164,72 +169,53 @@ export function renderOfferLetterHtml(ctx: OfferLetterContext): string {
   const compTable = compensationTableHtml(ctx.breakdown)
 
   const timesheetAddress = org.timesheetAddress?.trim() ?? ''
-  const clauseVars: Record<string, string> = {
+  const returnAddress = org.returnAddress?.trim() ?? ''
+
+  const vars: Record<string, string> = {
+    candidateName: escapeHtml(ctx.candidateName),
+    candidateAddress: escapeHtml(ctx.candidateAddress),
+    positionTitle: escapeHtml(ctx.positionTitle),
+    clientSiteAddress: escapeHtml(ctx.clientSiteAddress),
+    clientCompanyName: escapeHtml(ctx.clientCompanyName),
+    joiningDateFormatted: escapeHtml(joiningFormatted),
+    reportingTime: escapeHtml(ctx.reportingTime ?? org.reportingTime),
+    ctcFormatted: escapeHtml(ctcFormatted),
+    ctcWords: escapeHtml(ctcWords),
+    compensationTable: compTable,
+    acceptanceDeadlineDays: String(ctx.acceptanceDeadlineDays ?? org.acceptanceDeadlineDays),
+    returnAddressSuffix: returnAddress ? ' to the following address' : '',
+    returnAddressBlock: returnAddress ? `<p>${escapeHtml(returnAddress)}</p>` : '',
+    letterDateFormatted: escapeHtml(formatShortDate(letterDate)),
     timesheetAddressSuffix: timesheetAddress ? ' to the following address' : '',
     timesheetAddressBlock: timesheetAddress ? `<p>${escapeHtml(timesheetAddress)}</p>` : '',
-    joiningDateFormatted: escapeHtml(joiningFormatted),
-    positionTitle: escapeHtml(ctx.positionTitle),
     reviewPeriodMonths: String(org.reviewPeriodMonths),
     annualLeaveDays: String(org.annualLeaveDays),
     noticePeriodDays: String(org.noticePeriodDays),
   }
-
-  const returnAddressBlock = org.returnAddress?.trim()
-    ? `<p>${escapeHtml(org.returnAddress)}</p>`
-    : ''
 
   const pages: string[] = []
 
   pages.push(
     offerPage(`
     ${letterhead(org)}
-    <p><strong>Name:</strong> ${escapeHtml(ctx.candidateName)}</p>
-    <p><strong>Address:</strong><br/>${escapeHtml(ctx.candidateAddress)}</p>
-    <p>Dear ${escapeHtml(ctx.candidateName)},</p>
-    <p>We are pleased to inform you that based on your application and the subsequent interviews you had, you have been selected for the position of <strong>${escapeHtml(ctx.positionTitle)}</strong>.</p>
-    <p>Your joining date will be <strong>${escapeHtml(joiningFormatted)}</strong></p>
-    <p>On the first day of the employment, please report to:</p>
-    <p><strong>Company Address:</strong> ${escapeHtml(ctx.clientSiteAddress)}</p>
-    <p><strong>Reporting Time:</strong> ${escapeHtml(ctx.reportingTime ?? org.reportingTime)}</p>
-    <p>You will be paid a gross annual salary of <strong>${escapeHtml(ctcFormatted)}</strong> (${escapeHtml(ctcWords)}).</p>
-    <p>Your salary composition and other details are listed in the Employment Agreement annexed to this letter. Please indicate your acceptance to the Employment Agreement by signing and returning it within <strong>${org.acceptanceDeadlineDays}</strong> days from the date of this letter${returnAddressBlock ? ' to the following address' : ''}. Please retain the second copy for your records.</p>
-    ${returnAddressBlock}
-    <p>I look forward to welcoming you in our organization.</p>
-    <p>Should you need any further clarifications, please feel free to contact us.</p>
-    <div class="sig-row">
-      <div class="sig-block">HR Signature</div>
-      <div class="sig-block">Candidate Signature</div>
-    </div>
+    ${applyClausePlaceholders(letterTemplate.coverPageHtml, vars)}
   `)
   )
 
-  const agreementIntro = `
-    ${letterhead(org)}
-    <h2>EMPLOYMENT AGREEMENT</h2>
-    <h3>COMPENSATION STRUCTURE</h3>
-    <p>Your individual compensation is strictly between yourself and the Company. It has been determined based on various factors such as your job, skills, specific background and professional merit. This information and any changes therein should be treated as personal and confidential.</p>
-    <p>Your total annual CTC will be <strong>${escapeHtml(ctcFormatted)}</strong> and its composition will be as follows:</p>
-    ${compTable}
-  `
-
-  EMPLOYMENT_CLAUSE_PAGES.forEach((clausePage, index) => {
-    const body = applyClausePlaceholders(clausePage, clauseVars)
+  letterTemplate.clausePages.forEach((clausePage, index) => {
+    const body = applyClausePlaceholders(clausePage, vars)
     if (index === 0) {
-      pages.push(offerPage(agreementIntro + body))
+      const intro = applyClausePlaceholders(letterTemplate.agreementIntroHtml, vars)
+      pages.push(offerPage(`${letterhead(org)}${intro}${body}`))
     } else {
-      pages.push(offerPage(letterhead(org) + body))
+      pages.push(offerPage(`${letterhead(org)}${body}`))
     }
   })
 
   pages.push(
     offerPage(`
     ${letterhead(org)}
-    <h2>DECLARATION</h2>
-    <p>This is to confirm that the documents and information provided by me to the Company for the purpose of my services are true and accurate to the best of my knowledge and belief. I also agree that the various terms and conditions set forth in this Agreement are fair, just and reasonable and I shall strictly adhere to the terms specified.</p>
-    <div class="sig-row" style="margin-top:80px;">
-      <div class="sig-block">Signature</div>
-      <div class="sig-block">Date<br/>${escapeHtml(formatShortDate(letterDate))}</div>
-    </div>
+    ${applyClausePlaceholders(letterTemplate.declarationPageHtml, vars)}
   `)
   )
 

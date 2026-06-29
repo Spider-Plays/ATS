@@ -36,7 +36,7 @@ Sidebar pages controlled by `allowedPages`. Super Admin always sees all pages. C
 | Dashboard | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Requirements | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | Vendors | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| Candidates | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ |
+| Candidates | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | Pipeline | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | Interviews | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ |
 | Offers | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | — |
@@ -67,7 +67,7 @@ Sidebar pages controlled by `allowedPages`. Super Admin always sees all pages. C
 | HR approve offer | ✓ | ✓ | ✓ | — | — | — | — | — |
 | Exec approve offer | ✓ | ✓ | — | — | — | — | — | — |
 | Send offer | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
-| Manage vendors | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| Manage vendors | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | Admin hub catalogs | ✓ | ✓ | — | — | — | — | — | — |
 | User management (full) | ✓ | partial** | — | — | — | — | — | — |
 | Role access editor | ✓ | — | — | — | — | — | — | — |
@@ -124,8 +124,8 @@ Interviewers have the most limited staff access:
 
 - **Candidate profile tabs:** Overview and Resume only (no Interviews or Activity tabs for editing)
 - **Interview list:** Assigned interviews only (`?mine=1` behavior)
-- **No access to:** Requirements, Pipeline, Offers, Vendors (default pages)
-- **Can:** Submit feedback on assigned interviews; view candidate resume in interview context
+- **No access to:** Requirements, Pipeline, Offers, Vendors, Candidates list/page (default pages)
+- **Can:** Submit feedback on assigned interviews; view candidate resume via interview session (`/interviews/:id/resume`), not the full candidate profile
 
 ---
 

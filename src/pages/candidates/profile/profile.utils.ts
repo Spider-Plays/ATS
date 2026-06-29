@@ -69,7 +69,7 @@ export function formatActivityDetails(log: ActivityLog): string | null {
   if (log.action === 'STATUS_CHANGED' && typeof d === 'object' && d !== null) {
     const parts: string[] = []
     if (d.newStatus) parts.push(`New stage: ${d.newStatus}`)
-    if (d.offerDate) parts.push(`Offer: ${d.offerDate}`)
+    if (d.expectedCTC) parts.push(`Expected CTC: ${d.expectedCTC}`)
     if (d.offerMonth) parts.push(`Offer month: ${d.offerMonth}`)
     if (d.offerQuarter) parts.push(`Offer quarter: ${d.offerQuarter}`)
     if (d.expectedJoiningDate) parts.push(`Expected join: ${d.expectedJoiningDate}`)

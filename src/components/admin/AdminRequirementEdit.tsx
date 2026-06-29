@@ -10,6 +10,7 @@ import { useToastStore } from '../../store/toastStore'
 import { ApiError } from '../../lib/apiClient'
 import { buildLocationDisplay } from '../../lib/requirementFields'
 import { AppSelect } from '../ui/AppSelect'
+import { AppDatePicker } from '../ui/AppDatePicker'
 import {
   EMPLOYMENT_TYPE_OPTIONS,
   REQUIREMENT_PRIORITY_OPTIONS,
@@ -290,20 +291,20 @@ export function AdminRequirementEdit({ requirement, users, departmentNames, onSa
         </div>
         <div>
           <label className="text-xs font-bold text-primary/60 uppercase tracking-wider">Target start</label>
-          <input
-            type="date"
-            className={inputClass}
+          <AppDatePicker
             value={targetStartDate}
-            onChange={(e) => setTargetStartDate(e.target.value)}
+            onChange={setTargetStartDate}
+            className="mt-1"
+            aria-label="Target start date"
           />
         </div>
         <div>
           <label className="text-xs font-bold text-primary/60 uppercase tracking-wider">Hiring deadline</label>
-          <input
-            type="date"
-            className={inputClass}
+          <AppDatePicker
             value={hiringDeadline}
-            onChange={(e) => setHiringDeadline(e.target.value)}
+            onChange={setHiringDeadline}
+            className="mt-1"
+            aria-label="Hiring deadline"
           />
         </div>
         <div>

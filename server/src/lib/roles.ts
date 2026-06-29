@@ -4,6 +4,7 @@ export const INTERNAL_ROLES = [
   'ADMIN',
   'HR_HEAD',
   'HR_MANAGER',
+  'FINANCE_HEAD',
   'RECRUITER',
   'TEAM_LEAD',
   'HIRING_MANAGER',
@@ -25,7 +26,10 @@ export const STAFF_MUTATE = [
 /** HR Head and Super Admin approve directly; Admin with on-behalf-of-HR-Head flag. */
 export const REQ_APPROVERS = ['HR_HEAD', 'SUPER_ADMIN', 'ADMIN'] as const
 
-export const OFFER_ROLES = ['SUPER_ADMIN', 'ADMIN', 'HR_HEAD', 'HR_MANAGER', 'TEAM_LEAD'] as const
+export const OFFER_ROLES = ['SUPER_ADMIN', 'ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER', 'TEAM_LEAD'] as const
+
+/** Roles that may read offer data via GET /api/offers* */
+export const OFFER_VIEW_ROLES = OFFER_ROLES
 
 export const OFFER_HR_APPROVERS = ['HR_HEAD', 'SUPER_ADMIN', 'ADMIN'] as const
 

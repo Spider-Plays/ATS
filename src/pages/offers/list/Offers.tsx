@@ -13,7 +13,7 @@ import './list.css'
 const Offers = () => {
     const [searchTerm, setSearchTerm] = useState('')
 
-    const { data: offers = [], isLoading } = useQuery({
+    const { data: offers = [], isLoading, isError, error } = useQuery({
         queryKey: ['offers'],
         queryFn: api.offers.list
     })
@@ -60,6 +60,21 @@ const Offers = () => {
     }
 
     if (isLoading) return <div className="p-8 text-center">Loading offers...</div>
+
+    if (isError) {
+        const message = error instanceof Error ? error.message : 'Failed to load offers'
+        return (
+            <div className="max-w-7xl mx-auto p-8">
+                <div className="p-6 rounded-2xl border border-red-200 bg-red-50 text-red-800">
+                    <h2 className="font-bold text-lg mb-2">Could not load offers</h2>
+                    <p className="text-sm">{message}</p>
+                    <p className="text-sm mt-2 text-red-700/80">
+                        If this started after a deploy, run pending database migrations on the API database.
+                    </p>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">

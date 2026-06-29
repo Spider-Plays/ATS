@@ -6,6 +6,7 @@ export const CONFIGURABLE_ROLES = [
   'ADMIN',
   'HR_HEAD',
   'HR_MANAGER',
+  'FINANCE_HEAD',
   'RECRUITER',
   'TEAM_LEAD',
   'HIRING_MANAGER',
@@ -22,6 +23,8 @@ export const PAGE_KEYS = [
   'pipeline',
   'interviews',
   'offers',
+  'offer_compensation_config',
+  'offer_letter_template',
   'admin_users',
   'notifications',
   'settings',
@@ -37,6 +40,16 @@ export const PAGE_DEFINITIONS: { key: PageKey; label: string; description: strin
   { key: 'pipeline', label: 'Pipeline', description: 'Hiring pipeline by requirement' },
   { key: 'interviews', label: 'Interviews', description: 'Schedule and manage interviews' },
   { key: 'offers', label: 'Offers', description: 'Offer letters and approvals' },
+  {
+    key: 'offer_compensation_config',
+    label: 'Salary Breakdown',
+    description: 'CTC component percentages and allowances',
+  },
+  {
+    key: 'offer_letter_template',
+    label: 'Offer Letter Template',
+    description: 'Offer letter wording and employment clauses',
+  },
   { key: 'admin_users', label: 'User Management', description: 'Admin user administration' },
   { key: 'notifications', label: 'Notifications', description: 'In-app notifications' },
   { key: 'settings', label: 'Settings', description: 'Account and app settings' },
@@ -54,6 +67,7 @@ export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
     'pipeline',
     'interviews',
     'offers',
+    'offer_letter_template',
     'notifications',
     'settings',
   ],
@@ -75,6 +89,7 @@ export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
     'candidates',
     'pipeline',
     'interviews',
+    'offers',
     'notifications',
     'settings',
   ],
@@ -91,6 +106,7 @@ export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
   ],
   HIRING_MANAGER: ['dashboard', 'requirements', 'notifications', 'settings'],
   INTERVIEWER: ['dashboard', 'interviews', 'notifications', 'settings'],
+  FINANCE_HEAD: ['dashboard', 'offer_compensation_config', 'notifications', 'settings'],
 }
 
 function parsePages(raw: string | null | undefined): PageKey[] {
@@ -115,13 +131,13 @@ export function defaultPagesForRole(role: string): PageKey[] {
   return ['dashboard', 'notifications', 'settings']
 }
 
-function finalizePagesForRole(role: string, pages: PageKey[]): PageKey[] {
-  let result = [...pages]
-  if (role === 'SUPER_ADMIN' && !result.includes('admin_users')) {
-    result.push('admin_users')
-  }
-  if (role !== 'SUPER_ADMIN') {
+function sanitizePagesForRole(role: string, pages: PageKey[]): PageKey[] {
+  let result = sanitizePages(pages)
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     result = result.filter((p) => p !== 'admin_users')
+  }
+  if (role === 'INTERVIEWER') {
+    result = result.filter((p) => p !== 'candidates')
   }
   return result
 }
@@ -144,7 +160,7 @@ export async function getAllowedPagesForRole(role: string): Promise<PageKey[]> {
     pages = defaultPagesForRole(role)
   }
 
-  return finalizePagesForRole(role, pages)
+  return sanitizePagesForRole(role, pages)
 }
 
 export async function getAllRolePageAccess(): Promise<
@@ -162,7 +178,7 @@ export async function getAllRolePageAccess(): Promise<
     const row = byRole.get(role)
     const raw = row?.pages ? parsePages(row.pages) : defaultPagesForRole(role)
     result[role] = {
-      pages: finalizePagesForRole(role, raw),
+      pages: sanitizePagesForRole(role, raw),
       updatedAt: row?.updatedAt.toISOString(),
     }
   }
@@ -175,7 +191,12 @@ export async function setRolePageAccess(role: string, pages: PageKey[]): Promise
   }
 
   let sanitized = sanitizePages(pages)
-  sanitized = sanitized.filter((p) => p !== 'admin_users')
+  if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
+    sanitized = sanitized.filter((p) => p !== 'admin_users')
+  }
+  if (role === 'INTERVIEWER') {
+    sanitized = sanitized.filter((p) => p !== 'candidates')
+  }
   if (sanitized.length === 0) {
     throw new Error('At least one page must be enabled')
   }
@@ -186,7 +207,7 @@ export async function setRolePageAccess(role: string, pages: PageKey[]): Promise
     update: { pages: JSON.stringify(sanitized) },
   })
 
-  return sanitized
+  return sanitizePagesForRole(role, sanitized)
 }
 
 export function pathnameToPageKey(pathname: string): PageKey | null {
@@ -196,6 +217,8 @@ export function pathnameToPageKey(pathname: string): PageKey | null {
   if (pathname.startsWith('/candidates')) return 'candidates'
   if (pathname.startsWith('/pipeline')) return 'pipeline'
   if (pathname.startsWith('/interviews')) return 'interviews'
+  if (pathname.startsWith('/offers/compensation-config')) return 'offer_compensation_config'
+  if (pathname.startsWith('/offers/letter-template')) return 'offer_letter_template'
   if (pathname.startsWith('/offers')) return 'offers'
   if (pathname.startsWith('/admin/users')) return 'admin_users'
   if (pathname.startsWith('/admin')) return null

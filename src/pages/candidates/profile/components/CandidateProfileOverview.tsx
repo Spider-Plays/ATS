@@ -272,7 +272,7 @@ export function CandidateProfileOverview({
             <h3 className="text-sm font-bold text-primary dark:text-white">Offer details</h3>
           </div>
           <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <DetailCard label="Date of offer" value={formatMilestoneDate(displayData.offerDate)} />
+            <DetailCard label="Expected CTC" value={displayData.expectedCTC} />
             <DetailCard label="Month of offer" value={displayData.offerMonth} />
             <DetailCard label="Quarter of offer" value={displayData.offerQuarter} />
             <DetailCard

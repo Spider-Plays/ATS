@@ -1,8 +1,29 @@
 /** Demo dataset for `npm run db:seed-demo`. Demo emails use @stitch-ats.in — safe to delete/re-seed. */
 
-import { DEV_PASSWORD, devUserName } from './devUsers.js'
+import { DEV_PASSWORD, devUserEmail, devUserName, devUsersForRole } from './devUsers.js'
 
 export const DEMO_VENDOR_CODE = 'DEMO-STAFFING'
+
+export type DemoPortalUserSeed = {
+  email: string
+  name: string
+  password: string
+  applyToJobCode: string | null
+  phone?: string
+  location?: string
+  totalExperience?: string
+  currentCompany?: string
+  currentCTC?: string
+  expectedCTC?: string
+  noticePeriod?: string
+  pan?: string
+  linkedIn?: string
+  status?: string
+  interviewProgress?: 'l1-scheduled' | 'l1-done-l2-scheduled' | 'all-rounds-complete'
+  resumeSnippet?: string
+  primarySkills?: string[]
+  secondarySkills?: string[]
+}
 
 export const DEMO_RESUME_URLS = [
   'https://www.africau.edu/images/default/sample.pdf',
@@ -11,51 +32,279 @@ export const DEMO_RESUME_URLS = [
   'https://www.orimi.com/pdf-test.pdf',
 ] as const
 
-export const DEMO_PORTAL_USERS = [
+/** Candidate portal logins — complete profiles, resumes, and existing applications. Password: `password`. */
+export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
   {
     email: 'aisha.mehta@stitch-ats.in',
     name: 'Aisha Mehta',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026001',
+    phone: '+91 98234 56701',
+    location: 'Bangalore',
+    totalExperience: '5 Years',
+    currentCompany: 'Mindtree',
+    currentCTC: '18 LPA',
+    expectedCTC: '24 LPA',
+    noticePeriod: '60 Days',
+    pan: 'ABCPM1234A',
+    linkedIn: 'https://www.linkedin.com/in/aisha-mehta-dev',
+    status: 'SCREENING',
+    primarySkills: ['TypeScript', 'React', 'Node.js', 'PostgreSQL'],
+    secondarySkills: ['AWS', 'Docker'],
+    resumeSnippet:
+      'Aisha Mehta — Full-stack engineer at Mindtree, 5 years building React and Node.js products. TypeScript, PostgreSQL, REST APIs, AWS, Docker, CI/CD.',
   },
   {
     email: 'rohan.kapoor@stitch-ats.in',
     name: 'Rohan Kapoor',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026002',
+    phone: '+91 98234 56702',
+    location: 'Mumbai',
+    totalExperience: '7 Years',
+    currentCompany: 'Nykaa',
+    currentCTC: '28 LPA',
+    expectedCTC: '36 LPA',
+    noticePeriod: '90 Days',
+    pan: 'ABCPK5678B',
+    status: 'APPLIED',
+    primarySkills: ['Product Strategy', 'Roadmapping', 'Agile', 'B2B SaaS'],
+    secondarySkills: ['SQL', 'Analytics'],
+    resumeSnippet:
+      'Rohan Kapoor — Product Manager at Nykaa, 7 years B2B SaaS. Product strategy, roadmapping, stakeholder management, agile delivery, SQL analytics.',
   },
   {
     email: 'neha.iyer@stitch-ats.in',
     name: 'Neha Iyer',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026003',
+    phone: '+91 98234 56703',
+    location: 'Hyderabad',
+    totalExperience: '6 Years',
+    currentCompany: 'Deloitte',
+    currentCTC: '22 LPA',
+    expectedCTC: '30 LPA',
+    noticePeriod: '60 Days',
+    pan: 'ABCPN9012C',
+    status: 'INTERVIEW',
+    interviewProgress: 'l1-scheduled',
+    primarySkills: ['Kubernetes', 'Terraform', 'AWS', 'CI/CD'],
+    secondarySkills: ['Helm', 'Prometheus'],
+    resumeSnippet:
+      'Neha Iyer — DevOps engineer at Deloitte, 6 years. Kubernetes, Terraform, AWS, Linux, CI/CD, Helm, Prometheus observability.',
   },
   {
     email: 'vikram.desai@stitch-ats.in',
     name: 'Vikram Desai',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026004',
+    phone: '+91 98234 56704',
+    location: 'Pune (Remote)',
+    totalExperience: '4 Years',
+    currentCompany: 'Razorpay',
+    currentCTC: '16 LPA',
+    expectedCTC: '22 LPA',
+    noticePeriod: '30 Days',
+    pan: 'ABCPD3456D',
+    status: 'APPLIED',
+    primarySkills: ['Figma', 'User Research', 'Wireframing', 'Design Systems'],
+    secondarySkills: ['Accessibility', 'HTML', 'CSS'],
+    resumeSnippet:
+      'Vikram Desai — UX designer at Razorpay, 4 years fintech UX. Figma, user research, wireframing, design systems, accessibility.',
   },
   {
     email: 'priya.nair@stitch-ats.in',
     name: 'Priya Nair',
     password: DEV_PASSWORD,
     applyToJobCode: 'REQ28062026005',
+    phone: '+91 98234 56705',
+    location: 'Chennai',
+    totalExperience: '5 Years',
+    currentCompany: 'Freshworks',
+    currentCTC: '14 LPA',
+    expectedCTC: '20 LPA',
+    noticePeriod: '60 Days',
+    pan: 'ABCPR7890E',
+    status: 'SHORTLISTED',
+    primarySkills: ['SQL', 'Python', 'Tableau', 'Excel'],
+    secondarySkills: ['dbt', 'Statistics'],
+    resumeSnippet:
+      'Priya Nair — Data analyst at Freshworks, 5 years. SQL, Python, Tableau, Excel, hiring funnel analytics and executive reporting.',
   },
-  /** Logged-in candidate account with no application yet (portal shows “apply to get started”). */
+  {
+    email: devUserEmail('CANDIDATE'),
+    name: devUserName('CANDIDATE'),
+    password: DEV_PASSWORD,
+    applyToJobCode: 'REQ28062026001',
+    phone: '+91 98234 56706',
+    location: 'Bangalore',
+    totalExperience: '4 Years',
+    currentCompany: 'Infosys',
+    currentCTC: '12 LPA',
+    expectedCTC: '18 LPA',
+    noticePeriod: '90 Days',
+    pan: 'ABCPA2468F',
+    status: 'APPLIED',
+    primarySkills: ['TypeScript', 'React', 'Node.js'],
+    secondarySkills: ['PostgreSQL', 'REST APIs'],
+    resumeSnippet:
+      'Ashwin Rao — Software engineer at Infosys, 4 years. TypeScript, React, Node.js, PostgreSQL, REST API development.',
+  },
+  {
+    email: 'tanvi.kulkarni@stitch-ats.in',
+    name: 'Tanvi Kulkarni',
+    password: DEV_PASSWORD,
+    applyToJobCode: 'REQ28062026002',
+    phone: '+91 98234 56707',
+    location: 'Mumbai',
+    totalExperience: '6 Years',
+    currentCompany: 'Swiggy',
+    currentCTC: '24 LPA',
+    expectedCTC: '32 LPA',
+    noticePeriod: '60 Days',
+    pan: 'ABCPT1357G',
+    status: 'APPLIED',
+    primarySkills: ['Product Strategy', 'Agile', 'Stakeholder Management'],
+    secondarySkills: ['SQL', 'Analytics'],
+    resumeSnippet:
+      'Tanvi Kulkarni — Associate PM at Swiggy, 6 years consumer tech. Product strategy, agile, stakeholder management, SQL analytics.',
+  },
+  {
+    email: 'siddharth.menon@stitch-ats.in',
+    name: 'Siddharth Menon',
+    password: DEV_PASSWORD,
+    applyToJobCode: 'REQ28062026003',
+    phone: '+91 98234 56708',
+    location: 'Bangalore',
+    totalExperience: '8 Years',
+    currentCompany: 'Flipkart',
+    currentCTC: '32 LPA',
+    expectedCTC: '42 LPA',
+    noticePeriod: '90 Days',
+    pan: 'ABCPS8642H',
+    status: 'APPLIED',
+    primarySkills: ['Kubernetes', 'AWS', 'Terraform', 'Linux'],
+    secondarySkills: ['Docker', 'CI/CD'],
+    resumeSnippet:
+      'Siddharth Menon — Platform engineer at Flipkart, 8 years. Kubernetes, AWS, Terraform, Linux, Docker, CI/CD pipelines.',
+  },
+  {
+    email: 'revathi.nair@stitch-ats.in',
+    name: 'Revathi Nair',
+    password: DEV_PASSWORD,
+    applyToJobCode: 'REQ28062026004',
+    phone: '+91 98234 56709',
+    location: 'Kochi (Remote)',
+    totalExperience: '5 Years',
+    currentCompany: 'TCS Interactive',
+    currentCTC: '15 LPA',
+    expectedCTC: '21 LPA',
+    noticePeriod: '60 Days',
+    pan: 'ABCPV9753J',
+    status: 'SCREENING',
+    primarySkills: ['Figma', 'User Research', 'Prototyping'],
+    secondarySkills: ['Design Systems', 'Accessibility'],
+    resumeSnippet:
+      'Revathi Nair — UX designer at TCS Interactive, 5 years. Figma, user research, prototyping, design systems, WCAG accessibility.',
+  },
+  {
+    email: 'amit.verma@stitch-ats.in',
+    name: 'Amit Verma',
+    password: DEV_PASSWORD,
+    applyToJobCode: 'REQ28062026005',
+    phone: '+91 98234 56710',
+    location: 'Gurgaon',
+    totalExperience: '3 Years',
+    currentCompany: 'Genpact',
+    currentCTC: '10 LPA',
+    expectedCTC: '15 LPA',
+    noticePeriod: '30 Days',
+    pan: 'ABCPV6420K',
+    status: 'APPLIED',
+    primarySkills: ['SQL', 'Python', 'Excel', 'Tableau'],
+    secondarySkills: ['Power BI'],
+    resumeSnippet:
+      'Amit Verma — Data analyst at Genpact, 3 years. SQL, Python, Excel, Tableau, Power BI, operational reporting.',
+  },
+  {
+    email: 'deepika.reddy@stitch-ats.in',
+    name: 'Deepika Reddy',
+    password: DEV_PASSWORD,
+    applyToJobCode: 'REQ28062026008',
+    phone: '+91 98234 56711',
+    location: 'Hyderabad',
+    totalExperience: '7 Years',
+    currentCompany: 'HDFC Bank',
+    currentCTC: '26 LPA',
+    expectedCTC: '34 LPA',
+    noticePeriod: '90 Days',
+    pan: 'ABCPD7531L',
+    status: 'APPLIED',
+    primarySkills: ['Java', 'Spring Boot', 'Microservices', 'PostgreSQL'],
+    secondarySkills: ['Kafka', 'Redis'],
+    resumeSnippet:
+      'Deepika Reddy — Java backend engineer at HDFC Bank, 7 years. Spring Boot, microservices, PostgreSQL, Kafka event streaming.',
+  },
+  {
+    email: 'nikhil.chatterjee@stitch-ats.in',
+    name: 'Nikhil Chatterjee',
+    password: DEV_PASSWORD,
+    applyToJobCode: 'REQ28062026007',
+    phone: '+91 98234 56712',
+    location: 'Pune',
+    totalExperience: '5 Years',
+    currentCompany: 'Capgemini',
+    currentCTC: '14 LPA',
+    expectedCTC: '20 LPA',
+    noticePeriod: '60 Days',
+    pan: 'ABCPN8642M',
+    status: 'APPLIED',
+    primarySkills: ['Selenium', 'Cypress', 'API Testing', 'Java'],
+    secondarySkills: ['Postman', 'Jest'],
+    resumeSnippet:
+      'Nikhil Chatterjee — SDET at Capgemini, 5 years. Selenium, Cypress, API automation, Java, Postman, CI integration.',
+  },
+  /** Logged-in with complete profile but no application yet — portal browse / apply flow. */
   {
     email: 'karan.joshi@stitch-ats.in',
     name: 'Karan Joshi',
     password: DEV_PASSWORD,
     applyToJobCode: null,
+    phone: '+91 98234 56713',
+    location: 'Indore',
+    totalExperience: '2 Years',
+    currentCompany: 'Persistent Systems',
+    currentCTC: '8 LPA',
+    expectedCTC: '12 LPA',
+    noticePeriod: '30 Days',
+    pan: 'ABCPK5319N',
+    resumeSnippet:
+      'Karan Joshi — Junior developer at Persistent Systems, 2 years. React, JavaScript, HTML, CSS, REST APIs.',
+    primarySkills: ['React', 'JavaScript', 'HTML'],
+    secondarySkills: ['CSS', 'Git'],
   },
   {
     email: 'meera.shah@stitch-ats.in',
     name: 'Meera Shah',
     password: DEV_PASSWORD,
     applyToJobCode: null,
+    phone: '+91 98234 56714',
+    location: 'Ahmedabad',
+    totalExperience: '4 Years',
+    currentCompany: 'Zoho',
+    currentCTC: '13 LPA',
+    expectedCTC: '18 LPA',
+    noticePeriod: '60 Days',
+    pan: 'ABCPM8642P',
+    resumeSnippet:
+      'Meera Shah — QA engineer at Zoho, 4 years. Manual and automation testing, Selenium, API testing, Jira.',
+    primarySkills: ['Selenium', 'API Testing', 'Jira'],
+    secondarySkills: ['Postman', 'Cypress'],
   },
-] as const
+]
+
+/** Dev registry candidate emails (also seeded via db:seed). */
+export const DEV_CANDIDATE_EMAILS = devUsersForRole('CANDIDATE').map((u) => u.email)
 
 export const DEMO_REQUIREMENTS = [
   {

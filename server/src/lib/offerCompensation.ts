@@ -140,3 +140,34 @@ export function getAnnualCtcFromOffer(row: {
   if (row.baseSalary != null && row.baseSalary > 0) return row.baseSalary
   return 0
 }
+
+function isValidBreakdown(value: unknown): value is CompensationBreakdown {
+  if (!value || typeof value !== 'object') return false
+  const breakdown = value as CompensationBreakdown
+  return (
+    Array.isArray(breakdown.earnings) &&
+    breakdown.earnings.length > 0 &&
+    breakdown.gross != null &&
+    Array.isArray(breakdown.employerContributions) &&
+    breakdown.totalCtc != null &&
+    Array.isArray(breakdown.employeeDeductions) &&
+    breakdown.totalDeduction != null &&
+    breakdown.netPay != null
+  )
+}
+
+export function resolveOfferCompensationBreakdown(
+  offer: { annualCtc?: number | null; baseSalary?: number | null; compensationJson?: string | null },
+  config: CompensationConfig = DEFAULT_COMPENSATION_CONFIG
+): CompensationBreakdown {
+  const annualCtc = getAnnualCtcFromOffer(offer)
+  if (offer.compensationJson && offer.compensationJson !== '{}') {
+    try {
+      const parsed = JSON.parse(offer.compensationJson) as CompensationBreakdown
+      if (isValidBreakdown(parsed)) return parsed
+    } catch {
+      /* fall through to recalculate */
+    }
+  }
+  return calculateCompensationBreakdown(annualCtc, config)
+}

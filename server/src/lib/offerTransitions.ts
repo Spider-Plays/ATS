@@ -2,6 +2,7 @@ export const OFFER_STATUSES = [
   'DRAFT',
   'PENDING_HR_APPROVAL',
   'PENDING_EXEC_APPROVAL',
+  'PENDING_APPROVAL',
   'APPROVED',
   'SENT',
   'NEGOTIATION',
@@ -13,9 +14,10 @@ export const OFFER_STATUSES = [
 export type OfferStatus = (typeof OFFER_STATUSES)[number]
 
 const ALLOWED: Record<OfferStatus, OfferStatus[]> = {
-  DRAFT: ['PENDING_HR_APPROVAL'],
+  DRAFT: ['PENDING_HR_APPROVAL', 'PENDING_APPROVAL'],
   PENDING_HR_APPROVAL: ['DRAFT', 'APPROVED', 'PENDING_EXEC_APPROVAL'],
   PENDING_EXEC_APPROVAL: ['DRAFT', 'APPROVED'],
+  PENDING_APPROVAL: ['DRAFT', 'APPROVED', 'PENDING_APPROVAL'],
   APPROVED: ['SENT', 'WITHDRAWN'],
   SENT: ['ACCEPTED', 'DECLINED', 'NEGOTIATION', 'WITHDRAWN'],
   NEGOTIATION: ['DRAFT'],
@@ -31,6 +33,23 @@ export function assertOfferTransition(from: string, to: string): void {
   }
 }
 
+export const OFFER_DETAIL_EDITOR_ROLES = ['SUPER_ADMIN', 'HR_HEAD', 'HR_MANAGER'] as const
+
+const HR_EDITABLE_STATUSES = [
+  'DRAFT',
+  'NEGOTIATION',
+  'PENDING_HR_APPROVAL',
+  'PENDING_EXEC_APPROVAL',
+  'PENDING_APPROVAL',
+] as const
+
 export function canEditOfferFields(status: string): boolean {
   return status === 'DRAFT' || status === 'NEGOTIATION'
+}
+
+export function canEditOfferDetails(role: string, status: string): boolean {
+  if ((OFFER_DETAIL_EDITOR_ROLES as readonly string[]).includes(role)) {
+    return (HR_EDITABLE_STATUSES as readonly string[]).includes(status)
+  }
+  return canEditOfferFields(status)
 }

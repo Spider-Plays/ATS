@@ -25,6 +25,7 @@ import { isAdminRole } from '@/permissions'
 import { SkillSelectSection } from '@/components/skills/SkillSelectSection'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { AppSelect } from '@/components/ui/AppSelect'
+import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { EMPLOYMENT_TYPE_OPTIONS } from '@/lib/selectOptions'
 import { WizardStepFooter } from '@/components/ui/WizardStepFooter'
 import { PageHero } from '@/components/layout/PageHero'
@@ -639,13 +640,33 @@ const NewRequirement = () => {
 
                   <div className="space-y-2">
                     <FieldLabel required>Target start date</FieldLabel>
-                    <input type="date" className={inputClass} {...register('targetStartDate')} />
+                    <Controller
+                      control={control}
+                      name="targetStartDate"
+                      render={({ field }) => (
+                        <AppDatePicker
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          aria-label="Target start date"
+                        />
+                      )}
+                    />
                     <FieldError message={errors.targetStartDate?.message} />
                   </div>
 
                   <div className="space-y-2">
                     <FieldLabel required>Hiring deadline</FieldLabel>
-                    <input type="date" className={inputClass} {...register('hiringDeadline')} />
+                    <Controller
+                      control={control}
+                      name="hiringDeadline"
+                      render={({ field }) => (
+                        <AppDatePicker
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          aria-label="Hiring deadline"
+                        />
+                      )}
+                    />
                     <FieldError message={errors.hiringDeadline?.message} />
                   </div>
 
