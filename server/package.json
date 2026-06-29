@@ -23,9 +23,11 @@
     "db:bootstrap": "tsx src/scripts/bootstrap-admin.ts",
     "db:verify": "tsx src/scripts/verify-db.ts",
     "db:migrate-to-neon": "tsx src/scripts/migrate-to-neon.ts",
-    "db:setup": "prisma db push && prisma generate"
+    "db:setup": "prisma db push && prisma generate",
+    "postinstall": "node scripts/install-puppeteer-browser.mjs"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^149.0.0",
     "@prisma/client": "^6.5.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -38,7 +40,7 @@
     "multer": "^2.1.1",
     "pdf-parse": "^2.4.5",
     "prisma": "^6.5.0",
-    "puppeteer": "^25.2.1",
+    "puppeteer-core": "^25.2.1",
     "resend": "^6.12.3",
     "typescript": "^5.8.2",
     "zod": "^3.24.2",
@@ -51,6 +53,7 @@
     "@types/pdf-parse": "^1.1.5"
   },
   "devDependencies": {
+    "puppeteer": "^25.2.1",
     "tsx": "^4.19.3"
   }
 }

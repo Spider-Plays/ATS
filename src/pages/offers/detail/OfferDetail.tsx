@@ -183,8 +183,8 @@ const OfferDetail = () => {
       a.download = `offer-${candidate?.name?.replace(/\s+/g, '_') || id}.pdf`
       a.click()
       URL.revokeObjectURL(url)
-    } catch {
-      addToast('Failed to download PDF', 'error')
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : 'Failed to download PDF', 'error')
     }
   }
 

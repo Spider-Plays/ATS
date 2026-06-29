@@ -249,7 +249,7 @@ export async function sendInviteEmail(params: {
   role: string
   tempPassword: string
 }): Promise<SendEmailResult> {
-  const loginUrl = `${env.clientOrigin.replace(/\/$/, '')}/login`
+  const loginUrl = `${env.clientOrigin.replace(/\/$/, '')}/login?email=${encodeURIComponent(params.to)}`
   return sendHtmlEmail({
     to: params.to,
     subject: `You're invited to ${env.appName}`,
@@ -277,7 +277,7 @@ export async function sendAdminPasswordEmail(params: {
   password: string
   setByAdmin?: boolean
 }): Promise<SendEmailResult> {
-  const loginUrl = `${env.clientOrigin.replace(/\/$/, '')}/login`
+  const loginUrl = `${env.clientOrigin.replace(/\/$/, '')}/login?email=${encodeURIComponent(params.to)}`
   const action = params.setByAdmin ? 'reset' : 'updated'
   return sendHtmlEmail({
     to: params.to,

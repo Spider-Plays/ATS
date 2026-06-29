@@ -1,13 +1,34 @@
-import puppeteer, { type Browser } from 'puppeteer'
+import type { Browser } from 'puppeteer-core'
+import puppeteerCore from 'puppeteer-core'
 
 let browserInstance: Browser | null = null
 
-async function getBrowser(): Promise<Browser> {
-  if (browserInstance?.connected) return browserInstance
-  browserInstance = await puppeteer.launch({
+function useBundledChromium(): boolean {
+  return process.env.RENDER === 'true' || process.platform === 'linux'
+}
+
+async function launchBrowser(): Promise<Browser> {
+  if (useBundledChromium()) {
+    const chromium = await import('@sparticuz/chromium')
+    chromium.default.setGraphicsMode = false
+    return puppeteerCore.launch({
+      args: chromium.default.args,
+      defaultViewport: chromium.default.defaultViewport,
+      executablePath: await chromium.default.executablePath(),
+      headless: chromium.default.headless,
+    })
+  }
+
+  const puppeteer = await import('puppeteer')
+  return puppeteer.default.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
   })
+}
+
+async function getBrowser(): Promise<Browser> {
+  if (browserInstance?.connected) return browserInstance
+  browserInstance = await launchBrowser()
   return browserInstance
 }
 

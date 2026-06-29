@@ -64,8 +64,8 @@ const PortalOfferDetail = () => {
       a.download = 'offer-letter.pdf'
       a.click()
       URL.revokeObjectURL(url)
-    } catch {
-      addToast('Failed to download PDF', 'error')
+    } catch (err) {
+      addToast(err instanceof ApiError ? err.message : 'Failed to download PDF', 'error')
     } finally {
       setBusy(false)
     }
