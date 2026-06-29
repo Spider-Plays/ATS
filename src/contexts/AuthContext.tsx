@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { User } from '../types'
 import { authApi } from '../services/http/auth'
 import { getToken, clearToken, ApiError } from '../lib/apiClient'
+import { clearSignInState, touchLastActivity } from '../lib/authStorage'
 import { PageKey } from '@/permissions'
 import { isExplicitLoginPath } from '@/lib/authPaths'
 
@@ -43,8 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const onLoginPage = isExplicitLoginPath(location.pathname)
 
             if (onLoginPage) {
-                // Drop any stale token so sign-in always starts fresh (fixes stuck sessions in prod).
-                clearToken()
+                clearSignInState()
                 if (!cancelled) {
                     setUser(null)
                     setAllowedPages([])
@@ -103,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (email: string, password: string) => {
         try {
             const session = await authApi.login(email, password)
+            touchLastActivity()
             setUser(session.user)
             setAllowedPages(session.allowedPages)
             return session

@@ -1,22 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useAuth } from './useAuth'
 import { useLogout } from './useLogout'
+import { readLastActivity, touchLastActivity, LAST_ACTIVITY_KEY } from '@/lib/authStorage'
 
 const IDLE_TIMEOUT_MS = 15 * 60 * 1000
 const MOUSEMOVE_THROTTLE_MS = 30_000
-const LAST_ACTIVITY_KEY = 'stitch_last_activity'
 
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'] as const
-
-function readLastActivity(): number {
-  const stored = localStorage.getItem(LAST_ACTIVITY_KEY)
-  const parsed = stored ? Number(stored) : NaN
-  return Number.isFinite(parsed) ? parsed : Date.now()
-}
-
-function writeLastActivity(timestamp: number) {
-  localStorage.setItem(LAST_ACTIVITY_KEY, String(timestamp))
-}
 
 export function useIdleLogout() {
   const { user, loading } = useAuth()
@@ -50,7 +40,7 @@ export function useIdleLogout() {
   const recordActivity = useCallback(() => {
     const now = Date.now()
     lastActivityRef.current = now
-    writeLastActivity(now)
+    touchLastActivity(now)
     scheduleIdleLogout()
   }, [scheduleIdleLogout])
 
@@ -60,14 +50,21 @@ export function useIdleLogout() {
       return
     }
 
-    lastActivityRef.current = readLastActivity()
+    const now = Date.now()
+    let last = readLastActivity()
+    // Stale timestamp from a previous session must not log the user out immediately after sign-in.
+    if (now - last >= IDLE_TIMEOUT_MS) {
+      last = now
+      touchLastActivity(last)
+    }
+    lastActivityRef.current = last
     scheduleIdleLogout()
 
     const onActivity = (event: Event) => {
       if (event.type === 'mousemove') {
-        const now = Date.now()
-        if (now - lastMouseMoveRef.current < MOUSEMOVE_THROTTLE_MS) return
-        lastMouseMoveRef.current = now
+        const ts = Date.now()
+        if (ts - lastMouseMoveRef.current < MOUSEMOVE_THROTTLE_MS) return
+        lastMouseMoveRef.current = ts
       }
       recordActivity()
     }

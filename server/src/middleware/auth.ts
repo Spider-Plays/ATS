@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { Prisma } from '@prisma/client'
 import { env } from '../config/env.js'
 import { prisma } from '../lib/prisma.js'
+import { sendAuthUnauthorized } from '../lib/authResponse.js'
 
 function forwardDbError(err: unknown, next: NextFunction) {
   if (
@@ -32,20 +33,20 @@ declare global {
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization
   if (!header?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' })
+    return sendAuthUnauthorized(res)
   }
   try {
     const token = header.slice(7)
     req.auth = jwt.verify(token, env.jwtSecret) as AuthPayload
     next()
   } catch {
-    return res.status(401).json({ error: 'Invalid token' })
+    return sendAuthUnauthorized(res, 'Invalid token')
   }
 }
 
 export function requireRoles(...roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.auth) return res.status(401).json({ error: 'Unauthorized' })
+    if (!req.auth) return sendAuthUnauthorized(res)
     if (req.auth.role === 'SUPER_ADMIN') return next()
     if (!roles.includes(req.auth.role)) {
       return res.status(403).json({ error: 'Forbidden' })
@@ -55,7 +56,7 @@ export function requireRoles(...roles: string[]) {
 }
 
 export async function requireActiveUser(req: Request, res: Response, next: NextFunction) {
-  if (!req.auth) return res.status(401).json({ error: 'Unauthorized' })
+  if (!req.auth) return sendAuthUnauthorized(res)
   try {
     const user = await prisma.user.findUnique({ where: { id: req.auth.userId } })
     if (!user || user.status === 'DISABLED') {

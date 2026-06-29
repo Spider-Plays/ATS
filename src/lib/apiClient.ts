@@ -36,7 +36,7 @@ export async function apiRequest<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = getToken()
+  const token = path === '/auth/login' || path === '/auth/register-candidate' ? null : getToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),

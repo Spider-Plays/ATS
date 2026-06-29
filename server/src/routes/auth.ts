@@ -10,8 +10,14 @@ import { requireAuth, requireActiveUser, type AuthPayload } from '../middleware/
 import { authRateLimiter } from '../middleware/rateLimit.js'
 import { recordUserLogin } from '../lib/recordLogin.js'
 import { issuePasswordResetLink } from '../lib/passwordReset.js'
+import { applyNoStoreAuth } from '../lib/authResponse.js'
 
 const router = Router()
+
+router.use((_req, res, next) => {
+  applyNoStoreAuth(res)
+  next()
+})
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -71,6 +77,7 @@ router.post('/register-candidate', authRateLimiter, async (req, res, next) => {
 
 router.post('/login', authRateLimiter, async (req, res, next) => {
   try {
+    delete req.headers.authorization
     const parsed = loginSchema.safeParse(req.body)
     if (!parsed.success) return res.status(400).json({ error: 'Invalid credentials' })
 

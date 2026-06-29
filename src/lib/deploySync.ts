@@ -1,16 +1,11 @@
-import { clearToken } from './apiClient'
+import { clearSignInState } from './authStorage'
 
 const CLIENT_BUILD_KEY = 'stitch_client_build'
 const API_BUILD_KEY = 'stitch_api_build'
 const RELOAD_ONCE_KEY = 'stitch_deploy_reload_once'
 
 function clearAuthForNewDeploy() {
-  clearToken()
-  try {
-    localStorage.removeItem('stitch_last_activity')
-  } catch {
-    /* ignore */
-  }
+  clearSignInState()
 }
 
 /**
