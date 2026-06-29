@@ -17,7 +17,7 @@ if (forPages) {
 } else {
   if (existsSync(redirectsPath)) {
     unlinkSync(redirectsPath)
-    console.log('Removed dist/_redirects (not used on Cloudflare Pages).')
+    console.log('Removed dist/_redirects (Workers use wrangler.toml SPA + worker/index.js for /api).')
   }
   writeFileSync(assetsIgnorePath, '_redirects\n', 'utf8')
 }

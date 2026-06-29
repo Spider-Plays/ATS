@@ -10,7 +10,8 @@ const distDir = path.join(root, 'dist')
 rmSync(distDir, { recursive: true, force: true })
 
 execSync('vite build', { cwd: root, stdio: 'inherit' })
-execSync('node scripts/strip-dist-redirects.mjs --pages', { cwd: root, stdio: 'inherit' })
+// Workers: SPA fallback is in wrangler.toml; _redirects causes deploy error 100324.
+execSync('node scripts/strip-dist-redirects.mjs', { cwd: root, stdio: 'inherit' })
 
 // Bust Workers asset cache so each CI build uploads fresh bundles.
 const buildId =

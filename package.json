@@ -10,7 +10,7 @@
         "build": "npm run build --prefix server && tsc && vite build",
         "build:client": "node scripts/build-client.mjs",
         "cf:build": "npm run build:client",
-        "deploy:pages": "npm run build:client && npx wrangler pages deploy",
+        "deploy:pages": "npm run build:client && node scripts/strip-dist-redirects.mjs --pages && npx wrangler pages deploy",
         "deploy:pages:preview": "npm run build:client && npx wrangler pages deploy --branch dev",
         "deploy:worker": "npx wrangler deploy",
         "deploy:worker:preview": "npx wrangler versions upload",
