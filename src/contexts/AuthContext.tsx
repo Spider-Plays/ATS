@@ -10,6 +10,8 @@ import { ApiError } from '../lib/apiClient'
 
 import { PageKey } from '@/permissions'
 
+import { isExplicitLoginPath } from '@/lib/authPaths'
+
 
 
 interface AuthContextType {
@@ -74,9 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const init = async () => {
 
-            const params = new URLSearchParams(window.location.search)
-
-            if (window.location.pathname === '/login' && params.get('fresh') === '1') {
+            if (isExplicitLoginPath(window.location.pathname)) {
 
                 clearToken()
 

@@ -26,6 +26,11 @@ import { m365Routes } from './integrations/m365/index.js'
 
 export const app = express()
 
+// Render (and Cloudflare) sit behind a reverse proxy — required for rate limiting and client IP.
+if (process.env.RENDER === 'true' || env.isProduction) {
+  app.set('trust proxy', 1)
+}
+
 const devOrigins = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',

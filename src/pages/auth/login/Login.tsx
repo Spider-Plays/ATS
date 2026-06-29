@@ -14,8 +14,7 @@ import './login.css'
 const Login = () => {
     const navigate = useNavigate()
     const location = useLocation()
-    const { login, logout, allowedPages, loading: authLoading } = useAuth()
-    const [sessionCleared, setSessionCleared] = useState(false)
+    const { login, logout } = useAuth()
     const [loading, setLoading] = useState(false)
     const [authError, setAuthError] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false)
@@ -78,22 +77,6 @@ const Login = () => {
         if (email) setValue('email', email)
     }, [location.search, setValue])
 
-    // Always show the sign-in form — clear any existing session (e.g. from invite email links).
-    React.useEffect(() => {
-        if (authLoading) return
-        let cancelled = false
-        const clearSession = async () => {
-            await logout()
-            if (!cancelled) setSessionCleared(true)
-        }
-        void clearSession()
-        return () => {
-            cancelled = true
-        }
-        // Run once after auth bootstrap — not when logout identity changes.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [authLoading])
-
     const pageTitle =
         mode === 'forgot' ? 'Reset password' : mode === 'reset' ? 'Set new password' : 'Welcome back'
     const pageDesc =
@@ -102,14 +85,6 @@ const Login = () => {
             : mode === 'reset'
               ? 'Choose a new password for your account.'
               : 'Sign in to your hiring workspace.'
-
-    if (!sessionCleared || authLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center login-page-bg">
-                <span className="size-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-            </div>
-        )
-    }
 
     return (
         <div className="min-h-screen flex login-page-bg">
