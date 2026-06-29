@@ -14,7 +14,7 @@ import './login.css'
 const Login = () => {
     const navigate = useNavigate()
     const location = useLocation()
-    const { login, logout, user, allowedPages } = useAuth()
+    const { login, logout, loading: authLoading } = useAuth()
     const [loading, setLoading] = useState(false)
     const [authError, setAuthError] = useState<string | null>(null)
     const [showPassword, setShowPassword] = useState(false)
@@ -71,13 +71,12 @@ const Login = () => {
         if (token) {
             setResetToken(token)
             setMode('reset')
+            return
         }
-    }, [location.search])
-
-    React.useEffect(() => {
-        if (!user?.role) return
-        redirectAfterAuth({ user, allowedPages })
-    }, [user, allowedPages])
+        if (params.get('fresh') === '1' && !authLoading) {
+            navigate('/login', { replace: true })
+        }
+    }, [location.search, authLoading, navigate])
 
     const pageTitle =
         mode === 'forgot' ? 'Reset password' : mode === 'reset' ? 'Set new password' : 'Welcome back'

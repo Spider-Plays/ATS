@@ -74,6 +74,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         const init = async () => {
 
+            const params = new URLSearchParams(window.location.search)
+
+            if (window.location.pathname === '/login' && params.get('fresh') === '1') {
+
+                clearToken()
+
+                setUser(null)
+
+                setAllowedPages([])
+
+                setLoading(false)
+
+                return
+
+            }
+
             if (!getToken()) {
 
                 setLoading(false)
