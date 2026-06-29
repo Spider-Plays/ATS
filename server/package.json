@@ -13,6 +13,7 @@
     "start:deploy": "npm run db:push && npm start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push && prisma generate",
+    "db:push:schema": "prisma db push",
     "db:seed": "tsx src/seed.ts",
     "db:seed-primary": "tsx src/seed.ts --primary",
     "db:seed-vendors": "tsx src/scripts/seed-vendors.ts",

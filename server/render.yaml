@@ -21,3 +21,25 @@ services:
         value: "https://stitch-ats.in"
       - key: PUPPETEER_CACHE_DIR
         value: "/opt/render/project/src/server/.cache/puppeteer"
+
+  - type: web
+    name: stitch-ats-api-staging
+    runtime: node
+    rootDir: server
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm run start:deploy
+    envVars:
+      - key: NODE_VERSION
+        value: "22.22.0"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CLIENT_ORIGIN
+        value: "https://qa.stitch-ats.in,http://localhost:3000"
+      - key: APP_URL
+        value: "https://qa.stitch-ats.in"
+      - key: PUPPETEER_CACHE_DIR
+        value: "/opt/render/project/src/server/.cache/puppeteer"

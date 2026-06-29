@@ -9,3 +9,13 @@ not_found_handling = "single-page-application"
 
 [vars]
 API_ORIGIN = "https://stitch-ats.onrender.com"
+
+# QA worker (qa.stitch-ats.in) — deploy: npm run deploy:worker:qa
+[env.qa]
+name = "ats-qa"
+vars = { API_ORIGIN = "https://ats-0dtj.onrender.com" }
+
+[env.qa.assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
