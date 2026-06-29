@@ -49,25 +49,6 @@ Before testing begins, confirm:
 3. Catalog data exists: departments, clients, skills (Admin hub)
 4. At least one **LIVE** requirement is visible on the candidate portal (for apply-flow testing)
 
-### Reset database to QA baseline (dev / staging)
-
-To wipe all data and load only what UAT needs (11 primary accounts, catalogs, 3 requirements, 1 vendor):
-
-```bash
-npm run db:reset-qa --prefix server
-```
-
-**Production:** requires explicit override — `npm run db:reset-qa --prefix server -- --force`
-
-All seeded accounts use password **`password`**. The seed creates:
-
-- One account per role (primary emails from `devUsers.registry.json`)
-- Feature tags on Recruiter, HR Head, and HR Manager
-- LIVE job `[QA] Senior Software Engineer` (portal + vendor visible)
-- PENDING job `[QA] Product Manager` (approval tests)
-- DRAFT job `[QA] Draft Data Analyst`
-- No pre-seeded candidates (testers create `[QA]` data during runs)
-
 ---
 
 ## Session behavior

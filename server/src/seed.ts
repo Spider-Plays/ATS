@@ -3,8 +3,10 @@ import { prisma } from './lib/prisma.js'
 import { withDbRetry } from './lib/dbRetry.js'
 import { removeLegacyDevUsers } from './lib/legacyDevUsers.js'
 import { env } from './config/env.js'
-import { DEV_PASSWORD } from './config/devUsers.js'
+import { DEV_PASSWORD, DEV_USERS } from './config/devUsers.js'
 import { SEED_USERS } from './config/users.js'
+
+const PRIMARY_ONLY = process.argv.includes('--primary')
 
 async function upsertDevUser(
   u: (typeof SEED_USERS)[number],
@@ -47,7 +49,11 @@ async function main() {
     return
   }
 
-  console.log(`Seeding ${SEED_USERS.length} demo user(s)...`)
+  const usersToSeed = PRIMARY_ONLY
+    ? DEV_USERS.filter((u) => u.primary)
+    : [...SEED_USERS]
+
+  console.log(`Seeding ${usersToSeed.length} demo user(s)...`)
 
   await withDbRetry(() => prisma.$queryRaw`SELECT 1`, { label: 'Neon' })
 
@@ -58,7 +64,7 @@ async function main() {
     console.log(`Cleaned up ${legacyRemoved} legacy user account(s).`)
   }
 
-  const hasVendor = SEED_USERS.some((u) => u.role === 'VENDOR')
+  const hasVendor = usersToSeed.some((u) => u.role === 'VENDOR')
   let vendorId: string | undefined
 
   if (hasVendor) {
@@ -76,14 +82,14 @@ async function main() {
     vendorId = vendor.id
   }
 
-  for (const u of SEED_USERS) {
+  for (const u of usersToSeed) {
     await upsertDevUser(u, u.role === 'VENDOR' ? vendorId : undefined)
   }
 
   const userCount = await prisma.user.count()
   console.log(`Seeded ${userCount} user(s). Password for all: ${DEV_PASSWORD}`)
   console.log('Accounts:')
-  for (const u of SEED_USERS) {
+  for (const u of usersToSeed) {
     console.log(`  ${u.role.padEnd(16)} ${u.email}`)
   }
 }

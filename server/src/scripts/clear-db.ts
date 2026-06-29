@@ -35,7 +35,7 @@ async function main() {
   }
 
   console.log('Database cleared — all tables are empty.')
-  console.log('Run `npm run db:reset-qa` for QA test data, or `npm run db:bootstrap` for production admin.')
+  console.log('Run `npm run db:bootstrap` or `npm run db:seed` to create login accounts again.')
 }
 
 main()

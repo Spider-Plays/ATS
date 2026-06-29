@@ -1,4 +1,4 @@
-﻿# Stitch ATS
+# Stitch ATS
 
 React frontend + Node.js API with Prisma (PostgreSQL in production).
 
