@@ -72,6 +72,7 @@ const Login = () => {
         if (token) {
             setResetToken(token)
             setMode('reset')
+            return
         }
         const email = params.get('email')
         if (email) setValue('email', email)
