@@ -40,3 +40,11 @@ export const tabIndicatorSpring = {
   stiffness: 420,
   damping: 32,
 }
+
+/** Stable motion key so filter-only route changes do not remount the whole page. */
+export function outletMotionKey(pathname: string): string {
+  if (pathname === '/pipeline' || pathname.startsWith('/pipeline/')) {
+    return '/pipeline'
+  }
+  return pathname
+}

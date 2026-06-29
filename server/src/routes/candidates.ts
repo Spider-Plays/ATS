@@ -478,6 +478,26 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
           : b.requirementId
         : existing.requirementId
 
+    if (
+      b.requirementId !== undefined &&
+      nextRequirementId &&
+      nextRequirementId !== existing.requirementId
+    ) {
+      const duplicateOnRequirement = await prisma.candidate.findFirst({
+        where: {
+          requirementId: nextRequirementId,
+          email: { equals: existing.email, mode: 'insensitive' },
+          id: { not: req.params.id },
+        },
+        select: { id: true },
+      })
+      if (duplicateOnRequirement) {
+        return res.status(409).json({
+          error: 'A candidate with this email is already linked to that requirement.',
+        })
+      }
+    }
+
     let matchScore: number | undefined =
       b.matchScore !== undefined ? b.matchScore : undefined
 
@@ -502,6 +522,20 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
       }
     }
 
+    let nextJobTitle = b.jobTitle
+    if (
+      b.requirementId !== undefined &&
+      nextRequirementId &&
+      b.jobTitle === undefined &&
+      nextRequirementId !== existing.requirementId
+    ) {
+      const requirement = await prisma.requirement.findUnique({
+        where: { id: nextRequirementId },
+        select: { title: true },
+      })
+      if (requirement) nextJobTitle = requirement.title
+    }
+
     const row = await prisma.candidate.update({
       where: { id: req.params.id },
       data: {
@@ -512,7 +546,7 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
         ...(matchScore !== undefined && { matchScore }),
         ...(b.source !== undefined && { source: b.source }),
         ...(b.requirementId !== undefined && { requirementId: nextRequirementId }),
-        ...(b.jobTitle !== undefined && { jobTitle: b.jobTitle }),
+        ...(nextJobTitle !== undefined && { jobTitle: nextJobTitle }),
         ...(b.avatar !== undefined && { avatar: b.avatar }),
         ...(b.phone !== undefined && { phone: b.phone }),
         ...(b.location !== undefined && { location: b.location }),

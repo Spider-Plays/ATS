@@ -262,7 +262,22 @@ html.sidebar-collapsed {
   box-shadow: var(--m3-elevation-1);
 }
 
-/* M3 Navigation drawer */
+/* M3 Navigation drawer — use svh so the drawer fits when mobile browser chrome is visible */
+.m3-navigation-drawer,
+.app-sidebar-drawer {
+  height: 100svh;
+  max-height: 100svh;
+  overflow: hidden;
+}
+
+@supports (height: 100dvh) {
+  .m3-navigation-drawer,
+  .app-sidebar-drawer {
+    height: min(100svh, 100dvh);
+    max-height: min(100svh, 100dvh);
+  }
+}
+
 .m3-navigation-drawer {
   width: var(--sidebar-width);
   transition: transform 280ms cubic-bezier(0.2, 0, 0, 1);
@@ -335,6 +350,7 @@ html.sidebar-collapsed .m3-navigation-drawer {
 /* Scrollable nav */
 .sidebar-nav {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 0.75rem 0.5rem 1rem;
@@ -484,12 +500,20 @@ html.sidebar-collapsed .m3-navigation-drawer {
 /* Sidebar footer */
 .sidebar-footer {
   padding: 0.75rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
   border-top: 1px solid hsl(var(--outline-variant) / 0.35);
   background: hsl(var(--surface-container-lowest) / 0.6);
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
   shrink: 0;
+}
+
+@media (max-width: 1023px) {
+  /* Mobile browser bottom toolbar (Safari/Chrome) sits outside safe-area-inset */
+  .sidebar-footer {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 3.25rem);
+  }
 }
 
 .sidebar-profile-card {

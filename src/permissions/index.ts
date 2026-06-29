@@ -161,7 +161,6 @@ export const ORG_WIDE_ACCESS_ROLES = [
   ROLES.ADMIN,
   ROLES.HR_HEAD,
   ROLES.HR_MANAGER,
-  ROLES.TEAM_LEAD,
 ] as const
 
 export function hasOrgWideAccess(role?: string | null): boolean {

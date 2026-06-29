@@ -9,30 +9,24 @@ interface PipelineKanbanColumnProps {
   stage: CandidateStatus
   title: string
   candidates: Candidate[]
-  canManage: boolean
-  userRole?: string | null
   showJob?: boolean
   highlighted?: boolean
   dimmed?: boolean
-  onMoveStage: (candidate: Candidate, status: CandidateStatus) => void
 }
 
 export function PipelineKanbanColumn({
   stage,
   title,
   candidates,
-  canManage,
-  userRole,
   showJob,
   highlighted,
   dimmed,
-  onMoveStage,
 }: PipelineKanbanColumnProps) {
   return (
     <div
       data-stage={stage}
       className={clsx(
-        'kanban-column flex-shrink-0 w-[min(100%,18rem)] sm:w-72 flex flex-col max-h-[calc(100vh-14rem)] transition-opacity',
+        'kanban-column flex-shrink-0 w-[min(100%,18rem)] sm:w-72 flex flex-col transition-opacity',
         dimmed && 'opacity-40 pointer-events-none',
         highlighted && 'opacity-100 ring-2 ring-brand/20 shadow-glow'
       )}
@@ -59,16 +53,9 @@ export function PipelineKanbanColumn({
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-1 pb-4 min-h-[8rem]">
+      <div className="flex flex-col gap-2.5 pr-1 pb-4">
         {candidates.map((c) => (
-          <PipelineKanbanCard
-            key={c.id}
-            candidate={c}
-            canManage={canManage}
-            userRole={userRole}
-            showJob={showJob}
-            onMoveStage={onMoveStage}
-          />
+          <PipelineKanbanCard key={c.id} candidate={c} showJob={showJob} />
         ))}
 
         {candidates.length === 0 && (

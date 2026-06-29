@@ -1,6 +1,14 @@
+/**
+ * Wipe all application data and seed minimal QA test dataset.
+ * Usage: npm run db:reset-qa [-- --force for production]
+ */
 import { prisma } from '../lib/prisma.js'
+import { env } from '../config/env.js'
+import { seedQaData } from './seed-qa-data.js'
 
-async function main() {
+const FORCE = process.argv.includes('--force')
+
+async function clearAll() {
   console.log('Clearing all application data...')
 
   await prisma.$transaction([
@@ -31,11 +39,27 @@ async function main() {
   ])
 
   if (counts.some((n) => n > 0)) {
-    throw new Error(`Clear incomplete: ${counts.join(', ')} remaining in core tables`)
+    throw new Error(`Clear incomplete: users=${counts[0]}, reqs=${counts[1]}, candidates=${counts[2]}, vendors=${counts[3]}`)
   }
 
-  console.log('Database cleared — all tables are empty.')
-  console.log('Run `npm run db:reset-qa` for QA test data, or `npm run db:bootstrap` for production admin.')
+  console.log('Database cleared.\n')
+}
+
+async function main() {
+  if (env.isProduction && !FORCE) {
+    console.error(
+      'Refusing to reset database in production without --force.\n' +
+        '  npm run db:reset-qa -- --force'
+    )
+    process.exit(1)
+  }
+
+  if (env.isProduction && FORCE) {
+    console.warn('⚠️  Resetting PRODUCTION database with QA seed data.')
+  }
+
+  await clearAll()
+  await seedQaData()
 }
 
 main()

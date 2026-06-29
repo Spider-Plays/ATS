@@ -90,7 +90,7 @@ export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
     'settings',
   ],
   HIRING_MANAGER: ['dashboard', 'requirements', 'notifications', 'settings'],
-  INTERVIEWER: ['dashboard', 'candidates', 'interviews', 'notifications', 'settings'],
+  INTERVIEWER: ['dashboard', 'interviews', 'notifications', 'settings'],
 }
 
 function parsePages(raw: string | null | undefined): PageKey[] {
@@ -122,9 +122,6 @@ function finalizePagesForRole(role: string, pages: PageKey[]): PageKey[] {
   }
   if (role !== 'SUPER_ADMIN') {
     result = result.filter((p) => p !== 'admin_users')
-  }
-  if (role === 'INTERVIEWER' && !result.includes('candidates')) {
-    result.push('candidates')
   }
   return result
 }

@@ -151,7 +151,10 @@ router.get('/:id/matching-profiles', async (req, res) => {
   const minScore = Number(req.query.minScore) || 15
 
   const matches = ranked
-    .filter((m) => m.alreadyLinked || m.matchScore >= minScore)
+    .filter(
+      (m) =>
+        m.alreadyLinked || (!m.linkedToOther && m.matchScore >= minScore)
+    )
     .slice(0, 40)
     .map((m) => {
       const c = candidateById.get(m.candidateId)!
@@ -192,6 +195,16 @@ router.post('/:id/link-candidate', requireRoles(...STAFF_MUTATE), async (req, re
 
   if (!requirement) return res.status(404).json({ error: 'Requirement not found' })
   if (!candidate) return res.status(404).json({ error: 'Candidate not found' })
+
+  if (candidate.requirementId === requirement.id) {
+    return res.status(409).json({ error: 'Candidate is already linked to this requirement.' })
+  }
+  if (candidate.requirementId && candidate.requirementId !== requirement.id) {
+    return res.status(409).json({
+      error:
+        'This candidate is assigned to another requirement. Change their job assignment on the candidate profile to move them.',
+    })
+  }
 
   const resumeText = await loadCandidateResumeText(candidate)
   const { score } = computeMatchScore(candidate, requirement, resumeText)

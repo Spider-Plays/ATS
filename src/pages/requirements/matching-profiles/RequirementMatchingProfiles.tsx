@@ -40,7 +40,7 @@ const RequirementMatchingProfiles = () => {
     })
 
     const matches = matchingData?.matches ?? []
-    const suggestedMatches = matches.filter((m) => !m.alreadyLinked)
+    const suggestedMatches = matches.filter((m) => !m.alreadyLinked && !m.linkedToOther)
 
     const filtered = useMemo(
         () =>

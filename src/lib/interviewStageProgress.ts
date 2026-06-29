@@ -1,4 +1,4 @@
-import type { InterviewStageProgressStatus } from '../types'
+import type { InterviewStageProgressStatus, InterviewStageProgress, CandidateInterviewProgress } from '../types'
 
 export const INTERVIEW_STAGE_STATUS_LABEL: Record<InterviewStageProgressStatus, string> = {
   locked: 'Complete prior stage first',
@@ -7,6 +7,65 @@ export const INTERVIEW_STAGE_STATUS_LABEL: Record<InterviewStageProgressStatus, 
   awaiting_feedback: 'Awaiting feedback',
   completed: 'Passed',
   failed: 'Did not pass',
+}
+
+export function interviewStageSchedulingLabel(
+  stage: Pick<InterviewStageProgress, 'status' | 'canSchedule' | 'allowedInterviewerIds'>,
+  progress: Pick<CandidateInterviewProgress, 'candidateInInterviewStage'>
+): string {
+  if (stage.canSchedule) {
+    return INTERVIEW_STAGE_STATUS_LABEL[stage.status]
+  }
+  if (stage.status === 'available' && !progress.candidateInInterviewStage) {
+    return 'Move candidate to Interview stage'
+  }
+  if (stage.status === 'available' && stage.allowedInterviewerIds.length === 0) {
+    return 'No interviewers in panel'
+  }
+  return INTERVIEW_STAGE_STATUS_LABEL[stage.status]
+}
+
+export function interviewSchedulingBlockMessage(
+  progress: CandidateInterviewProgress
+): string | null {
+  if (progress.nextSchedulableStageId) return null
+
+  const inFlight = progress.stages.some(
+    (s) => s.status === 'scheduled' || s.status === 'awaiting_feedback'
+  )
+  if (inFlight) return null
+
+  const available = progress.stages.find((s) => s.status === 'available')
+  if (!available) return null
+
+  if (!progress.candidateInInterviewStage) {
+    return 'Move the candidate to the Interview pipeline stage to unlock scheduling.'
+  }
+  if (available.allowedInterviewerIds.length === 0) {
+    return `Add interviewers to the ${available.panelRestrictionLabel} in Administration → Interview panels before scheduling.`
+  }
+  return null
+}
+
+export function patchInterviewProgressForCandidateStage(
+  progress: CandidateInterviewProgress,
+  candidateInInterviewStage: boolean
+): CandidateInterviewProgress {
+  const stages = progress.stages.map((stage) => ({
+    ...stage,
+    canSchedule:
+      candidateInInterviewStage &&
+      stage.status === 'available' &&
+      !stage.interviewId &&
+      stage.allowedInterviewerIds.length > 0,
+  }))
+  const nextSchedulable = stages.find((s) => s.canSchedule)
+  return {
+    ...progress,
+    candidateInInterviewStage,
+    stages,
+    nextSchedulableStageId: nextSchedulable?.id ?? null,
+  }
 }
 
 export function interviewStageDotClass(status: InterviewStageProgressStatus): string {

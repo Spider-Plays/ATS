@@ -13,6 +13,7 @@ import { AppSelect } from '@/components/ui/AppSelect'
 import { SCHEDULE_DURATION_OPTIONS } from '@/lib/selectOptions'
 import { useToastStore } from '@/store/toastStore'
 import { interviewerPanelHint } from '@/lib/interviewPanelLevels'
+import { interviewSchedulingBlockMessage } from '@/lib/interviewStageProgress'
 
 const schema = z.object({
   planStageId: z.string().min(1, 'Select an interview stage'),
@@ -110,16 +111,10 @@ export function CandidateInterviewScheduleForm({
   const applyStageDefaults = (stageId: string) => {
     const stage = progress?.stages.find((s) => s.id === stageId)
     if (!stage) return
-    const allowedSet = new Set(stage.allowedInterviewerIds)
     setValue('planStageId', stageId)
     setValue('type', stage.interviewType)
     setValue('duration', stage.defaultDuration)
-    const defaults = stage.defaultInterviewerIds.filter((id) => allowedSet.has(id))
-    if (defaults.length > 0) {
-      setValue('interviewerIds', defaults)
-    } else {
-      setValue('interviewerIds', [])
-    }
+    setValue('interviewerIds', [])
   }
 
   useEffect(() => {
@@ -149,21 +144,6 @@ export function CandidateInterviewScheduleForm({
     const pruned = current.filter((id) => allowed.has(id))
     if (pruned.length !== current.length) setValue('interviewerIds', pruned)
   }, [planStageId, allowedInterviewerIds, watchInterviewerIds, setValue])
-
-  const canSubmit =
-    candidate.status === 'INTERVIEW' &&
-    !!planStageId &&
-    !!selectedStageMeta?.canSchedule &&
-    allowedInterviewerIds.length > 0
-
-  if (candidate.status !== 'INTERVIEW') {
-    return (
-      <div className="rounded-2xl border border-amber-200/60 dark:border-amber-500/30 bg-amber-500/10 p-5 text-sm font-medium text-amber-900 dark:text-amber-200">
-        Move {candidate.name} to <strong>Interview</strong> stage in the pipeline before scheduling a
-        session.
-      </div>
-    )
-  }
 
   const createMutation = useMutation({
     mutationFn: (data: ScheduleFormValues) =>
@@ -206,6 +186,21 @@ export function CandidateInterviewScheduleForm({
     },
   })
 
+  const canSubmit =
+    candidate.status === 'INTERVIEW' &&
+    !!planStageId &&
+    !!selectedStageMeta?.canSchedule &&
+    allowedInterviewerIds.length > 0
+
+  if (candidate.status !== 'INTERVIEW') {
+    return (
+      <div className="rounded-2xl border border-amber-200/60 dark:border-amber-500/30 bg-amber-500/10 p-5 text-sm font-medium text-amber-900 dark:text-amber-200">
+        Move {candidate.name} to <strong>Interview</strong> stage in the pipeline before scheduling a
+        session.
+      </div>
+    )
+  }
+
   const jobTitle = candidate.jobTitle || candidate.role
 
   if (progressLoading) {
@@ -216,8 +211,17 @@ export function CandidateInterviewScheduleForm({
     )
   }
 
+  const schedulingBlockMessage = progress ? interviewSchedulingBlockMessage(progress) : null
+
   if (!progress?.nextSchedulableStageId && !progress?.stages.some((s) => s.canSchedule)) {
-    return null
+    if (!schedulingBlockMessage) {
+      return null
+    }
+    return (
+      <div className="rounded-2xl border border-amber-200/60 dark:border-amber-500/30 bg-amber-500/10 p-5 text-sm font-medium text-amber-900 dark:text-amber-200">
+        {schedulingBlockMessage}
+      </div>
+    )
   }
 
   return (

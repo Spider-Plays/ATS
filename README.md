@@ -57,3 +57,7 @@ npm run deploy:pages:preview
 Or connect the repo in the Cloudflare dashboard: set **Production branch** to `main` and push to any other branch for automatic preview URLs (`*.pages.dev`).
 
 Preview-specific API URL: edit `[env.preview.vars] API_ORIGIN` in `wrangler.toml`, or set `API_ORIGIN` under **Settings → Environment variables → Preview** in the dashboard.
+
+## QA / Testing
+
+Production UAT documentation for testers lives in [`docs/qa/`](docs/qa/). Start with [docs/qa/README.md](docs/qa/README.md) for the full index (mind map, application flows, test plan, scenarios, test cases, and regression checklists).

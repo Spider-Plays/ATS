@@ -20,6 +20,8 @@
     "db:dedupe-users": "tsx src/scripts/dedupe-users.ts",
     "db:reset-passwords": "tsx src/scripts/reset-passwords.ts",
     "db:clear": "tsx src/scripts/clear-db.ts",
+    "db:seed-qa": "tsx src/scripts/seed-qa-data.ts",
+    "db:reset-qa": "tsx src/scripts/reset-qa.ts",
     "db:bootstrap": "tsx src/scripts/bootstrap-admin.ts",
     "db:verify": "tsx src/scripts/verify-db.ts",
     "db:migrate-to-neon": "tsx src/scripts/migrate-to-neon.ts",

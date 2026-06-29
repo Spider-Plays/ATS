@@ -248,10 +248,13 @@ export async function getCandidateStageProgress(
   }
 }
 
-export async function assertCandidateInInterviewStage(candidateId: string) {
+export async function assertCandidateInInterviewStage(
+  candidateId: string,
+  requirementId?: string
+) {
   const candidate = await prisma.candidate.findUnique({
     where: { id: candidateId },
-    select: { status: true, name: true },
+    select: { status: true, requirementId: true, name: true },
   })
   if (!candidate) {
     throw new ScheduleStageError('Candidate not found', 404)
@@ -259,6 +262,12 @@ export async function assertCandidateInInterviewStage(candidateId: string) {
   if (candidate.status !== 'INTERVIEW') {
     throw new ScheduleStageError(
       'Interviews can only be scheduled for candidates in the Interview pipeline stage.',
+      403
+    )
+  }
+  if (requirementId && candidate.requirementId !== requirementId) {
+    throw new ScheduleStageError(
+      'This candidate is not linked to the selected job requirement. Assign them to this role in the candidate profile first.',
       403
     )
   }
@@ -294,7 +303,7 @@ export async function assertCanScheduleStage(
   planStageId: string,
   excludeInterviewId?: string
 ) {
-  await assertCandidateInInterviewStage(candidateId)
+  await assertCandidateInInterviewStage(candidateId, requirementId)
 
   const plan = await ensureInterviewPlan(requirementId)
   const stage = plan.stages.find((s) => s.id === planStageId)

@@ -45,6 +45,22 @@ export function adminMetrics(
   }
 }
 
+export function hrOpsMetrics(
+  requirements: Requirement[],
+  candidates: Candidate[],
+  interviews: Interview[]
+) {
+  const reqStats = requirementStats(requirements)
+  return {
+    live: reqStats.live,
+    pending: reqStats.pending,
+    candidates: candidates.length,
+    hires: candidates.filter((c) => c.status === 'HIRED').length,
+    upcoming: interviews.filter(isUpcoming).length,
+    feedback: interviews.filter(needsFeedback).length,
+  }
+}
+
 export function recruiterMetrics(
   requirements: Requirement[],
   candidates: Candidate[],

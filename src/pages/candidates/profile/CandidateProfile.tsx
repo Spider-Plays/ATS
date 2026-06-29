@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { AnimatedTabNav } from '@/components/motion/AnimatedTabNav'
 import { TabContent } from '@/components/motion/TabContent'
 import { useAuth } from '@/hooks/useAuth'
@@ -70,14 +70,6 @@ const CandidateProfile = () => {
   const [editData, setEditData] = useState<Candidate | null>(null)
   const [skillsError, setSkillsError] = useState<string | undefined>()
   const {
-    pendingModal: stageModal,
-    isSubmitting: stageSubmitting,
-    requestStageChange,
-    confirmModal: handleStageModalConfirm,
-    closeModal: closeStageModal,
-  } = useCandidateStageChange()
-
-  const {
     data: candidate,
     isLoading,
     isError,
@@ -87,7 +79,16 @@ const CandidateProfile = () => {
     queryKey: ['candidate', id],
     queryFn: () => api.candidates.get(id!),
     enabled: !!id,
+    placeholderData: keepPreviousData,
   })
+
+  const {
+    pendingModal: stageModal,
+    isSubmitting: stageSubmitting,
+    requestStageChange,
+    confirmModal: handleStageModalConfirm,
+    closeModal: closeStageModal,
+  } = useCandidateStageChange({ requirementId: candidate?.requirementId })
 
   const { data: interviews = [] } = useQuery({
     queryKey: ['candidate-interviews', id],
@@ -298,15 +299,15 @@ const CandidateProfile = () => {
     requestStageChange(candidate, newStage)
   }
 
-  if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto py-24 text-center text-muted-foreground font-medium animate-pulse">
-        Loading candidate profile…
-      </div>
-    )
-  }
+  if (!candidate) {
+    if (isLoading) {
+      return (
+        <div className="max-w-7xl mx-auto py-24 text-center text-muted-foreground font-medium animate-pulse">
+          Loading candidate profile…
+        </div>
+      )
+    }
 
-  if (isError || !candidate) {
     return (
       <div className="max-w-7xl mx-auto py-16 text-center space-y-4">
         <p className="text-primary dark:text-white font-bold">
@@ -331,7 +332,7 @@ const CandidateProfile = () => {
   const displayData = isEditing && editData ? editData : candidate
 
   return (
-    <div className="max-w-7xl mx-auto w-full space-y-6 pb-12 animate-in fade-in duration-500">
+    <div className="max-w-7xl mx-auto w-full space-y-6 pb-12">
       {stageModal && (
         <CandidateStageDetailsModal
           open

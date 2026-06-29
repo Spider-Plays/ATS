@@ -5,7 +5,7 @@ import { DEV_LOGIN_ACCOUNTS } from './devLoginAccounts'
 import { DEV_LOGIN_PASSWORD } from './devCredentials'
 import { resolveDevLoginRedirect } from './resolveDevLoginRedirect'
 import { ApiError } from '../lib/apiClient'
-import { isReferralPortalRole, type PageKey } from '@/permissions'
+import { isReferralPortalRole, INTERNAL_STAFF_ROLES, type PageKey } from '@/permissions'
 import type { User } from '../types'
 import clsx from 'clsx'
 
@@ -26,6 +26,8 @@ type DevQuickLoginProps = {
   referralPortalOnly?: boolean
   /** Show one primary account per role (canonical demo emails). */
   primaryOnly?: boolean
+  /** Team login only — hide candidate, vendor, and employee portal accounts. */
+  staffOnly?: boolean
 }
 
 export function DevQuickLogin({
@@ -35,11 +37,14 @@ export function DevQuickLogin({
   filterRole,
   referralPortalOnly,
   primaryOnly,
+  staffOnly,
 }: DevQuickLoginProps) {
   const navigate = useNavigate()
+  const staffRoleSet = new Set<string>(INTERNAL_STAFF_ROLES)
   const accounts = DEV_LOGIN_ACCOUNTS.filter((account) => {
     if (filterRole && account.role !== filterRole) return false
     if (referralPortalOnly && !isReferralPortalRole(account.role)) return false
+    if (staffOnly && !staffRoleSet.has(account.role)) return false
     if (primaryOnly && !account.primary) return false
     return true
   })
@@ -61,6 +66,7 @@ export function DevQuickLogin({
         navigate(path, { replace: true })
       }
     } catch (err: unknown) {
+      const code = err instanceof Error ? err.message : ''
       if (err instanceof ApiError) {
         if (err.status === 503 || err.message.toLowerCase().includes('database')) {
           onError(
@@ -68,19 +74,27 @@ export function DevQuickLogin({
           )
         } else if (err.status === 401) {
           onError(
-            'Invalid credentials — run: npm run db:seed --prefix server (creates employee@stitch-ats.in)'
+            'Invalid credentials — run: npm run db:seed --prefix server'
           )
         } else if (err.status === 0 || err.message.includes('fetch')) {
           onError(
-            'Cannot reach API. Run npm run dev from the project root. If login works in production but not locally, clear VITE_API_BASE_URL in .env (use .env.development proxy) and restart.'
+            'Cannot reach API. Run npm run dev from the project root (client + server). Clear VITE_API_BASE_URL in .env if set, then restart.'
           )
         } else {
           onError(err.message)
         }
-      } else if (err instanceof Error && err.message === 'SERVER_UNAVAILABLE') {
+      } else if (
+        code === 'SERVER_UNAVAILABLE' ||
+        code === 'Cannot reach API' ||
+        code.includes('Failed to fetch')
+      ) {
         onError(
-          'Cannot reach API. Run npm run dev from the project root (client + server on port 4000).'
+          'Cannot reach API. Run npm run dev from the project root — you need both the Vite app (port 3000) and API (port 4000).'
         )
+      } else if (code === 'INVALID_CREDENTIALS') {
+        onError('Invalid credentials — run: npm run db:seed --prefix server')
+      } else if (code === 'ACCOUNT_DISABLED') {
+        onError('This account has been disabled.')
       } else {
         onError(
           'Login failed — run npm run db:seed --prefix server (retry if Neon was sleeping).'
@@ -111,7 +125,7 @@ export function DevQuickLogin({
           </p>
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-0.5">
         {accounts.map((account) => (
           <button
             key={account.email}
@@ -121,7 +135,7 @@ export function DevQuickLogin({
               handleQuickLogin(account.email, account.password, account.role)
             }
             className={clsx(
-              'px-3 py-1.5 rounded-lg text-xs font-bold border transition-all',
+              'px-2.5 py-2 rounded-lg text-left border transition-all',
               'border-amber-300/60 dark:border-amber-700/60',
               'bg-white/80 dark:bg-white/5 text-amber-950 dark:text-amber-100',
               'hover:bg-amber-100 dark:hover:bg-amber-900/40',
@@ -129,7 +143,10 @@ export function DevQuickLogin({
               loadingEmail === account.email && 'animate-pulse'
             )}
           >
-            {account.label}
+            <span className="block text-[10px] font-bold uppercase tracking-wide text-amber-700/90 dark:text-amber-300/90">
+              {account.role.replace(/_/g, ' ')}
+            </span>
+            <span className="block text-xs font-bold truncate">{account.label}</span>
           </button>
         ))}
       </div>

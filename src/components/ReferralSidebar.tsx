@@ -34,7 +34,7 @@ const ReferralSidebar = () => {
   const path = location.pathname
 
   return (
-    <aside className="w-[var(--sidebar-width)] flex flex-col h-screen fixed left-0 top-0 z-50 text-white bg-gradient-to-b from-violet-950 via-indigo-950 to-slate-950 border-r border-violet-500/10 shadow-sidebar">
+    <aside className="app-sidebar-drawer w-[var(--sidebar-width)] flex flex-col fixed left-0 top-0 z-50 text-white bg-gradient-to-b from-violet-950 via-indigo-950 to-slate-950 border-r border-violet-500/10 shadow-sidebar">
       <div className="p-5 border-b border-white/[0.06]">
         <StitchLogo
           tone="primary"
@@ -44,7 +44,7 @@ const ReferralSidebar = () => {
         />
       </div>
 
-      <nav className="flex-1 px-3 py-5 space-y-1 custom-scrollbar overflow-y-auto">
+      <nav className="flex-1 min-h-0 px-3 py-5 space-y-1 custom-scrollbar overflow-y-auto">
         <p className="text-[10px] font-bold text-white/35 uppercase tracking-[0.15em] px-3 mb-2">
           Menu
         </p>

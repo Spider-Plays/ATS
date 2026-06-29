@@ -17,17 +17,63 @@ const LOGIN_PIPELINE_STATUSES = [
 
 type LoginPipelineStatus = (typeof LOGIN_PIPELINE_STATUSES)[number]
 
-const LOGIN_PIPELINE_COUNTS: Record<LoginPipelineStatus, number> = {
-  SOURCED: 24,
-  APPLIED: 18,
-  SCREENING: 12,
-  SHORTLISTED: 8,
-  INTERVIEW: 5,
-  OFFER: 2,
-  HIRED: 1,
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000
+
+const LOGIN_PIPELINE_COUNT_RANGES: Record<LoginPipelineStatus, [number, number]> = {
+  SOURCED: [18, 42],
+  APPLIED: [12, 32],
+  SCREENING: [8, 22],
+  SHORTLISTED: [4, 14],
+  INTERVIEW: [2, 10],
+  OFFER: [1, 6],
+  HIRED: [1, 4],
 }
 
 const STAGE_INTERVAL_MS = 2600
+
+function getPipelineTimeBucket(now = Date.now()): number {
+  return Math.floor(now / TWO_HOURS_MS)
+}
+
+function seededUnit(seed: number): number {
+  let t = (seed + 0x6d2b79f5) | 0
+  t = Math.imul(t ^ (t >>> 15), t | 1)
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+
+function getLoginPipelineCounts(bucket: number): Record<LoginPipelineStatus, number> {
+  return LOGIN_PIPELINE_STATUSES.reduce(
+    (counts, status, index) => {
+      const [min, max] = LOGIN_PIPELINE_COUNT_RANGES[status]
+      const roll = seededUnit(bucket * 997 + index * 131)
+      counts[status] = min + Math.floor(roll * (max - min + 1))
+      return counts
+    },
+    {} as Record<LoginPipelineStatus, number>
+  )
+}
+
+function useLoginPipelineCounts() {
+  const [bucket, setBucket] = useState(() => getPipelineTimeBucket())
+
+  useEffect(() => {
+    let timeoutId: number
+
+    const scheduleNextRefresh = () => {
+      const msUntilNextBucket = TWO_HOURS_MS - (Date.now() % TWO_HOURS_MS)
+      timeoutId = window.setTimeout(() => {
+        setBucket(getPipelineTimeBucket())
+        scheduleNextRefresh()
+      }, msUntilNextBucket)
+    }
+
+    scheduleNextRefresh()
+    return () => window.clearTimeout(timeoutId)
+  }, [])
+
+  return getLoginPipelineCounts(bucket)
+}
 
 const HIGHLIGHTS = [
   { icon: 'view_kanban', text: 'Pipeline view from apply to hire' },
@@ -37,10 +83,11 @@ const HIGHLIGHTS = [
 
 function LoginPipelinePreview() {
   const [activeIndex, setActiveIndex] = useState(0)
+  const pipelineCounts = useLoginPipelineCounts()
   const stages = LOGIN_PIPELINE_STATUSES
   const activeStatus = stages[activeIndex]
   const activeLabel = candidateStatusLabel(activeStatus)
-  const activeCount = LOGIN_PIPELINE_COUNTS[activeStatus]
+  const activeCount = pipelineCounts[activeStatus]
 
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -162,6 +209,7 @@ export function LoginHero() {
 
 export function LoginHeroMobile() {
   const [activeIndex, setActiveIndex] = useState(0)
+  const pipelineCounts = useLoginPipelineCounts()
   const stages = LOGIN_PIPELINE_STATUSES
 
   useEffect(() => {
@@ -189,7 +237,7 @@ export function LoginHeroMobile() {
           key={activeStatus}
           className="login-pipeline-stage-content text-xs font-bold uppercase tracking-widest text-white/60"
         >
-          {candidateStatusLabel(activeStatus)} · {LOGIN_PIPELINE_COUNTS[activeStatus]} candidates
+          {candidateStatusLabel(activeStatus)} · {pipelineCounts[activeStatus]} candidates
         </p>
       </div>
     </div>

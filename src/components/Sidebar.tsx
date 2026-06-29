@@ -23,7 +23,7 @@ const Sidebar = () => {
   return (
     <aside
       className={clsx(
-        'm3-navigation-drawer flex flex-col h-screen fixed left-0 top-0 z-50',
+        'm3-navigation-drawer flex flex-col fixed left-0 top-0 z-50',
         isRecruiter && 'm3-navigation-drawer--recruiter'
       )}
     >

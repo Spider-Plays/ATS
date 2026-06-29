@@ -5,6 +5,7 @@ import { requireAuth, requireActiveUser, requireRoles } from '../middleware/auth
 import { INTERNAL_ROLES } from '../lib/roles.js'
 import { buildCandidateListWhere } from '../lib/candidateAccess.js'
 import { buildRequirementListWhere } from '../lib/requirementAccess.js'
+import { buildUserListWhere } from '../lib/userAccess.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
@@ -16,9 +17,10 @@ router.get('/', async (req, res) => {
   }
 
   const auth = req.auth!
-  const [candidateScope, requirementScope] = await Promise.all([
+  const [candidateScope, requirementScope, userScope] = await Promise.all([
     buildCandidateListWhere(auth),
     buildRequirementListWhere(auth),
+    buildUserListWhere(auth),
   ])
   const textMatch = {
     OR: [
@@ -53,11 +55,16 @@ router.get('/', async (req, res) => {
     }),
     prisma.user.findMany({
       where: {
-        role: { not: 'CANDIDATE' },
-        OR: [
-          { name: { contains: q, mode: 'insensitive' } },
-          { email: { contains: q, mode: 'insensitive' } },
-          { department: { contains: q, mode: 'insensitive' } },
+        AND: [
+          userScope,
+          {
+            role: { not: 'CANDIDATE' },
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { email: { contains: q, mode: 'insensitive' } },
+              { department: { contains: q, mode: 'insensitive' } },
+            ],
+          },
         ],
       },
       take: 5,

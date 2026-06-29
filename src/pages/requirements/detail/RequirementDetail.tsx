@@ -81,6 +81,11 @@ const RequirementDetail = () => {
         id: string
         name: string
     } | null>(null)
+    const [adminEditOpen, setAdminEditOpen] = useState(false)
+
+    React.useEffect(() => {
+        setAdminEditOpen(false)
+    }, [id])
 
     React.useEffect(() => {
         if (tabFromUrl && TABS.some((t) => t.id === tabFromUrl)) {
@@ -113,7 +118,7 @@ const RequirementDetail = () => {
     })
 
     const matchingProfiles = matchingData?.matches ?? []
-    const suggestedMatches = matchingProfiles.filter((m) => !m.alreadyLinked)
+    const suggestedMatches = matchingProfiles.filter((m) => !m.alreadyLinked && !m.linkedToOther)
 
     // Derived Data
     const recruiters = users.filter((u) => u.role === 'RECRUITER' && u.status === 'ACTIVE')
@@ -369,10 +374,26 @@ const RequirementDetail = () => {
                     {showAdminEditor && (
                         <button
                             type="button"
-                            onClick={() => setActiveTab('details')}
-                            className="app-card-interactive inline-flex items-center gap-2 px-5 py-2.5 text-primary dark:text-foreground text-sm font-bold hover:bg-slate-50 dark:hover:bg-muted/60 transition-all"
+                            onClick={() => {
+                                if (adminEditOpen) {
+                                    setAdminEditOpen(false)
+                                } else {
+                                    setActiveTab('details')
+                                    setAdminEditOpen(true)
+                                }
+                            }}
+                            className={clsx(
+                                'app-card-interactive inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold transition-all',
+                                adminEditOpen
+                                    ? 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-muted/60'
+                                    : 'text-primary dark:text-foreground hover:bg-slate-50 dark:hover:bg-muted/60'
+                            )}
                         >
-                            <Edit size={16} /> {isAdmin ? 'Edit (admin)' : 'Edit'}
+                            {adminEditOpen ? (
+                                <><X size={16} /> Cancel edit</>
+                            ) : (
+                                <><Edit size={16} /> {isAdmin ? 'Edit (admin)' : 'Edit'}</>
+                            )}
                         </button>
                     )}
 
@@ -414,11 +435,12 @@ const RequirementDetail = () => {
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 {/* Left Column (2/3) */}
                                 <div className="lg:col-span-2 space-y-6">
-                                    {showAdminEditor && (
+                                    {showAdminEditor && adminEditOpen && (
                                         <AdminRequirementEdit
                                             requirement={requirement}
                                             users={users}
                                             departmentNames={departmentNames}
+                                            onSaved={() => setAdminEditOpen(false)}
                                         />
                                     )}
 

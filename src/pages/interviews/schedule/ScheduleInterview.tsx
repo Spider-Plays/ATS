@@ -126,6 +126,12 @@ const ScheduleInterview = () => {
     const { data: requirements = [] } = useQuery({ queryKey: ['requirements'], queryFn: api.requirements.list })
     const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: api.users.list })
 
+    const { data: requirementCandidates = [], isLoading: loadingRequirementCandidates } = useQuery({
+        queryKey: ['candidates', 'requirement', requirementId],
+        queryFn: () => api.candidates.getByRequirementId(requirementId),
+        enabled: !!requirementId && !isEditMode,
+    })
+
     const { data: progress } = useQuery({
         queryKey: ['interview-progress', requirementId, candidateId],
         queryFn: () =>
@@ -149,14 +155,10 @@ const ScheduleInterview = () => {
         if (!planStageId) {
             const stage = progress.stages.find((s) => s.id === progress.nextSchedulableStageId)
             if (stage) {
-                const allowedSet = new Set(stage.allowedInterviewerIds)
                 setValue('planStageId', stage.id)
                 setValue('type', stage.interviewType)
                 setValue('duration', stage.defaultDuration)
-                const defaults = stage.defaultInterviewerIds.filter((id) => allowedSet.has(id))
-                if (defaults.length > 0) {
-                    setValue('interviewerIds', defaults)
-                }
+                setValue('interviewerIds', [])
             }
         }
     }, [progress, isEditMode, planStageId, setValue])
@@ -166,13 +168,10 @@ const ScheduleInterview = () => {
         const planStage = plan?.stages.find((s) => s.id === stageId)
         const meta = stage ?? planStage
         if (!meta) return
-        const allowed = stage?.allowedInterviewerIds ?? allowedInterviewerIdsForStageOrder(meta.order, panelLevels)
         setValue('planStageId', stageId)
         setValue('type', meta.interviewType)
         setValue('duration', meta.defaultDuration)
-        const allowedSet = new Set(allowed)
-        const defaults = (stage?.defaultInterviewerIds ?? []).filter((id) => allowedSet.has(id))
-        setValue('interviewerIds', defaults.length > 0 ? defaults : [])
+        setValue('interviewerIds', [])
     }
 
     const INTERVIEWER_ROLES = [
@@ -191,12 +190,20 @@ const ScheduleInterview = () => {
     )
 
     const schedulableCandidates = useMemo(() => {
-        return candidates.filter((c) => {
-            if (c.status !== 'INTERVIEW') return false
-            if (requirementId && c.requirementId && c.requirementId !== requirementId) return false
-            return true
-        })
-    }, [candidates, requirementId])
+        if (!requirementId) return []
+        const linked = isEditMode
+            ? candidates.filter((c) => c.requirementId === requirementId)
+            : requirementCandidates
+        return linked.filter((c) => c.status === 'INTERVIEW')
+    }, [candidates, requirementCandidates, requirementId, isEditMode])
+
+    useEffect(() => {
+        if (isEditMode || !requirementId) return
+        if (candidateId && !schedulableCandidates.some((c) => c.id === candidateId)) {
+            setValue('candidateId', '')
+            setValue('planStageId', '')
+        }
+    }, [requirementId, candidateId, schedulableCandidates, isEditMode, setValue])
 
     const candidateOptions = useMemo(
         () =>
@@ -404,6 +411,36 @@ const ScheduleInterview = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-primary/60 dark:text-white/60 uppercase tracking-wider block">
+                                Job Requirement
+                            </label>
+                            <Controller
+                                control={control}
+                                name="requirementId"
+                                render={({ field }) => (
+                                    <SearchableSelect
+                                        value={field.value}
+                                        onChange={(v) => {
+                                            field.onChange(v)
+                                            if (!isEditMode) {
+                                                setValue('candidateId', '')
+                                                setValue('planStageId', '')
+                                            }
+                                        }}
+                                        options={requirementOptions}
+                                        placeholder="Select job"
+                                        searchPlaceholder="Search requirements..."
+                                        icon={<span className="material-symbols-outlined !text-lg">work</span>}
+                                        disabled={isEditMode}
+                                    />
+                                )}
+                            />
+                            {errors.requirementId && (
+                                <p className="text-xs font-bold text-red-500">{errors.requirementId.message}</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-primary/60 dark:text-white/60 uppercase tracking-wider block">
                                 Candidate
                             </label>
                             <Controller
@@ -417,47 +454,26 @@ const ScheduleInterview = () => {
                                             if (!isEditMode) setValue('planStageId', '')
                                         }}
                                         options={candidateOptions}
-                                        placeholder="Select candidate"
-                                        searchPlaceholder="Search candidates..."
+                                        placeholder={
+                                            requirementId
+                                                ? loadingRequirementCandidates
+                                                    ? 'Loading candidates…'
+                                                    : 'Select candidate'
+                                                : 'Select a job requirement first'
+                                        }
+                                        searchPlaceholder="Search linked candidates..."
                                         icon={<User size={18} />}
-                                        disabled={isEditMode}
+                                        disabled={isEditMode || !requirementId || loadingRequirementCandidates}
                                     />
                                 )}
                             />
                             {errors.candidateId && (
                                 <p className="text-xs font-bold text-red-500">{errors.candidateId.message}</p>
                             )}
-                            {!isEditMode && requirementId && schedulableCandidates.length === 0 && (
+                            {!isEditMode && requirementId && !loadingRequirementCandidates && schedulableCandidates.length === 0 && (
                                 <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
-                                    No candidates in Interview stage are linked to this job. Move them to Interview in the pipeline first.
+                                    No candidates in Interview stage are linked to this job. Link a candidate to this requirement and move them to Interview in the pipeline first.
                                 </p>
-                            )}
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold text-primary/60 dark:text-white/60 uppercase tracking-wider block">
-                                Job Requirement
-                            </label>
-                            <Controller
-                                control={control}
-                                name="requirementId"
-                                render={({ field }) => (
-                                    <SearchableSelect
-                                        value={field.value}
-                                        onChange={(v) => {
-                                            field.onChange(v)
-                                            if (!isEditMode) setValue('planStageId', '')
-                                        }}
-                                        options={requirementOptions}
-                                        placeholder="Select job"
-                                        searchPlaceholder="Search requirements..."
-                                        icon={<span className="material-symbols-outlined !text-lg">work</span>}
-                                        disabled={isEditMode}
-                                    />
-                                )}
-                            />
-                            {errors.requirementId && (
-                                <p className="text-xs font-bold text-red-500">{errors.requirementId.message}</p>
                             )}
                         </div>
 

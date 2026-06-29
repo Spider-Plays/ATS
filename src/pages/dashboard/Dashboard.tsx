@@ -4,8 +4,11 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
   ArrowRight,
+  Ban,
   Briefcase,
+  Building2,
   CalendarClock,
+  CheckCircle2,
   ChevronRight,
   LayoutDashboard,
   MessageSquare,
@@ -13,9 +16,9 @@ import {
   Plus,
   UserPlus,
   Users,
+  UsersRound,
   Video,
   Zap,
-  CheckCircle2,
   type LucideIcon,
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -25,6 +28,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   canApproveRequirement,
   canManageUsers,
+  isAdminRole,
   requiresHrHeadDelegationForApproval,
 } from '@/permissions'
 import { PageHero, heroBtnPrimary, heroBtnSecondary } from '@/components/layout/PageHero'
@@ -32,15 +36,16 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { InterviewStatCard } from '@/components/interviews/InterviewStatCard'
 import {
   activityLogLink,
-  adminMetrics,
   candidatePipelineCounts,
   formatActivityTitle,
+  hrOpsMetrics,
   interviewerMetrics,
   isScheduledToday,
   recruiterMetrics,
   relativeTime,
   sortInterviewsChronologically,
 } from '@/pages/dashboard/dashboard.utils'
+import { adminSetupMetrics } from '@/pages/admin/overview/overview.utils'
 import {
   fillProgress,
   priorityMeta,
@@ -60,6 +65,7 @@ import type {
   ActivityLog,
   Candidate,
   Interview,
+  InterviewPanelLevel,
   Offer,
   Requirement,
   User,
@@ -322,17 +328,41 @@ function AdminDashboard({
   candidates,
   activityLogs,
   users,
+  interviews,
+  departments,
+  clients,
+  skills,
+  panelLevels,
   user,
 }: {
   requirements: Requirement[]
   candidates: Candidate[]
   activityLogs: ActivityLog[]
   users: User[]
+  interviews: Interview[]
+  departments: { name: string }[]
+  clients: { name: string }[]
+  skills: { id: string }[]
+  panelLevels: InterviewPanelLevel[]
   user: User | null
 }) {
-  const metrics = useMemo(
-    () => adminMetrics(requirements, candidates, users, activityLogs),
-    [requirements, candidates, users, activityLogs]
+  const isPlatformAdmin = isAdminRole(user?.role)
+
+  const setupKpis = useMemo(
+    () =>
+      adminSetupMetrics(
+        users,
+        departments.map((d) => d.name),
+        clients.map((c) => c.name),
+        skills,
+        panelLevels
+      ),
+    [users, departments, clients, skills, panelLevels]
+  )
+
+  const hrKpis = useMemo(
+    () => hrOpsMetrics(requirements, candidates, interviews),
+    [requirements, candidates, interviews]
   )
 
   const pending = useMemo(
@@ -360,43 +390,128 @@ function AdminDashboard({
     [users]
   )
 
+  const jobTitleById = useMemo(
+    () => new Map(requirements.map((r) => [r.id, r.title])),
+    [requirements]
+  )
+
+  const upcomingInterviews = useMemo(
+    () =>
+      [...interviews]
+        .filter(isUpcoming)
+        .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+        .slice(0, 5),
+    [interviews]
+  )
+
   const firstName = user?.name?.split(' ')[0] ?? 'there'
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       <PageHero
         icon={LayoutDashboard}
-        eyebrow="Administration"
+        eyebrow={isPlatformAdmin ? 'Administration' : 'HR operations'}
         title={`Good to see you, ${firstName}`}
-        description="Organization-wide hiring health, approvals, and team activity at a glance."
+        description={
+          isPlatformAdmin
+            ? 'Staff access, catalogs, interview panels, and workspace configuration at a glance.'
+            : 'Track live roles, approvals, interviews, and hiring progress across your scope.'
+        }
         actions={
-          <>
-            <Link to="/admin/users" className={heroBtnSecondary}>
-              <UserPlus size={16} className="mr-2" />
-              Manage team
-            </Link>
-            <Link to="/notifications" className={heroBtnPrimary}>
-              View activity
-              <ArrowRight size={16} className="ml-2" />
-            </Link>
-          </>
+          isPlatformAdmin ? (
+            <>
+              <Link to="/admin/users" className={heroBtnSecondary}>
+                <UserPlus size={16} className="mr-2" />
+                Manage team
+              </Link>
+              <Link to="/admin" className={heroBtnPrimary}>
+                Admin hub
+                <ArrowRight size={16} className="ml-2" />
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link to="/requirements" className={heroBtnSecondary}>
+                <Briefcase size={16} className="mr-2" />
+                Review roles
+              </Link>
+              <Link to="/interviews" className={heroBtnPrimary}>
+                <Video size={16} className="mr-2" />
+                Interviews
+              </Link>
+            </>
+          )
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-        <InterviewStatCard label="Live jobs" value={metrics.live} icon={Briefcase} accent="green" />
-        <InterviewStatCard label="Pending approval" value={metrics.pending} icon={Zap} accent="amber" />
-        <InterviewStatCard label="On hold" value={metrics.onHold} icon={CalendarClock} accent="slate" />
-        <InterviewStatCard label="Candidates" value={metrics.candidates} icon={Users} accent="blue" />
-        <InterviewStatCard label="Hired" value={metrics.hires} icon={Activity} accent="green" />
-        <InterviewStatCard label="Team" value={metrics.team} icon={Users} accent="slate" />
-      </div>
+      {isPlatformAdmin ? (
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          <Link to="/admin/users" className="block h-full">
+            <InterviewStatCard label="Staff accounts" value={setupKpis.staffTotal} icon={Users} accent="brand" />
+          </Link>
+          <Link to="/admin/users" className="block h-full">
+            <InterviewStatCard label="Active staff" value={setupKpis.activeStaff} icon={CheckCircle2} accent="green" />
+          </Link>
+          <Link to="/admin/users" className="block h-full">
+            <InterviewStatCard label="Disabled" value={setupKpis.disabledStaff} icon={Ban} accent="amber" />
+          </Link>
+          <Link to="/admin/departments" className="block h-full">
+            <InterviewStatCard
+              label="Catalog items"
+              value={setupKpis.departments + setupKpis.clients + setupKpis.skills}
+              icon={Building2}
+              accent="slate"
+            />
+          </Link>
+          <Link to="/admin/interview-panels" className="block h-full">
+            <InterviewStatCard
+              label="Panel interviewers"
+              value={setupKpis.panelInterviewers}
+              icon={UsersRound}
+              accent="blue"
+            />
+          </Link>
+          <Link to="/admin/interview-panels" className="block h-full">
+            <InterviewStatCard
+              label="Panels to set up"
+              value={setupKpis.emptyPanelLevels}
+              icon={MessageSquareWarning}
+              accent="amber"
+            />
+          </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          <InterviewStatCard label="Live roles" value={hrKpis.live} icon={Briefcase} accent="green" />
+          <InterviewStatCard label="Pending approval" value={hrKpis.pending} icon={Zap} accent="amber" />
+          <InterviewStatCard label="Candidates" value={hrKpis.candidates} icon={Users} accent="blue" />
+          <InterviewStatCard label="Hired" value={hrKpis.hires} icon={Activity} accent="green" />
+          <InterviewStatCard label="Upcoming" value={hrKpis.upcoming} icon={CalendarClock} accent="blue" />
+          <InterviewStatCard
+            label="Needs feedback"
+            value={hrKpis.feedback}
+            icon={MessageSquareWarning}
+            accent="amber"
+          />
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <QuickLink to="/requirements" icon={Briefcase} label="Requirements" />
         <QuickLink to="/candidates" icon={Users} label="Candidates" />
-        <QuickLink to="/admin" icon={UserPlus} label="Administration" />
-        <QuickLink to="/notifications" icon={Activity} label="Notifications" />
+        {isPlatformAdmin ? (
+          <>
+            <QuickLink to="/admin" icon={Building2} label="Admin hub" />
+            <QuickLink to="/admin/users" icon={UserPlus} label="Team" />
+            <QuickLink to="/admin/interview-panels" icon={UsersRound} label="Interview panels" />
+            <QuickLink to="/notifications" icon={Activity} label="Notifications" />
+          </>
+        ) : (
+          <>
+            <QuickLink to="/interviews" icon={Video} label="Interviews" />
+            <QuickLink to="/offers" icon={Zap} label="Offers" />
+          </>
+        )}
       </div>
 
       {pending.length > 0 && (
@@ -472,47 +587,76 @@ function AdminDashboard({
         </div>
 
         <div className="space-y-8">
-          <SectionCard title="Team snapshot">
-            {team.length === 0 ? (
-              <EmptyState icon="groups" title="No team members" description="Add users from Administration." />
-            ) : (
-              <ul className="p-4 space-y-2">
-                {team.map((member) => (
-                  <li key={member.uid}>
-                    <Link
-                      to={`/admin/users/${member.uid}`}
-                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-primary/5 dark:hover:bg-white/5 transition-colors"
-                    >
-                      <UserAvatar
-                        name={member.name}
-                        avatar={member.avatar}
-                        size="sm"
-                        className="rounded-xl"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-primary dark:text-white truncate">{member.name}</p>
-                        <p className="text-xs text-primary/50 dark:text-white/50">
-                          {member.role.replace(/_/g, ' ')}
-                        </p>
-                      </div>
-                      <ChevronRight size={16} className="text-primary/30 shrink-0" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {canManageUsers(user?.role) && (
-            <div className="px-4 pb-4">
-              <Link
-                to="/admin/users"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-primary dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-              >
-                <UserPlus size={16} />
-                Add team member
-              </Link>
-            </div>
-            )}
-          </SectionCard>
+          {isPlatformAdmin ? (
+            <SectionCard title="Team snapshot">
+              {team.length === 0 ? (
+                <EmptyState icon="groups" title="No team members" description="Add users from Administration." />
+              ) : (
+                <ul className="p-4 space-y-2">
+                  {team.map((member) => (
+                    <li key={member.uid}>
+                      <Link
+                        to={`/admin/users/${member.uid}`}
+                        className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-primary/5 dark:hover:bg-white/5 transition-colors"
+                      >
+                        <UserAvatar
+                          name={member.name}
+                          avatar={member.avatar}
+                          size="sm"
+                          className="rounded-xl"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-primary dark:text-white truncate">{member.name}</p>
+                          <p className="text-xs text-primary/50 dark:text-white/50">
+                            {member.role.replace(/_/g, ' ')}
+                          </p>
+                        </div>
+                        <ChevronRight size={16} className="text-primary/30 shrink-0" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {canManageUsers(user?.role) && (
+                <div className="px-4 pb-4">
+                  <Link
+                    to="/admin/users"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-primary dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                  >
+                    <UserPlus size={16} />
+                    Add team member
+                  </Link>
+                </div>
+              )}
+            </SectionCard>
+          ) : (
+            <SectionCard
+              title="Upcoming interviews"
+              action={
+                <Link to="/interviews" className="text-xs font-bold text-primary dark:text-blue-400 hover:underline">
+                  Calendar
+                </Link>
+              }
+            >
+              {upcomingInterviews.length === 0 ? (
+                <EmptyState
+                  icon="event"
+                  title="Nothing scheduled"
+                  description="Upcoming interviews in your scope will appear here."
+                />
+              ) : (
+                <div>
+                  {upcomingInterviews.map((iv) => (
+                    <InterviewAgendaItem
+                      key={iv.id}
+                      interview={iv}
+                      jobTitle={jobTitleById.get(iv.requirementId)}
+                    />
+                  ))}
+                </div>
+              )}
+            </SectionCard>
+          )}
         </div>
       </div>
 
@@ -1014,7 +1158,9 @@ const Dashboard = () => {
   const { user } = useAuth()
   const role = user?.role || 'RECRUITER'
   const isInterviewer = role === 'INTERVIEWER'
-  const isAdminOrHR = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'HR_HEAD', 'TEAM_LEAD'].includes(role)
+  const isPlatformAdmin = isAdminRole(role)
+  const isHrLeadership = role === 'HR_HEAD' || role === 'HR_MANAGER'
+  const isAdminOrHR = isPlatformAdmin || isHrLeadership
 
   const { data: requirements = [], isLoading: loadingReqs } = useQuery({
     queryKey: ['requirements'],
@@ -1028,12 +1174,12 @@ const Dashboard = () => {
   const { data: interviews = [], isLoading: loadingInts } = useQuery({
     queryKey: ['interviews'],
     queryFn: api.interviews.list,
-    enabled: isInterviewer || !isAdminOrHR,
+    enabled: isInterviewer || !isPlatformAdmin,
   })
   const { data: offers = [], isLoading: loadingOffers } = useQuery({
     queryKey: ['offers'],
     queryFn: api.offers.list,
-    enabled: !isAdminOrHR && !isInterviewer,
+    enabled: !isPlatformAdmin && !isInterviewer,
   })
   const { data: activityLogs = [], isLoading: loadingLogs } = useQuery({
     queryKey: ['activityLogs', 'dashboard'],
@@ -1043,7 +1189,27 @@ const Dashboard = () => {
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: ['users', 'dashboard'],
     queryFn: api.users.list,
-    enabled: isAdminOrHR,
+    enabled: isPlatformAdmin,
+  })
+  const { data: departments = [], isLoading: loadingDepts } = useQuery({
+    queryKey: ['department-catalog'],
+    queryFn: api.departments.list,
+    enabled: isPlatformAdmin,
+  })
+  const { data: clients = [], isLoading: loadingClients } = useQuery({
+    queryKey: ['client-catalog'],
+    queryFn: api.clients.list,
+    enabled: isPlatformAdmin,
+  })
+  const { data: skills = [], isLoading: loadingSkills } = useQuery({
+    queryKey: ['skill-catalog'],
+    queryFn: api.skills.list,
+    enabled: isPlatformAdmin,
+  })
+  const { data: panelLevels = [], isLoading: loadingPanels } = useQuery({
+    queryKey: ['interview-panels'],
+    queryFn: api.interviewPanels.list,
+    enabled: isPlatformAdmin,
   })
 
   const scopedInterviews = useMemo(
@@ -1054,7 +1220,16 @@ const Dashboard = () => {
   const isLoading = isInterviewer
     ? loadingCands || loadingInts
     : isAdminOrHR
-      ? loadingReqs || loadingCands || loadingLogs || loadingUsers
+      ? isPlatformAdmin
+        ? loadingReqs ||
+          loadingCands ||
+          loadingLogs ||
+          loadingUsers ||
+          loadingDepts ||
+          loadingClients ||
+          loadingSkills ||
+          loadingPanels
+        : loadingReqs || loadingCands || loadingLogs || loadingInts
       : loadingReqs || loadingCands || loadingInts || loadingOffers
 
   if (isLoading) {
@@ -1079,6 +1254,11 @@ const Dashboard = () => {
           candidates={candidates}
           activityLogs={activityLogs}
           users={users}
+          interviews={scopedInterviews}
+          departments={departments}
+          clients={clients}
+          skills={skills}
+          panelLevels={panelLevels}
           user={user}
         />
       ) : (

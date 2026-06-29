@@ -12,23 +12,21 @@ import {
   ListFilter,
   Building2,
   ExternalLink,
+  X,
 } from 'lucide-react'
 import { api } from '@/services/api'
 import { ApiError } from '@/lib/apiClient'
 import { useAuth } from '@/hooks/useAuth'
-import { useCandidateStageChange } from '@/hooks/useCandidateStageChange'
-import { CandidateStageDetailsModal } from '@/components/candidates/CandidateStageDetailsModal'
 import { ListSearchBar } from '@/components/ui/ListSearchBar'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHero, heroBtnPrimary } from '@/components/layout/PageHero'
-import { AppSelect } from '@/components/ui/AppSelect'
+import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { InterviewStatCard } from '@/components/interviews/InterviewStatCard'
 import { PipelineKanbanColumn } from '@/components/pipeline/PipelineKanbanColumn'
 import { matchesAnySearch } from '@/lib/textSearch'
 import { canCreateCandidate } from '@/permissions'
 import type { CandidateStatus } from '@/types'
 import {
-  canManageCandidateStage,
   groupCandidatesByKanbanStage,
   pipelineSearchFields,
   pipelineStats,
@@ -43,16 +41,7 @@ const Pipeline = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [stageFilter, setStageFilter] = useState<PipelineStageFilter>('ALL')
   const { user } = useAuth()
-  const canManage = canManageCandidateStage(user?.role)
   const canCreate = canCreateCandidate(user?.role)
-
-  const {
-    pendingModal,
-    isSubmitting,
-    requestStageChange,
-    confirmModal,
-    closeModal,
-  } = useCandidateStageChange({ requirementId })
 
   const {
     data: candidates = [],
@@ -61,9 +50,8 @@ const Pipeline = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['candidates', requirementId],
-    queryFn: () =>
-      requirementId ? api.candidates.getByRequirementId(requirementId) : api.candidates.list(),
+    queryKey: ['candidates'],
+    queryFn: api.candidates.list,
   })
 
   const { data: requirement } = useQuery({
@@ -75,7 +63,6 @@ const Pipeline = () => {
   const { data: requirements = [] } = useQuery({
     queryKey: ['requirements'],
     queryFn: api.requirements.list,
-    enabled: !requirementId,
   })
 
   const jobTitleById = useMemo(
@@ -87,6 +74,8 @@ const Pipeline = () => {
     if (!requirementId) return candidates
     return candidates.filter((c) => c.requirementId === requirementId)
   }, [candidates, requirementId])
+
+  const isInitialLoading = isLoading && candidates.length === 0
 
   const searched = useMemo(
     () =>
@@ -129,22 +118,35 @@ const Pipeline = () => {
     [requirements]
   )
 
+  const jobSelectOptions = useMemo(() => {
+    const liveIds = new Set(liveRequirements.map((r) => r.id))
+    const options = liveRequirements.map((r) => ({
+      value: r.id,
+      label: r.title,
+      sublabel: [r.jobCode, r.client].filter(Boolean).join(' · '),
+    }))
+    if (requirement && requirementId && !liveIds.has(requirementId)) {
+      options.unshift({
+        value: requirement.id,
+        label: requirement.title,
+        sublabel: [requirement.jobCode, requirement.client].filter(Boolean).join(' · '),
+      })
+    }
+    return options
+  }, [liveRequirements, requirement, requirementId])
+
+  const allJobsLabel = useMemo(() => {
+    const count = candidates.length
+    return count > 0 ? `All jobs — ${count} candidates` : 'All jobs'
+  }, [candidates.length])
+
+  const showJobPicker = jobSelectOptions.length > 0 || !!requirementId
+
   const pageTitle = requirement ? requirement.title : 'Hiring pipeline'
   const showJobOnCards = !requirementId
 
   return (
-    <div className="max-w-[100rem] mx-auto space-y-8 animate-in fade-in duration-500 pb-12">
-      {pendingModal && (
-        <CandidateStageDetailsModal
-          open
-          targetStatus={pendingModal.status}
-          candidateName={pendingModal.candidateName}
-          onClose={closeModal}
-          onConfirm={confirmModal}
-          isSubmitting={isSubmitting}
-        />
-      )}
-
+    <div className="max-w-[100rem] mx-auto space-y-8 pb-12">
       <div className="flex flex-col gap-6">
         <div className="space-y-3 min-w-0">
           <PageHero
@@ -153,7 +155,7 @@ const Pipeline = () => {
             title={pageTitle}
             description={
               requirementId
-                ? 'Pipeline by stage — update status on a card or from the candidate profile.'
+                ? 'Pipeline by stage — open a candidate profile to update status.'
                 : 'All applicants by hiring stage. Open a job pipeline to focus on one requirement.'
             }
             actions={
@@ -165,8 +167,39 @@ const Pipeline = () => {
               ) : undefined
             }
           />
+        </div>
+      </div>
+
+      {showJobPicker && (
+        <div className="app-card p-4 shadow-sm space-y-3">
+          <label className="block text-xs font-bold uppercase tracking-wider text-primary/50 dark:text-white/50">
+            Focus on a job
+          </label>
+          <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+            <SearchableSelect
+              className="w-full max-w-xl flex-1 min-w-0"
+              value={requirementId ?? ''}
+              onChange={(id) => navigate(id ? `/pipeline/${id}` : '/pipeline')}
+              placeholder={allJobsLabel}
+              searchPlaceholder="Search by title, job code, or client..."
+              clearLabel="View all jobs"
+              emptyLabel="No jobs match your search"
+              icon={<Briefcase size={18} />}
+              options={jobSelectOptions}
+            />
+            {requirementId && (
+              <button
+                type="button"
+                onClick={() => navigate('/pipeline')}
+                className="filter-chip-active inline-flex items-center gap-2 shrink-0 self-start"
+              >
+                <X size={14} />
+                View all jobs
+              </button>
+            )}
+          </div>
           {requirement && (
-            <div className="flex flex-wrap items-center gap-3 px-1 text-sm font-semibold text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 pt-1 text-sm font-semibold text-muted-foreground">
               {requirement.jobCode && (
                 <span className="font-mono text-xs font-bold text-primary/60 dark:text-white/50">
                   {requirement.jobCode}
@@ -187,27 +220,6 @@ const Pipeline = () => {
               </Link>
             </div>
           )}
-        </div>
-      </div>
-
-      {!requirementId && liveRequirements.length > 0 && (
-        <div className="app-card p-4 shadow-sm">
-          <label className="block text-xs font-bold uppercase tracking-wider text-primary/50 dark:text-white/50 mb-2">
-            Focus on a job
-          </label>
-          <AppSelect
-            className="w-full max-w-md"
-            value=""
-            onChange={(id) => {
-              if (id) navigate(`/pipeline/${id}`)
-            }}
-            placeholder={`All jobs — ${scopedCandidates.length} candidates`}
-            options={liveRequirements.map((r) => ({
-              value: r.id,
-              label: r.jobCode ? `${r.title} (${r.jobCode})` : r.title,
-            }))}
-            aria-label="Focus on a job"
-          />
         </div>
       )}
 
@@ -275,7 +287,7 @@ const Pipeline = () => {
         )}
       </div>
 
-      {isLoading ? (
+      {isInitialLoading ? (
         <div className="py-24 text-center text-muted-foreground font-medium">
           Loading pipeline...
         </div>
@@ -318,19 +330,16 @@ const Pipeline = () => {
         </div>
       ) : (
         <div className="relative -mx-1">
-          <div className="flex gap-4 overflow-x-auto pb-6 px-1 snap-x snap-mandatory custom-scrollbar">
+          <div className="flex gap-4 overflow-x-auto pb-6 px-1 snap-x snap-mandatory custom-scrollbar items-start">
             {columns.map((col) => (
               <div key={col.stage} className="snap-center">
                 <PipelineKanbanColumn
                   stage={col.stage}
                   title={col.title}
                   candidates={col.items}
-                  canManage={canManage}
-                  userRole={user?.role}
                   showJob={showJobOnCards}
                   highlighted={stageFilter === col.stage}
                   dimmed={stageFilter !== 'ALL' && stageFilter !== col.stage}
-                  onMoveStage={requestStageChange}
                 />
               </div>
             ))}

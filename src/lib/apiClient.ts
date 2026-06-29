@@ -1,7 +1,10 @@
 const TOKEN_KEY = 'stitch_auth_token'
 const FETCH_TIMEOUT_MS = 90_000
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') || ''
+/** In dev, always use same-origin `/api` so Vite proxies to localhost:4000. */
+const API_BASE = import.meta.env.DEV
+  ? ''
+  : (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') || ''
 
 export function apiUrl(path: string): string {
   return `${API_BASE}/api${path}`
@@ -52,7 +55,8 @@ export async function apiRequest<T>(
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      if (res.status === 401) {
+      const isLoginAttempt = path === '/auth/login' || path === '/auth/register-candidate'
+      if (res.status === 401 && !isLoginAttempt) {
         clearToken()
         window.dispatchEvent(new Event('auth:session-expired'))
       }

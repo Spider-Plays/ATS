@@ -9,7 +9,7 @@ const VendorSidebar = () => {
   const path = location.pathname
 
   return (
-    <aside className="m3-navigation-drawer flex flex-col h-screen fixed left-0 top-0 z-50">
+    <aside className="m3-navigation-drawer flex flex-col fixed left-0 top-0 z-50">
       <SidebarBrand subtitle="Vendor portal" homeTo="/vendor-portal/dashboard" />
 
       <nav className="sidebar-nav custom-scrollbar">

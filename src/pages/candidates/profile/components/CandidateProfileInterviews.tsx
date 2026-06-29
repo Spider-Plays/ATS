@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   AlertCircle,
@@ -60,7 +60,7 @@ export function CandidateProfileInterviews({
   const jobTitle = candidate.jobTitle || candidate.role
   const canEditPlan = canEditInterviewPlan(userRole)
 
-  const { data: progress } = useQuery({
+  const { data: progress, refetch: refetchProgress } = useQuery({
     queryKey: ['interview-progress', candidate.requirementId, candidate.id],
     queryFn: () =>
       api.requirements.getCandidateInterviewProgress(
@@ -69,6 +69,12 @@ export function CandidateProfileInterviews({
       ),
     enabled: !!candidate.requirementId,
   })
+
+  useEffect(() => {
+    if (candidate.status === 'INTERVIEW' && candidate.requirementId) {
+      void refetchProgress()
+    }
+  }, [candidate.status, candidate.requirementId, candidate.id, refetchProgress])
 
   const cancelMutation = useMutation({
     mutationFn: (interviewId: string) =>

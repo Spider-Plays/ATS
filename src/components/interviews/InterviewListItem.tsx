@@ -1,15 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Clock,
   Video,
   MapPin,
-  ExternalLink,
   Pencil,
   X,
   MessageSquare,
-  User,
   FileText,
+  Briefcase,
 } from 'lucide-react'
 import clsx from 'clsx'
 import type { Interview } from '../../types'
@@ -20,7 +19,7 @@ import {
   interviewDisplayStatusClass,
 } from '../../lib/interviewDisplayStatus'
 import { formatInterviewTime, isUpcoming, needsFeedback, stageLabel, stageOrderLabel } from '@/pages/interviews/_shared/interview.utils'
-import { showInterviewerSessionActions } from '@/permissions'
+import { InterviewSessionDocumentModal } from '@/components/interviews/InterviewSessionDocumentModal'
 
 interface InterviewListItemProps {
   interview: Interview
@@ -45,6 +44,7 @@ export function InterviewListItem({
   cancelPending,
   hideCandidateLink = false,
 }: InterviewListItemProps) {
+  const [previewKind, setPreviewKind] = useState<'resume' | 'jobDescription' | null>(null)
   const displayLabel = getInterviewDisplayLabel(interview)
   const scheduled = new Date(interview.scheduledAt)
   const showSubmitFeedback = needsFeedback(interview)
@@ -62,49 +62,56 @@ export function InterviewListItem({
     </span>
   )
 
-  const sessionActions = showInterviewerSessionActions(interview, currentUserId)
   const canJoinMeeting =
     !!interview.meetingLink &&
     interview.status !== 'CANCELLED' &&
     (isUpcoming(interview) || displayLabel === 'Scheduled')
 
-  const interviewerSessionActions = sessionActions ? (
-    <div className="flex flex-wrap items-center gap-2">
-      <Link
-        to={`/interviews/${interview.id}/resume`}
+  const showDocumentPreviews = !hideCandidateLink
+
+  const documentPreviewButtons = showDocumentPreviews ? (
+    <>
+      <button
+        type="button"
+        onClick={() => setPreviewKind('resume')}
         className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary/15 dark:border-white/15 app-card text-primary dark:text-white text-xs font-bold uppercase tracking-wider hover:bg-primary/5 dark:hover:bg-white/10 transition-colors"
       >
         <FileText size={14} />
         View resume
-      </Link>
-      {canJoinMeeting && (
-        <a
-          href={interview.meetingLink}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
-        >
-          <Video size={14} />
-          Join meeting
-        </a>
-      )}
-    </div>
+      </button>
+      <button
+        type="button"
+        onClick={() => setPreviewKind('jobDescription')}
+        className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-primary/15 dark:border-white/15 app-card text-primary dark:text-white text-xs font-bold uppercase tracking-wider hover:bg-primary/5 dark:hover:bg-white/10 transition-colors"
+      >
+        <Briefcase size={14} />
+        View job description
+      </button>
+    </>
   ) : null
+
+  const sessionPrepActions =
+    showDocumentPreviews || canJoinMeeting ? (
+      <div className="flex flex-wrap items-center gap-2">
+        {canJoinMeeting && (
+          <a
+            href={interview.meetingLink}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
+          >
+            <Video size={14} />
+            Join meeting
+          </a>
+        )}
+        {documentPreviewButtons}
+      </div>
+    ) : null
 
   const actions = (
     <div className="flex flex-col gap-2">
-      {interviewerSessionActions}
+      {sessionPrepActions}
       <div className="flex flex-wrap items-center gap-2">
-      {canJoinMeeting && !sessionActions && (
-        <a
-          href={interview.meetingLink}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
-        >
-          <Video size={14} /> Join meeting
-        </a>
-      )}
       {showSubmitFeedback && (
         <Link
           to={`/interviews/${interview.id}/feedback`}
@@ -148,21 +155,26 @@ export function InterviewListItem({
           )}
         </>
       )}
-      {!hideCandidateLink && !sessionActions && (
-        <Link
-          to={`/candidates/${interview.candidateId}`}
-          className="inline-flex items-center justify-center p-2 rounded-xl bg-primary/5 dark:bg-white/5 text-primary dark:text-white hover:bg-primary/10 dark:hover:bg-white/10 transition-colors"
-          title="View candidate"
-        >
-          <User size={16} />
-        </Link>
-      )}
       </div>
     </div>
   )
 
+  const documentModal = previewKind ? (
+    <InterviewSessionDocumentModal
+      open
+      onClose={() => setPreviewKind(null)}
+      kind={previewKind}
+      interviewId={interview.id}
+      requirementId={interview.requirementId}
+      candidateName={interview.candidateName}
+      jobTitle={jobTitle}
+    />
+  ) : null
+
   if (variant === 'timeline') {
     return (
+      <>
+      {documentModal}
       <article
         className={clsx(
           'relative flex gap-4 p-4 rounded-2xl border transition-all hover:shadow-md',
@@ -198,10 +210,13 @@ export function InterviewListItem({
           {actions}
         </div>
       </article>
+      </>
     )
   }
 
   return (
+    <>
+    {documentModal}
     <article
       className={clsx(
         'flex flex-col lg:flex-row lg:items-center gap-4 p-5 rounded-2xl border transition-all hover:shadow-sm',
@@ -261,5 +276,6 @@ export function InterviewListItem({
         <div className="flex flex-wrap gap-2">{actions}</div>
       </div>
     </article>
+    </>
   )
 }

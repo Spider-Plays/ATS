@@ -19,9 +19,10 @@ import type {
   InterviewStageProgressStatus,
 } from '@/types'
 import {
-  INTERVIEW_STAGE_STATUS_LABEL,
   interviewStageCardClass,
   interviewStageDotClass,
+  interviewStageSchedulingLabel,
+  interviewSchedulingBlockMessage,
 } from '@/lib/interviewStageProgress'
 import { api } from '@/services/api'
 import { useToastStore } from '@/store/toastStore'
@@ -92,6 +93,7 @@ type StageCardProps = {
   canEditPlan: boolean
   canRemove: boolean
   saving: boolean
+  schedulingLabel: string
   onSelect: () => void
   onRemove: () => void
   onRename?: (stageId: string, name: string) => void
@@ -105,6 +107,7 @@ function StageCard({
   canEditPlan,
   canRemove,
   saving,
+  schedulingLabel,
   onSelect,
   onRemove,
   onRename,
@@ -207,7 +210,7 @@ function StageCard({
             </p>
           )}
           <p className="text-[10px] font-medium text-primary/50 dark:text-white/50 mt-1">
-            {INTERVIEW_STAGE_STATUS_LABEL[stage.status]}
+            {schedulingLabel}
           </p>
           {feedbackDue && (
             <Link
@@ -316,12 +319,7 @@ export function CandidateInterviewPipeline({
     stage.status !== 'completed' &&
     stage.status !== 'failed'
 
-  const hasInFlightInterview = progress.stages.some(
-    (s) => s.status === 'scheduled' || s.status === 'awaiting_feedback'
-  )
-
-  const showNoStageReadyMessage =
-    canManage && !progress.nextSchedulableStageId && !hasInFlightInterview
+  const schedulingBlockMessage = interviewSchedulingBlockMessage(progress)
 
   const layoutClass = canEditPlan
     ? 'flex items-stretch gap-0 overflow-x-auto pb-2 custom-scrollbar'
@@ -372,6 +370,7 @@ export function CandidateInterviewPipeline({
                 canEditPlan={canEditPlan}
                 canRemove={canRemoveStage(stage)}
                 saving={saveMutation.isPending}
+                schedulingLabel={interviewStageSchedulingLabel(stage, progress)}
                 onSelect={() => onSelectStage(stage.id)}
                 onRemove={() => handleRemove(stage)}
                 onRename={canEditPlan ? handleRename : undefined}
@@ -387,9 +386,9 @@ export function CandidateInterviewPipeline({
         )}
       </div>
 
-      {showNoStageReadyMessage && (
+      {canManage && schedulingBlockMessage && (
         <p className="text-xs font-medium text-amber-800 dark:text-amber-200 px-1">
-          No stage is ready to schedule. Complete pending feedback or earlier rounds first.
+          {schedulingBlockMessage}
         </p>
       )}
     </section>

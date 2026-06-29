@@ -15,22 +15,37 @@ import {
   REQUIREMENT_PRIORITY_OPTIONS,
   SENIORITY_OPTIONS,
   WORK_MODE_OPTIONS,
+  userRoleLabel,
 } from '../../lib/selectOptions'
+
+function resolveHiringManagerName(stored: string | undefined, users: User[]): string {
+  const ref = (stored ?? '').trim()
+  if (!ref) return ''
+  const user = users.find((u) => u.uid === ref || u.name === ref)
+  return user?.name ?? ref
+}
+
+function hiringManagerOptionSublabel(u: User): string {
+  return [userRoleLabel(u.role), u.department, u.email].filter(Boolean).join(' · ')
+}
 
 type AdminRequirementEditProps = {
   requirement: Requirement
   users: User[]
   departmentNames: string[]
+  onSaved?: () => void
 }
 
-export function AdminRequirementEdit({ requirement, users, departmentNames }: AdminRequirementEditProps) {
+export function AdminRequirementEdit({ requirement, users, departmentNames, onSaved }: AdminRequirementEditProps) {
   const queryClient = useQueryClient()
   const { addToast } = useToastStore()
 
   const [title, setTitle] = useState(requirement.title)
   const [client, setClient] = useState(requirement.client ?? '')
   const [department, setDepartment] = useState(requirement.department)
-  const [hiringManager, setHiringManager] = useState(requirement.hiringManager)
+  const [hiringManager, setHiringManager] = useState(() =>
+    resolveHiringManagerName(requirement.hiringManager, users)
+  )
   const [locationCity, setLocationCity] = useState(requirement.locationCity ?? '')
   const [workMode, setWorkMode] = useState<WorkMode | ''>(requirement.workMode ?? '')
   const [isRemote, setIsRemote] = useState(requirement.isRemote ?? false)
@@ -67,7 +82,7 @@ export function AdminRequirementEdit({ requirement, users, departmentNames }: Ad
     setTitle(requirement.title)
     setClient(requirement.client ?? '')
     setDepartment(requirement.department)
-    setHiringManager(requirement.hiringManager)
+    setHiringManager(resolveHiringManagerName(requirement.hiringManager, users))
     setLocationCity(requirement.locationCity ?? '')
     setWorkMode(requirement.workMode ?? '')
     setIsRemote(requirement.isRemote ?? false)
@@ -83,19 +98,31 @@ export function AdminRequirementEdit({ requirement, users, departmentNames }: Ad
     setJobDescription(requirement.jobDescription || requirement.description || '')
     setPrimarySkills(requirement.primarySkills ?? [])
     setSecondarySkills(requirement.secondarySkills ?? [])
-  }, [requirement])
+  }, [requirement, users])
 
-  const hiringManagerOptions = useMemo(
-    () =>
-      users
-        .filter((u) => u.status === 'ACTIVE' && u.role === 'HIRING_MANAGER')
-        .map((u) => ({
-          value: u.name,
-          label: u.name,
-          sublabel: [u.department, u.email].filter(Boolean).join(' · '),
-        })),
-    [users]
-  )
+  const hiringManagerOptions = useMemo(() => {
+    const options = users
+      .filter((u) => u.status === 'ACTIVE' && u.role === 'HIRING_MANAGER')
+      .map((u) => ({
+        value: u.name,
+        label: u.name,
+        sublabel: hiringManagerOptionSublabel(u),
+      }))
+
+    const assignedName = resolveHiringManagerName(requirement.hiringManager, users)
+    if (assignedName && !options.some((o) => o.value === assignedName)) {
+      const assignedUser = users.find(
+        (u) => u.uid === requirement.hiringManager || u.name === assignedName
+      )
+      options.unshift({
+        value: assignedName,
+        label: assignedName,
+        sublabel: assignedUser ? hiringManagerOptionSublabel(assignedUser) : 'Current assignment',
+      })
+    }
+
+    return options
+  }, [users, requirement.hiringManager])
 
   const departmentOptions = useMemo(() => {
     const names = [...departmentNames]
@@ -136,6 +163,7 @@ export function AdminRequirementEdit({ requirement, users, departmentNames }: Ad
       queryClient.invalidateQueries({ queryKey: ['requirement', requirement.id] })
       queryClient.invalidateQueries({ queryKey: ['requirements'] })
       addToast('Requirement updated', 'success')
+      onSaved?.()
     },
     onError: (err: unknown) => {
       addToast(err instanceof ApiError ? err.message : 'Failed to save', 'error')
@@ -187,6 +215,7 @@ export function AdminRequirementEdit({ requirement, users, departmentNames }: Ad
               onChange={setHiringManager}
               options={hiringManagerOptions}
               placeholder="Select hiring manager"
+              allowClear={false}
             />
           </div>
         </div>

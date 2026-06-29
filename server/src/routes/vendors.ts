@@ -12,15 +12,17 @@ import { INTERNAL_ROLES } from '../lib/roles.js'
 import { logTemporaryPassword } from '../lib/devPasswordLog.js'
 import { clientErrorMessage, EMAIL_NOT_CONFIGURED_DEV_HINT, EMAIL_NOT_CONFIGURED_WARNING } from '../lib/safeError.js'
 import { notifyVendorAssignment } from '../lib/emailDispatch.js'
+import { buildVendorListWhere } from '../lib/vendorAccess.js'
 
 const router = Router()
 const VENDOR_MANAGERS = ['ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER'] as const
 
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
 
-router.get('/', requireRoles(...VENDOR_MANAGERS), async (_req, res) => {
+router.get('/', requireRoles(...VENDOR_MANAGERS), async (req, res) => {
   try {
-    const vendors = await prisma.vendor.findMany({ orderBy: { createdAt: 'desc' } })
+    const listWhere = await buildVendorListWhere(req.auth!)
+    const vendors = await prisma.vendor.findMany({ where: listWhere, orderBy: { createdAt: 'desc' } })
     const enriched = await Promise.all(
       vendors.map(async (v) => {
         const [userCount, submissionCount, assignmentCount] = await Promise.all([

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Calendar,
@@ -12,14 +12,14 @@ import {
 import { api } from '@/services/api'
 import { ListSearchBar } from '@/components/ui/ListSearchBar'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { heroBtnPrimary } from '@/components/layout/PageHero'
+import { heroBtnPrimary, heroBtnSecondary } from '@/components/layout/PageHero'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { matchesAnySearch } from '@/lib/textSearch'
 import { Interview } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
 import { useToastStore } from '@/store/toastStore'
 import { useConfirm } from '@/hooks/useConfirm'
-import { canScheduleInterviews, isAssignedInterviewer } from '@/permissions'
+import { canScheduleInterviews, isAssignedInterviewer, ROLES } from '@/permissions'
 import { getInterviewDisplayLabel } from '@/lib/interviewDisplayStatus'
 import {
   filterInterviews,
@@ -46,11 +46,15 @@ const FILTERS: { id: InterviewFilter; label: string }[] = [
 const Interviews = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filter, setFilter] = useState<InterviewFilter>('all')
+  const [searchParams] = useSearchParams()
+  const mineOnly = searchParams.get('mine') === '1'
   const { user } = useAuth()
   const { addToast } = useToastStore()
   const confirm = useConfirm()
   const queryClient = useQueryClient()
   const canManage = canScheduleInterviews(user?.role)
+  const isInterviewer = user?.role === ROLES.INTERVIEWER
+  const showMineToggle = !isInterviewer
 
   const { data: interviews = [], isLoading } = useQuery({
     queryKey: ['interviews'],
@@ -58,11 +62,11 @@ const Interviews = () => {
   })
 
   const scopedInterviews = useMemo(() => {
-    if (user?.role === 'INTERVIEWER' && user.uid) {
+    if ((user?.role === 'INTERVIEWER' || mineOnly) && user?.uid) {
       return interviews.filter((i) => isAssignedInterviewer(i, user.uid))
     }
     return interviews
-  }, [interviews, user?.role, user?.uid])
+  }, [interviews, user?.role, user?.uid, mineOnly])
 
   const { data: requirements = [] } = useQuery({
     queryKey: ['requirements'],
@@ -160,16 +164,33 @@ const Interviews = () => {
       <PageHeader
         highlighted
         icon={Calendar}
-        eyebrow="Interview hub"
-        title="Interviews"
-        description="L1 → L2 → HR pipeline. Track upcoming sessions, submit feedback, and move candidates through each stage."
+        eyebrow={isInterviewer || mineOnly ? 'Your schedule' : 'Interview hub'}
+        title={isInterviewer ? 'My interviews' : mineOnly ? 'Interviews for me' : 'Interviews'}
+        description={
+          isInterviewer || mineOnly
+            ? 'Sessions where you are assigned as interviewer — upcoming, feedback, and history.'
+            : 'L1 → L2 → HR pipeline. Track upcoming sessions, submit feedback, and move candidates through each stage.'
+        }
         actions={
-          canManage ? (
-            <Link to="/interviews/new" className={heroBtnPrimary}>
-              <Plus size={18} />
-              Schedule interview
-            </Link>
-          ) : undefined
+          <div className="flex flex-wrap gap-2">
+            {showMineToggle &&
+              (mineOnly ? (
+                <Link to="/interviews" className={heroBtnSecondary}>
+                  View all interviews
+                </Link>
+              ) : (
+                <Link to="/interviews?mine=1" className={heroBtnSecondary}>
+                  <CalendarClock size={18} />
+                  Interviews for me
+                </Link>
+              ))}
+            {canManage && (
+              <Link to="/interviews/new" className={heroBtnPrimary}>
+                <Plus size={18} />
+                Schedule interview
+              </Link>
+            )}
+          </div>
         }
       />
 
@@ -237,13 +258,21 @@ const Interviews = () => {
         <div className="bg-white dark:bg-white/5 rounded-2xl border border-dashed border-primary/15 dark:border-white/15">
           <EmptyState
             icon="event_busy"
-            title={searchTerm.trim() ? 'No matches' : 'No interviews yet'}
+            title={
+              searchTerm.trim()
+                ? 'No matches'
+                : mineOnly
+                  ? 'No interviews assigned to you'
+                  : 'No interviews yet'
+            }
             description={
               searchTerm.trim()
                 ? 'Try a different search or clear filters.'
-                : canManage
-                  ? 'Schedule the first L1 interview for a candidate on a job.'
-                  : 'Interviews scheduled for you will appear here.'
+                : mineOnly
+                  ? 'When you are added as an interviewer on a session, it will show up here.'
+                  : canManage
+                    ? 'Schedule the first L1 interview for a candidate on a job.'
+                    : 'Interviews scheduled for you will appear here.'
             }
           />
           {canManage && !searchTerm.trim() && (
@@ -330,6 +359,7 @@ const Interviews = () => {
                           variant="timeline"
                           canManage={canManage}
                           userRole={user?.role}
+                          currentUserId={user?.uid}
                           onCancel={handleCancel}
                           cancelPending={cancelMutation.isPending}
                         />

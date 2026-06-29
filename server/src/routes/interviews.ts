@@ -342,7 +342,7 @@ router.patch('/:id', requireRoles(...INTERVIEW_SCHEDULERS), async (req, res) => 
   }
 
   try {
-    await assertCandidateInInterviewStage(nextCandidateId)
+    await assertCandidateInInterviewStage(nextCandidateId, nextRequirementId)
   } catch (err) {
     if (err instanceof ScheduleStageError) {
       return res.status(err.statusCode).json({ error: err.message })

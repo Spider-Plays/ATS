@@ -10,14 +10,14 @@ import { queryClient } from './lib/queryClient'
 function App() {
     return (
         <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-                <BrowserRouter>
+            <BrowserRouter>
+                <AuthProvider>
                     <IdleLogoutGuard />
                     <AppRoutes />
                     <Toaster />
                     <ConfirmHost />
-                </BrowserRouter>
-            </AuthProvider>
+                </AuthProvider>
+            </BrowserRouter>
         </QueryClientProvider>
     )
 }

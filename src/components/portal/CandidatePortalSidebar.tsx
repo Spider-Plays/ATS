@@ -14,7 +14,7 @@ export function CandidatePortalSidebar() {
   const location = useLocation()
 
   return (
-    <aside className="m3-navigation-drawer flex flex-col h-screen fixed left-0 top-0 z-50">
+    <aside className="m3-navigation-drawer flex flex-col fixed left-0 top-0 z-50">
       <div className="sidebar-brand">
         <Link
           to="/portal/dashboard"

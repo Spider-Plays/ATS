@@ -8,7 +8,6 @@ import { ApiError } from '@/lib/apiClient'
 import { PageKey } from '@/permissions'
 import { postAuthPath } from '@/lib/loginRedirect'
 import type { User } from '@/types'
-import { DevQuickLogin } from '@/dev/DevQuickLogin'
 import { LoginHero, LoginHeroMobile } from '@/components/auth/LoginHero'
 import './login.css'
 const Login = () => {
@@ -54,7 +53,9 @@ const Login = () => {
             if (code === 'ACCOUNT_DISABLED') {
                 setAuthError('This account has been disabled.')
             } else if (code === 'SERVER_UNAVAILABLE' || code === 'Cannot reach API' || code.includes('Cannot reach API')) {
-                setAuthError('Cannot reach the API server. Check that the API is running and allows this site origin.')
+                setAuthError(
+                    'Cannot reach the API server. Run `npm run dev` from the project root (frontend on :3000, API on :4000).'
+                )
             } else if (code === 'INVALID_CREDENTIALS') {
                 setAuthError('Invalid email or password.')
             } else {
@@ -214,9 +215,11 @@ const Login = () => {
                                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">mail</span>
                                     <input
                                         type="email"
+                                        required
+                                        autoComplete="email"
                                         className="app-input app-input-leading-icon w-full !py-3.5 focus:border-primary dark:focus:border-ring focus:ring-0"
                                         placeholder="you@company.com"
-                                        {...register('email')}
+                                        {...register('email', { required: true })}
                                     />
                                 </div>
                             </div>
@@ -229,9 +232,11 @@ const Login = () => {
                                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">lock</span>
                                     <input
                                         type={showPassword ? 'text' : 'password'}
+                                        required
+                                        autoComplete="current-password"
                                         className="app-input app-input-leading-icon w-full !pr-12 focus:!pr-12 !py-3.5 focus:border-primary dark:focus:border-ring focus:ring-0"
                                         placeholder="••••••••"
-                                        {...register('password')}
+                                        {...register('password', { required: true })}
                                     />
                                     <button
                                         type="button"
@@ -273,17 +278,6 @@ const Login = () => {
                                 )}
                             </button>
                         </form>
-                        )}
-
-                        {mode === 'login' && import.meta.env.DEV && (
-                            <DevQuickLogin
-                                primaryOnly
-                                onError={(msg) => {
-                                    setAuthError(msg || null)
-                                    setInfoMessage(null)
-                                }}
-                                onLoggedIn={(session) => redirectAfterAuth(session)}
-                            />
                         )}
 
                         {mode === 'login' && (

@@ -10,6 +10,7 @@ import { logTemporaryPassword } from '../lib/devPasswordLog.js'
 import { env } from '../config/env.js'
 import { notifyAdminPasswordReset, notifyStaffUserCreated } from '../lib/emailDispatch.js'
 import { issuePasswordResetLink } from '../lib/passwordReset.js'
+import { buildUserListWhere } from '../lib/userAccess.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser)
@@ -31,8 +32,9 @@ const staffRoles = [
 router.get(
   '/',
   requireRoles('ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER', 'TEAM_LEAD', 'HIRING_MANAGER', 'INTERVIEWER'),
-  async (_req, res) => {
-  const users = await prisma.user.findMany({ orderBy: { createdAt: 'desc' } })
+  async (req, res) => {
+  const listWhere = await buildUserListWhere(req.auth!)
+  const users = await prisma.user.findMany({ where: listWhere, orderBy: { createdAt: 'desc' } })
   res.json(users.map(mapUser))
 })
 
