@@ -1,15 +1,11 @@
 name = "ats"
 compatibility_date = "2024-09-23"
-pages_build_output_dir = "./dist"
+main = "./worker/index.js"
 
-# Default vars apply to local dev and production deployments.
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
 [vars]
-API_ORIGIN = "https://stitch-ats.onrender.com"
-
-# Preview deployments (non-production branches) — Cloudflare's "dev" stage.
-# Point at a separate Render preview service when you have one.
-[env.preview.vars]
-API_ORIGIN = "https://stitch-ats.onrender.com"
-
-[env.production.vars]
 API_ORIGIN = "https://stitch-ats.onrender.com"
