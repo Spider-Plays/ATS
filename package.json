@@ -12,7 +12,7 @@
         "cf:build": "npm run build:client",
         "deploy:pages": "npm run build:client && npx wrangler pages deploy",
         "deploy:pages:preview": "npm run build:client && npx wrangler pages deploy --branch dev",
-        "deploy:worker": "node -e \"console.log('Pages publishes dist from the build step — no wrangler deploy needed.')\"",
+        "deploy:worker": "npx wrangler deploy",
         "build:client:check": "tsc && vite build",
         "db:setup": "npm run db:setup --prefix server",
         "db:clear": "npm run db:clear --prefix server",
