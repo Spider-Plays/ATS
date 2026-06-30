@@ -3,6 +3,7 @@ services:
   - type: web
     name: stitch-ats-api
     runtime: node
+    branch: main
     rootDir: server
     buildCommand: npm install --include=dev && npm run build
     startCommand: npm run start:deploy
@@ -25,14 +26,17 @@ services:
   - type: web
     name: stitch-ats-api-staging
     runtime: node
+    branch: qa
     rootDir: server
     buildCommand: npm install --include=dev && npm run build
-    startCommand: npm run start:deploy
+    startCommand: npm run start:deploy:staging
     envVars:
       - key: NODE_VERSION
         value: "22.22.0"
       - key: NODE_ENV
         value: production
+      - key: ATS_ENV
+        value: staging
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET

@@ -11,6 +11,7 @@
     "build": "npm run db:generate && tsc",
     "start": "node dist/index.js",
     "start:deploy": "npm run db:push && npm start",
+    "start:deploy:staging": "npm start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push && prisma generate",
     "db:push:schema": "prisma db push",
