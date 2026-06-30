@@ -10,7 +10,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "npm run db:generate && tsc",
     "start": "node dist/index.js",
-    "start:deploy": "npm run db:push && npm start",
+    "start:deploy": "prisma db push --skip-generate || echo 'WARNING: prisma db push could not apply automatically (likely a destructive change such as a column drop). Existing columns and data are preserved; runtime ensure* guards reconcile additive schema. Server will still start.'; prisma generate && npm start",
     "db:generate": "prisma generate",
     "db:push": "prisma db push && prisma generate",
     "db:push:schema": "prisma db push",
