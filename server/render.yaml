@@ -29,7 +29,7 @@ services:
     branch: qa
     rootDir: server
     buildCommand: npm install --include=dev && npm run build
-    startCommand: npm run start:deploy:staging
+    startCommand: npm run start:deploy
     envVars:
       - key: NODE_VERSION
         value: "22.22.0"
