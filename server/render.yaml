@@ -20,6 +20,32 @@ services:
         value: "http://localhost:3000,https://stitch-ats.in,https://www.stitch-ats.in"
       - key: APP_URL
         value: "https://stitch-ats.in"
+      - key: APP_NAME
+        value: "Stitch ATS"
+      - key: EMAIL_FROM
+        value: "Stitch ATS <talentacquisition@stitch-ats.in>"
+      - key: M365_SENDER_DISPLAY_NAME
+        value: "Stitch ATS"
+      - key: M365_CALENDAR_ENABLED
+        value: "true"
+      - key: M365_AUTO_TEAMS_MEETING
+        value: "true"
+      - key: M365_CALENDAR_TIMEZONE
+        value: "Asia/Kolkata"
+      - key: M365_TENANT_ID
+        sync: false
+      - key: M365_CLIENT_ID
+        sync: false
+      - key: M365_CLIENT_SECRET
+        sync: false
+      - key: M365_SENDER_EMAIL
+        sync: false
+      - key: M365_INTEGRATION_API_KEY
+        sync: false
+      - key: M365_CALENDAR_ORGANIZER_EMAIL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
       - key: PUPPETEER_CACHE_DIR
         value: "/opt/render/project/src/server/.cache/puppeteer"
 
@@ -45,5 +71,31 @@ services:
         value: "https://qa.stitch-ats.in,http://localhost:3000"
       - key: APP_URL
         value: "https://qa.stitch-ats.in"
+      - key: APP_NAME
+        value: "Stitch ATS (QA)"
+      - key: EMAIL_FROM
+        value: "Stitch ATS (QA) <talentacquisition@stitch-ats.in>"
+      - key: M365_SENDER_DISPLAY_NAME
+        value: "Stitch ATS (QA)"
+      - key: M365_CALENDAR_ENABLED
+        value: "true"
+      - key: M365_AUTO_TEAMS_MEETING
+        value: "true"
+      - key: M365_CALENDAR_TIMEZONE
+        value: "Asia/Kolkata"
+      - key: M365_TENANT_ID
+        sync: false
+      - key: M365_CLIENT_ID
+        sync: false
+      - key: M365_CLIENT_SECRET
+        sync: false
+      - key: M365_SENDER_EMAIL
+        sync: false
+      - key: M365_INTEGRATION_API_KEY
+        sync: false
+      - key: M365_CALENDAR_ORGANIZER_EMAIL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
       - key: PUPPETEER_CACHE_DIR
         value: "/opt/render/project/src/server/.cache/puppeteer"

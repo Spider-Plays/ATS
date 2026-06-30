@@ -103,7 +103,7 @@ $env:QA_ADMIN_PASSWORD="<secure-password>"
 npm run db:setup-staging
 ```
 
-**2. Render** — staging web service (root dir `server`), branch **`qa`**, env: staging `DATABASE_URL`, new `JWT_SECRET`, `CLIENT_ORIGIN=https://qa.stitch-ats.in,http://localhost:3000`, `APP_URL=https://qa.stitch-ats.in`.
+**2. Render** — staging web service (root dir `server`), branch **`qa`**, env: staging `DATABASE_URL`, new `JWT_SECRET`, `CLIENT_ORIGIN=https://qa.stitch-ats.in,http://localhost:3000`, `APP_URL=https://qa.stitch-ats.in`, plus **email vars** (`M365_*` or `RESEND_API_KEY` — copy from production service). See [docs/qa/STAGING_ENVIRONMENT.md](docs/qa/STAGING_ENVIRONMENT.md#email-render-staging-api).
 
 **3. Cloudflare** — worker **`ats-qa`**, deploy `npm run deploy:worker:qa`, runtime `API_ORIGIN=https://ats-0dtj.onrender.com`, domain **`qa.stitch-ats.in`**. Production worker **`ats`** unchanged on **`main`**.
 

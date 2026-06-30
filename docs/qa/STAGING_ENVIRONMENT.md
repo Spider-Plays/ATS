@@ -45,12 +45,36 @@ Contact your QA lead if credentials were rotated.
 
 ---
 
+## Email (Render staging API)
+
+Copy the email secrets from **production** Render (`stitch-ats-api`) to **staging** (`stitch-ats-api-staging` / `ats-0dtj`):
+
+| Variable | Notes |
+|----------|--------|
+| `M365_TENANT_ID`, `M365_CLIENT_ID`, `M365_CLIENT_SECRET`, `M365_SENDER_EMAIL` | Same Azure app as production |
+| `M365_INTEGRATION_API_KEY` | Same or a separate key for QA |
+| `RESEND_API_KEY` | Only if using Resend instead of M365 |
+
+Non-secret vars are set in `server/render.yaml` (`APP_NAME`, `EMAIL_FROM`, calendar flags). After deploy, verify:
+
+```bash
+npm run verify:qa-staging
+```
+
+Or open https://ats-0dtj.onrender.com/api/health — expect `"email": "configured"`.
+
+Test send (IT): `POST /api/integrations/m365/test-email` with header `X-Integration-Api-Key`.
+
+Local QA: copy `server/.env.staging.example` → `server/.env.staging`, paste secrets, then `npm run dev:qa`.
+
+---
+
 ## Differences from production
 
 | Item | Staging | Production |
 |------|---------|------------|
 | Data | Safe to create/delete `[QA]` test data | Real data — use caution |
-| Email | May be disabled or sandboxed — confirm with dev team | Live M365/Resend |
+| Email | M365/Resend — same Azure app as prod; subjects prefixed `[QA]`; links use `qa.stitch-ats.in` | Live M365/Resend |
 | Cold start | Staging API may sleep on free Render tier | Same possible on prod |
 | Dev quick login | Not available (build is production mode) | Not available |
 

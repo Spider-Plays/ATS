@@ -197,6 +197,12 @@ export function isEmailConfigured(): boolean {
   return isM365EmailConfigured() || Boolean(env.resendApiKey)
 }
 
+/** Prefix QA staging subjects so test mail is easy to spot in inboxes. */
+function formatEmailSubject(subject: string): string {
+  if (process.env.ATS_ENV !== 'staging') return subject
+  return subject.startsWith('[QA] ') ? subject : `[QA] ${subject}`
+}
+
 async function sendHtmlEmail(params: {
   to: string
   subject: string
@@ -207,12 +213,13 @@ async function sendHtmlEmail(params: {
     content: Buffer
   }>
 }): Promise<SendEmailResult> {
+  const subject = formatEmailSubject(params.subject)
   const inlineAttachments = emailUsesStitchMark(params.html)
     ? [getStitchMarkInlineAttachment()].filter((item): item is NonNullable<typeof item> => item !== null)
     : []
 
   if (isM365EmailConfigured()) {
-    return sendM365HtmlEmail({ ...params, inlineAttachments })
+    return sendM365HtmlEmail({ ...params, subject, inlineAttachments })
   }
 
   if (!env.resendApiKey) return { sent: false, reason: 'not_configured' }
@@ -222,7 +229,7 @@ async function sendHtmlEmail(params: {
     const { data, error } = await resend.emails.send({
       from: env.emailFrom,
       to: params.to,
-      subject: params.subject,
+      subject,
       html: params.html,
       attachments: [
         ...inlineAttachments.map((item) => ({

@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client'
 import { env } from './config/env.js'
 import { resolveApiBuildId } from './config/buildId.js'
 import { prisma } from './lib/prisma.js'
+import { isEmailConfigured } from './services/email.js'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
 import requirementRoutes from './routes/requirements.js'
@@ -82,9 +83,14 @@ app.get('/api/health', async (_req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
   try {
     await prisma.$queryRaw`SELECT 1`
-    res.json({ ok: true, database: 'connected', buildId })
+    res.json({
+      ok: true,
+      database: 'connected',
+      buildId,
+      email: isEmailConfigured() ? 'configured' : 'not_configured',
+    })
   } catch {
-    res.status(503).json({ ok: false, database: 'unavailable', buildId })
+    res.status(503).json({ ok: false, database: 'unavailable', buildId, email: isEmailConfigured() ? 'configured' : 'not_configured' })
   }
 })
 
