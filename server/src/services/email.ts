@@ -613,7 +613,7 @@ export async function sendJobDescriptionEmail(params: {
   jobCode?: string | null
 }): Promise<SendEmailResult> {
   const portalUrl = `${env.clientOrigin.replace(/\/$/, '')}/candidate/login`
-  const details: Array<{ label: string; value: string }> = [{ label: 'Role', value: params.jobTitle }]
+  const details: Array<{ label: string; value: string; mono?: boolean }> = [{ label: 'Role', value: params.jobTitle }]
   if (params.client) details.push({ label: 'Client', value: params.client })
   if (params.jobCode) details.push({ label: 'Job code', value: params.jobCode, mono: true })
 
