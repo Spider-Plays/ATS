@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import clsx from 'clsx'
-import { APP_NAME } from '../../config/branding'
+import { copyrightNotice } from '../../config/branding'
 import { candidateStatusLabel } from '@/pages/candidates/_shared/candidate.utils'
 import type { CandidateStatus } from '../../types'
 import { StitchLogo } from '../branding/StitchLogo'
 
 const LOGIN_PIPELINE_STATUSES = [
-  'SOURCED',
-  'APPLIED',
+  'ADDED',
+  'SUBMITTED',
   'SCREENING',
   'SHORTLISTED',
   'INTERVIEW',
@@ -20,8 +20,8 @@ type LoginPipelineStatus = (typeof LOGIN_PIPELINE_STATUSES)[number]
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
 
 const LOGIN_PIPELINE_COUNT_RANGES: Record<LoginPipelineStatus, [number, number]> = {
-  SOURCED: [18, 42],
-  APPLIED: [12, 32],
+  ADDED: [18, 42],
+  SUBMITTED: [12, 32],
   SCREENING: [8, 22],
   SHORTLISTED: [4, 14],
   INTERVIEW: [2, 10],
@@ -198,7 +198,7 @@ export function LoginHero() {
       </div>
 
       <div className="relative z-10 flex flex-wrap items-center gap-3 text-xs text-white/50">
-        <span>© 2026 {APP_NAME}</span>
+        <span>{copyrightNotice()}</span>
         <span className="hidden sm:inline text-white/25">·</span>
         <span className="login-hero-stat-pill">Live pipeline</span>
         <span className="login-hero-stat-pill">Interview plans</span>

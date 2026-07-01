@@ -38,11 +38,12 @@ import './users.css';
 const addUserSchema = z.object({
     email: z.string().email('Enter a valid email'),
     name: z.string().min(1, 'Name is required'),
-    role: z.enum(['SUPER_ADMIN', 'ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER', 'TEAM_LEAD', 'HIRING_MANAGER', 'INTERVIEWER', 'CANDIDATE', 'VENDOR', 'EMPLOYEE']),
+    role: z.enum(['SUPER_ADMIN', 'ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER', 'TEAM_LEAD', 'HIRING_MANAGER', 'ACCOUNT_MANAGER', 'INTERVIEWER', 'CANDIDATE', 'VENDOR', 'EMPLOYEE']),
     department: z.string().max(120).optional(),
     phoneNumber: z.string().max(40).optional(),
     address: z.string().max(500).optional(),
     temporaryPassword: z.string().min(8, 'Temporary password must be at least 8 characters'),
+    sendInviteEmail: z.boolean().optional(),
 })
 
 type AddUserFormValues = z.infer<typeof addUserSchema>
@@ -69,8 +70,10 @@ const UserManagement = () => {
             phoneNumber: '',
             address: '',
             temporaryPassword: generateTempPassword(),
+            sendInviteEmail: true,
         },
     })
+    const sendInviteEmail = addUserForm.watch('sendInviteEmail')
 
     // Fetch Users
     const { data, isLoading, isError, isFetching, refetch } = useQuery({
@@ -221,14 +224,27 @@ const UserManagement = () => {
                 phoneNumber: data.phoneNumber || undefined,
                 address: data.address || undefined,
                 temporaryPassword: data.temporaryPassword,
+                sendInviteEmail: data.sendInviteEmail,
             }),
         onSuccess: (result, variables) => {
             queryClient.invalidateQueries({ queryKey: ['users'] })
             setIsAddUserOpen(false)
-            setCreatedCredentials({
-                email: result.user.email,
-                temporaryPassword: variables.temporaryPassword,
-            })
+            const emailSent = result.inviteEmailSent === true
+            if (variables.sendInviteEmail && emailSent) {
+                addToast('User created — invite email sent', 'success')
+            } else if (variables.sendInviteEmail && result.inviteEmailWarning) {
+                addToast(result.inviteEmailWarning, 'warning')
+            } else {
+                addToast('User created', 'success')
+            }
+            if (!variables.sendInviteEmail || !emailSent) {
+                setCreatedCredentials({
+                    email: result.user.email,
+                    temporaryPassword: variables.temporaryPassword,
+                })
+            } else {
+                setCreatedCredentials(null)
+            }
             addUserForm.reset({
                 email: '',
                 name: '',
@@ -237,8 +253,8 @@ const UserManagement = () => {
                 phoneNumber: '',
                 address: '',
                 temporaryPassword: generateTempPassword(),
+                sendInviteEmail: true,
             })
-            addToast('User created — share the temporary password with them', 'success')
         },
         onError: (err: unknown) => {
             const msg = err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Failed to add user'
@@ -552,8 +568,23 @@ const UserManagement = () => {
                                         <p className="text-xs text-red-600 mt-1">{addUserForm.formState.errors.temporaryPassword.message}</p>
                                     )}
                                 </div>
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="mt-1 rounded"
+                                        {...addUserForm.register('sendInviteEmail')}
+                                    />
+                                    <span className="text-sm text-primary dark:text-white leading-relaxed">
+                                        <span className="font-semibold block">Send invite email</span>
+                                        <span className="text-page-desc">
+                                            Email sign-in instructions and the temporary password to the new member.
+                                        </span>
+                                    </span>
+                                </label>
                                 <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 rounded-xl text-sm leading-relaxed">
-                                    Share the email and temporary password with the new member securely. They must set a new password on first sign-in.
+                                    {sendInviteEmail
+                                        ? 'They will receive an email with a link to sign in. They must set a new password on first sign-in.'
+                                        : 'Share the email and temporary password with the new member securely. They must set a new password on first sign-in.'}
                                 </div>
                             </div>
                         </div>

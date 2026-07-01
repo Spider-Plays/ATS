@@ -116,6 +116,7 @@ export const USER_ROLE_OPTIONS: AppSelectOption[] = [
   { value: 'RECRUITER', label: 'Recruiter' },
   { value: 'TEAM_LEAD', label: 'Team Lead' },
   { value: 'HIRING_MANAGER', label: 'Hiring Manager' },
+  { value: 'ACCOUNT_MANAGER', label: 'Account Manager' },
   { value: 'INTERVIEWER', label: 'Interviewer' },
   { value: 'CANDIDATE', label: 'Candidate' },
 ]

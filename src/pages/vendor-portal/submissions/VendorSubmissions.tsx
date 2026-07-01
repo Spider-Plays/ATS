@@ -1,33 +1,40 @@
-import React, { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/services/api'
-import { ListSearchBar } from '@/components/ui/ListSearchBar'
-import { matchesAnySearch } from '@/lib/textSearch'
-import { EmptyState } from '@/components/ui/EmptyState'
-import clsx from 'clsx'
-import './submissions.css'
+import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { ListSearchBar } from "@/components/ui/ListSearchBar";
+import { matchesAnySearch } from "@/lib/textSearch";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { VendorSubmissionCard } from "@/components/vendor/VendorSubmissionCard";
+import "./submissions.css";
 
 const VendorSubmissions = () => {
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState("");
   const { data: submissions = [], isLoading } = useQuery({
-    queryKey: ['vendor-portal-submissions'],
+    queryKey: ["vendor-portal-submissions"],
     queryFn: api.vendorPortal.getSubmissions,
-  })
+  });
 
   const filtered = useMemo(
     () =>
       submissions.filter((c) =>
-        matchesAnySearch([c.name, c.email, c.status, c.jobTitle, c.role], search)
+        matchesAnySearch(
+          [c.name, c.email, c.status, c.jobTitle, c.role, c.reqId],
+          search,
+        ),
       ),
-    [submissions, search]
-  )
+    [submissions, search],
+  );
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 dark:text-white">My submissions</h1>
-        <p className="text-sm text-slate-500 mt-1">Candidates you have submitted to assigned jobs.</p>
-      </div>
+      <header className="space-y-2">
+        <span className="portal-page-eyebrow">Profiles</span>
+        <h1 className="text-page-title">Submitted profiles</h1>
+        <p className="text-page-desc">
+          All candidate profiles you have submitted to assigned jobs.
+        </p>
+      </header>
 
       <ListSearchBar
         value={search}
@@ -36,55 +43,51 @@ const VendorSubmissions = () => {
       />
 
       {isLoading ? (
-        <p className="text-center py-12 text-slate-500">Loading...</p>
+        <p className="text-center py-12 text-slate-500">Loading profiles…</p>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon="group"
-          title={search ? 'No matches' : 'No submissions yet'}
+          title={search ? "No matches" : "No submissions yet"}
           description={
-            search ? 'Try a different search.' : 'Submit candidates from your assigned jobs.'
+            search
+              ? "Try a different search."
+              : "Submit candidates from your assigned jobs."
           }
         />
       ) : (
-        <div className="bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Candidate</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Job</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Submitted</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/10">
-              {filtered.map((c) => (
-                <tr key={c.id}>
-                  <td className="px-4 py-3">
-                    <p className="font-bold text-slate-900 dark:text-white">{c.name}</p>
-                    <p className="text-xs text-slate-500">{c.email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{c.jobTitle ?? c.role}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={clsx(
-                        'px-2 py-0.5 rounded text-[10px] font-bold uppercase border',
-                        'bg-slate-100 text-slate-700 border-slate-200'
-                      )}
-                    >
-                      {c.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="space-y-4">
+          {filtered.map((c) => (
+            <li key={c.id}>
+              <VendorSubmissionCard
+                submission={{
+                  id: c.id,
+                  name: c.name,
+                  email: c.email,
+                  status: c.status,
+                  jobTitle: c.jobTitle ?? c.role,
+                  jobCode: c.reqId,
+                  requirementId: c.requirementId,
+                  matchScore: c.matchScore,
+                  phone: c.phone,
+                  location: c.location,
+                  createdAt: c.createdAt,
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!isLoading && filtered.length > 0 && (
+        <p className="text-sm text-slate-500 text-center">
+          Need a status breakdown?{" "}
+          <Link to="/vendor-portal/report" className="font-bold text-primary hover:underline">
+            View submission report
+          </Link>
+        </p>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default VendorSubmissions
+export default VendorSubmissions;

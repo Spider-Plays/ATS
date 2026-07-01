@@ -41,12 +41,30 @@ const Sidebar = () => {
             variant={navVariant}
           />
         )}
+        {show('business_requirements') && (
+          <SidebarNavItem
+            to="/business-requirements"
+            icon="handshake"
+            label="Business Requirements"
+            active={path.startsWith('/business-requirements')}
+            variant={navVariant}
+          />
+        )}
         {show('requirements') && (
           <SidebarNavItem
             to="/requirements"
             icon="work"
             label="Requirements"
             active={path.startsWith('/requirements')}
+            variant={navVariant}
+          />
+        )}
+        {show('reports') && (
+          <SidebarNavItem
+            to="/reports"
+            icon="bar_chart"
+            label="Reports"
+            active={path.startsWith('/reports')}
             variant={navVariant}
           />
         )}

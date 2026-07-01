@@ -54,3 +54,23 @@ export async function getUserEmailsByRoles(
   })
   return users
 }
+
+/** Hiring manager, account manager, and super admins for business requirement stage alerts. */
+export async function getBusinessRequirementStageNotificationRecipients(businessReq: {
+  accountManager: string
+  hiringManager: string
+}): Promise<Array<{ email: string; name: string }>> {
+  const stakeholderIds = [businessReq.accountManager, businessReq.hiringManager].filter(Boolean)
+  const [stakeholders, superAdmins] = await Promise.all([
+    getUserEmailsByIds(stakeholderIds),
+    getUserEmailsByRoles(['SUPER_ADMIN']),
+  ])
+  const seen = new Set<string>()
+  const out: Array<{ email: string; name: string }> = []
+  for (const u of [...stakeholders, ...superAdmins]) {
+    if (!u.email || seen.has(u.email)) continue
+    seen.add(u.email)
+    out.push({ email: u.email, name: u.name })
+  }
+  return out
+}

@@ -9,6 +9,7 @@ import { PageKey } from '@/permissions'
 import { postAuthPath } from '@/lib/loginRedirect'
 import type { User } from '@/types'
 import { LoginHero, LoginHeroMobile } from '@/components/auth/LoginHero'
+import { backButtonClass } from '@/components/ui/BackButton'
 import './login.css'
 const Login = () => {
     const navigate = useNavigate()
@@ -113,7 +114,7 @@ const Login = () => {
                                     setAuthError(null)
                                     setInfoMessage(null)
                                 }}
-                                className="text-sm font-bold text-primary/70 dark:text-white/70 hover:text-primary dark:hover:text-white"
+                                className={backButtonClass('muted')}
                             >
                                 Back to sign in
                             </button>
@@ -163,7 +164,7 @@ const Login = () => {
                                 <button type="submit" disabled={loading} className="w-full py-4 btn-primary rounded-xl text-sm">
                                     Send reset link
                                 </button>
-                                <button type="button" onClick={() => setMode('login')} className="w-full text-sm font-bold text-primary/60">
+                                <button type="button" onClick={() => setMode('login')} className={backButtonClass('muted', 'w-full')}>
                                     Back to sign in
                                 </button>
                             </form>
@@ -201,7 +202,7 @@ const Login = () => {
                                 <button type="submit" disabled={loading} className="w-full py-4 btn-primary rounded-xl text-sm">
                                     Set new password
                                 </button>
-                                <button type="button" onClick={() => setMode('login')} className="w-full text-sm font-bold text-primary/60">
+                                <button type="button" onClick={() => setMode('login')} className={backButtonClass('muted', 'w-full')}>
                                     Back to sign in
                                 </button>
                             </form>
@@ -286,13 +287,6 @@ const Login = () => {
                                     Other portals
                                 </p>
                                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                                    <Link
-                                        to="/portal/login"
-                                        className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
-                                    >
-                                        Candidate portal
-                                        <span className="material-symbols-outlined text-lg">arrow_forward</span>
-                                    </Link>
                                     <Link
                                         to="/referral-portal/login"
                                         className="inline-flex items-center gap-2 text-sm font-bold text-violet-700 dark:text-violet-400 hover:underline"

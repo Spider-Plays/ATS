@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import clsx from 'clsx'
 import { useAuth } from '../../hooks/useAuth'
 import { useLogout } from '../../hooks/useLogout'
@@ -12,8 +12,10 @@ type SidebarProfileFooterProps = {
 
 export function SidebarProfileFooter({ profileTo, className }: SidebarProfileFooterProps) {
   const { user } = useAuth()
+  const location = useLocation()
   const handleLogout = useLogout()
   const roleLabel = user?.role?.replace(/_/g, ' ') ?? ''
+  const profileActive = profileTo != null && location.pathname === profileTo
 
   const profileInner = (
     <>
@@ -41,9 +43,9 @@ export function SidebarProfileFooter({ profileTo, className }: SidebarProfileFoo
 
   return (
     <div className={clsx('sidebar-footer', className)}>
-      <div className="sidebar-profile-card">
+      <div className={clsx('sidebar-profile-card', profileActive && 'ring-2 ring-primary/30')}>
         {profileTo ? (
-          <Link to={profileTo} className="sidebar-profile-link">
+          <Link to={profileTo} className="sidebar-profile-link" aria-current={profileActive ? 'page' : undefined}>
             {profileInner}
           </Link>
         ) : (

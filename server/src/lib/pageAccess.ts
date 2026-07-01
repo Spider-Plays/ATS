@@ -10,6 +10,7 @@ export const CONFIGURABLE_ROLES = [
   'RECRUITER',
   'TEAM_LEAD',
   'HIRING_MANAGER',
+  'ACCOUNT_MANAGER',
   'INTERVIEWER',
 ] as const
 
@@ -17,7 +18,9 @@ export type ConfigurableRole = (typeof CONFIGURABLE_ROLES)[number]
 
 export const PAGE_KEYS = [
   'dashboard',
+  'business_requirements',
   'requirements',
+  'reports',
   'vendors',
   'candidates',
   'pipeline',
@@ -34,7 +37,13 @@ export type PageKey = (typeof PAGE_KEYS)[number]
 
 export const PAGE_DEFINITIONS: { key: PageKey; label: string; description: string }[] = [
   { key: 'dashboard', label: 'Dashboard', description: 'Home dashboard and overview' },
+  {
+    key: 'business_requirements',
+    label: 'Business Requirements',
+    description: 'Pre-hiring client discussions and deal stages',
+  },
   { key: 'requirements', label: 'Requirements', description: 'Job requirements list and detail' },
+  { key: 'reports', label: 'Reports', description: 'Hiring, employee referral, and vendor reports' },
   { key: 'vendors', label: 'Vendors', description: 'Vendor management' },
   { key: 'candidates', label: 'Candidates', description: 'Candidate profiles and add candidate' },
   { key: 'pipeline', label: 'Pipeline', description: 'Hiring pipeline by requirement' },
@@ -62,6 +71,7 @@ export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
   HR_HEAD: [
     'dashboard',
     'requirements',
+    'reports',
     'vendors',
     'candidates',
     'pipeline',
@@ -74,6 +84,7 @@ export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
   HR_MANAGER: [
     'dashboard',
     'requirements',
+    'reports',
     'vendors',
     'candidates',
     'pipeline',
@@ -104,7 +115,8 @@ export const DEFAULT_ROLE_PAGES: Record<ConfigurableRole, PageKey[]> = {
     'notifications',
     'settings',
   ],
-  HIRING_MANAGER: ['dashboard', 'requirements', 'notifications', 'settings'],
+  HIRING_MANAGER: ['dashboard', 'business_requirements', 'requirements', 'reports', 'notifications', 'settings'],
+  ACCOUNT_MANAGER: ['dashboard', 'business_requirements', 'requirements', 'reports', 'notifications', 'settings'],
   INTERVIEWER: ['dashboard', 'interviews', 'notifications', 'settings'],
   FINANCE_HEAD: ['dashboard', 'offer_compensation_config', 'notifications', 'settings'],
 }
@@ -131,7 +143,7 @@ export function defaultPagesForRole(role: string): PageKey[] {
   return ['dashboard', 'notifications', 'settings']
 }
 
-function sanitizePagesForRole(role: string, pages: PageKey[]): PageKey[] {
+export function sanitizePagesForRole(role: string, pages: PageKey[]): PageKey[] {
   let result = sanitizePages(pages)
   if (role !== 'SUPER_ADMIN' && role !== 'ADMIN') {
     result = result.filter((p) => p !== 'admin_users')
@@ -152,12 +164,15 @@ export async function getAllowedPagesForRole(role: string): Promise<PageKey[]> {
   }
 
   const row = await prisma.rolePageAccess.findUnique({ where: { role } })
+  const defaults = defaultPagesForRole(role)
   let pages: PageKey[]
   if (row) {
     const parsed = parsePages(row.pages)
-    pages = parsed.length > 0 ? parsed : defaultPagesForRole(role)
+    const stored = parsed.length > 0 ? parsed : defaults
+    // Union with defaults so newly added pages (e.g. requirements for account managers) appear without manual DB patch
+    pages = [...new Set([...stored, ...defaults])]
   } else {
-    pages = defaultPagesForRole(role)
+    pages = defaults
   }
 
   return sanitizePagesForRole(role, pages)
@@ -212,7 +227,9 @@ export async function setRolePageAccess(role: string, pages: PageKey[]): Promise
 
 export function pathnameToPageKey(pathname: string): PageKey | null {
   if (pathname === '/' || pathname.startsWith('/dashboard')) return 'dashboard'
+  if (pathname.startsWith('/business-requirements')) return 'business_requirements'
   if (pathname.startsWith('/requirements')) return 'requirements'
+  if (pathname.startsWith('/reports')) return 'reports'
   if (pathname.startsWith('/vendors')) return 'vendors'
   if (pathname.startsWith('/candidates')) return 'candidates'
   if (pathname.startsWith('/pipeline')) return 'pipeline'

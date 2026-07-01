@@ -32,6 +32,7 @@ type RequirementScopeRow = {
   id: string
   createdBy: string | null
   hiringManager: string
+  accountManager: string | null
   recruiters: string
 }
 
@@ -52,6 +53,8 @@ export function requirementVisibleToAuth(
       return assigned || created
     case 'HIRING_MANAGER':
       return created || isRequirementHiringManager(auth, requirement)
+    case 'ACCOUNT_MANAGER':
+      return requirement.accountManager === auth.userId
     case 'INTERVIEWER':
       return interviewerRequirementIds?.has(requirement.id) ?? false
     default:
@@ -82,7 +85,7 @@ export async function requirementIdsForAuth(
   }
 
   const rows = await prisma.requirement.findMany({
-    select: { id: true, createdBy: true, hiringManager: true, recruiters: true },
+    select: { id: true, createdBy: true, hiringManager: true, accountManager: true, recruiters: true },
   })
   const interviewerReqIds =
     auth.role === 'INTERVIEWER'
@@ -111,7 +114,7 @@ export async function assertCanViewRequirement(
 
   const row = await prisma.requirement.findUnique({
     where: { id: requirementId },
-    select: { id: true, createdBy: true, hiringManager: true, recruiters: true },
+    select: { id: true, createdBy: true, hiringManager: true, accountManager: true, recruiters: true },
   })
   if (!row) {
     throw new RequirementAccessError('Requirement not found')

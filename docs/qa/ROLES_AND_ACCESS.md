@@ -1,6 +1,6 @@
 # Roles and Access Matrix
 
-Permission reference for **Stitch ATS** production testing. Twelve roles across five portals.
+Permission reference for **Stitch ATS** production testing. Thirteen roles across five portals.
 
 ---
 
@@ -15,6 +15,7 @@ Permission reference for **Stitch ATS** production testing. Twelve roles across 
 | RECRUITER | /login | /dashboard | Staff |
 | TEAM_LEAD | /login | /dashboard | Staff |
 | HIRING_MANAGER | /login | /dashboard | Staff |
+| ACCOUNT_MANAGER | /login | /dashboard | Staff (business module) |
 | INTERVIEWER | /login | /dashboard | Staff |
 | CANDIDATE | /portal/login | /portal/dashboard | Candidate |
 | VENDOR | /login | /vendor-portal/dashboard | Vendor |
@@ -31,18 +32,25 @@ Permission reference for **Stitch ATS** production testing. Twelve roles across 
 
 Sidebar pages controlled by `allowedPages`. Super Admin always sees all pages. Configurable by Super Admin at `/admin/role-access`.
 
-| Page | SUPER_ADMIN | ADMIN | HR_HEAD | HR_MANAGER | RECRUITER | TEAM_LEAD | HIRING_MANAGER | INTERVIEWER |
-|------|:-----------:|:-----:|:-------:|:----------:|:---------:|:---------:|:--------------:|:-----------:|
-| Dashboard | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Requirements | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Vendors | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| Candidates | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| Pipeline | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| Interviews | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ |
-| Offers | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | — |
-| User Mgmt | ✓ | — | — | — | — | — | — | — |
-| Notifications | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Settings | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Page | SUPER_ADMIN | ADMIN | HR_HEAD | HR_MANAGER | RECRUITER | TEAM_LEAD | HIRING_MANAGER | ACCOUNT_MANAGER | INTERVIEWER |
+|------|:-----------:|:-----:|:-------:|:----------:|:---------:|:---------:|:--------------:|:---------------:|:-----------:|
+| Dashboard | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Business Requirements | ✓ | ✓ | —* | —* | — | — | ✓ | ✓ | — |
+| Requirements | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓* | — |
+| Vendors | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| Candidates | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| Pipeline | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| Interviews | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | ✓ |
+| Offers | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | — | — |
+| User Mgmt | ✓ | — | — | — | — | — | — | — | — |
+| Notifications | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Settings | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+\* HR Head and HR Manager can open **individual** business requirement detail pages directly (read-only preview) without the Business Requirements sidebar page. They do **not** receive business deal stage notifications.
+
+\* Account Manager sees **Requirements** read-only — only roles where they are the named account manager (set when opening a business requirement to hiring).
+
+\*\* Business requirement **stage** notifications (in-app and email) go only to the named **account manager**, **hiring manager**, and **Super Admin**.
 
 **Admin hub** (`/admin`): Admin and Super Admin only (separate from sidebar page keys).
 
@@ -50,28 +58,32 @@ Sidebar pages controlled by `allowedPages`. Super Admin always sees all pages. C
 
 ## Capability matrix
 
-| Capability | SUPER_ADMIN | ADMIN | HR_HEAD | HR_MANAGER | RECRUITER | TEAM_LEAD | HIRING_MANAGER | INTERVIEWER |
-|------------|:-----------:|:-----:|:-------:|:----------:|:---------:|:---------:|:--------------:|:-----------:|
-| Create requirement | ✓ | ✓ | ✓ | ✓ | — | — | ✓ | — |
-| Approve requirement | ✓ | ✓* | ✓ | — | — | — | — | — |
-| Edit requirement (any) | ✓ | ✓ | ✓ | ✓ | scoped | scoped | own only | — |
-| Posting controls | ✓ | ✓ | ✓ | ✓ | — | ✓ | own only | — |
-| Portal visibility toggle | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | — |
-| Assign recruiter | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
-| Create candidate | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| Change pipeline stage | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| Change stage after HIRED | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
-| Schedule interview | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Submit interview feedback | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | assigned only |
-| Create offer | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
-| HR approve offer | ✓ | ✓ | ✓ | — | — | — | — | — |
-| Exec approve offer | ✓ | ✓ | — | — | — | — | — | — |
-| Send offer | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
-| Manage vendors | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
-| Admin hub catalogs | ✓ | ✓ | — | — | — | — | — | — |
-| User management (full) | ✓ | partial** | — | — | — | — | — | — |
-| Role access editor | ✓ | — | — | — | — | — | — | — |
-| View compensation (offers) | ✓ | ✓ | ✓ | ✓ | limited | — | — | — |
+| Capability | SUPER_ADMIN | ADMIN | HR_HEAD | HR_MANAGER | RECRUITER | TEAM_LEAD | HIRING_MANAGER | ACCOUNT_MANAGER | INTERVIEWER |
+|------------|:-----------:|:-----:|:-------:|:----------:|:---------:|:---------:|:--------------:|:---------------:|:-----------:|
+| Create business requirement | ✓ | ✓ | — | — | — | — | ✓ | ✓ | — |
+| View business requirement (preview) | ✓ | ✓ | ✓ | ✓ | — | — | scoped | scoped | — |
+| Open business req to hiring | ✓ | ✓ | — | — | — | — | scoped | scoped | — |
+| Create requirement | ✓ | ✓ | ✓ | ✓ | — | — | ✓ | — | — |
+| Approve requirement | ✓ | ✓* | ✓ | — | — | — | — | — | — |
+| Edit requirement (any) | ✓ | ✓ | ✓ | ✓ | scoped | scoped | own only | — | — |
+| View requirement (read-only) | ✓ | ✓ | ✓ | ✓ | scoped | scoped | scoped | scoped | — |
+| Posting controls | ✓ | ✓ | ✓ | ✓ | — | ✓ | own only | — | — |
+| Portal visibility toggle | ✓ | ✓ | ✓ | ✓ | — | ✓ | — | — | — |
+| Assign recruiter | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
+| Create candidate | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| Change pipeline stage | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| Change stage after HIRED | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
+| Schedule interview | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
+| Submit interview feedback | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | assigned only |
+| Create offer | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
+| HR approve offer | ✓ | ✓ | ✓ | — | — | — | — | — | — |
+| Exec approve offer | ✓ | ✓ | — | — | — | — | — | — | — |
+| Send offer | ✓ | ✓ | ✓ | ✓ | — | — | — | — | — |
+| Manage vendors | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — |
+| Admin hub catalogs | ✓ | ✓ | — | — | — | — | — | — | — |
+| User management (full) | ✓ | partial** | — | — | — | — | — | — | — |
+| Role access editor | ✓ | — | — | — | — | — | — | — | — |
+| View compensation (offers) | ✓ | ✓ | ✓ | ✓ | limited | — | — | — | — |
 
 \* Admin approves requirements **on behalf of HR Head** (delegation semantics).  
 \** Admin can open User Management UI and create users; most edit/delete APIs are Super Admin-only.
@@ -97,6 +109,7 @@ Sidebar pages controlled by `allowedPages`. Super Admin always sees all pages. C
 | **Org-wide** | Super Admin, Admin, HR Head, HR Manager | All requirements, candidates, vendors, interviews, offers |
 | **Assigned requirements** | Recruiter, Team Lead | Requirements they created or are assigned to; candidates linked to those reqs |
 | **Owned requirements** | Hiring Manager | Requirements they created or are named hiring manager on |
+| **Account-managed requirements** | Account Manager | Requirements where they are the named account manager (from business req open-to-hiring) |
 | **Assigned interviews** | Interviewer | Only interviews where they are assigned; related candidates (overview + resume tabs only) |
 | **Vendor scope** | Vendor | Only positions assigned to their vendor org |
 | **Own data** | Candidate | Own applications and offers only |
@@ -156,6 +169,7 @@ Primary accounts per role (passwords from QA lead):
 | RECRUITER | recruiter@stitch-ats.in |
 | TEAM_LEAD | teamlead@stitch-ats.in |
 | HIRING_MANAGER | hiringmanager@stitch-ats.in |
+| ACCOUNT_MANAGER | accountmanager@stitch-ats.in |
 | INTERVIEWER | interviewer@stitch-ats.in |
 | VENDOR | vendor@stitch-ats.in |
 | EMPLOYEE | employee@stitch-ats.in |

@@ -82,7 +82,7 @@ export async function buildCandidateListWhere(
   const own: Prisma.CandidateWhereInput = { createdBy: auth.userId }
 
   if (auth.role === 'RECRUITER') {
-    return { createdBy: auth.userId }
+    return withFeatureScopes({ createdBy: auth.userId }, tagScopes)
   }
 
   const reqIds = await requirementIdsForAuth(auth)

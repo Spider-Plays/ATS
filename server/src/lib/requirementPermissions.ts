@@ -1,4 +1,10 @@
-export const HIRING_STAGE_EDIT_ROLES = ['RECRUITER', 'HR_MANAGER', 'TEAM_LEAD'] as const
+export const HIRING_STAGE_EDIT_ROLES = [
+  'SUPER_ADMIN',
+  'ADMIN',
+  'RECRUITER',
+  'HR_MANAGER',
+  'TEAM_LEAD',
+] as const
 
 export const POSTING_CONTROL_ROLES = [
   'SUPER_ADMIN',
@@ -73,7 +79,7 @@ export function assertCanUpdateHiringStage(
     throw new Error('Hiring stage can only be updated for live or on-hold requirements')
   }
   if (!HIRING_STAGE_EDIT_ROLES.includes(auth.role as (typeof HIRING_STAGE_EDIT_ROLES)[number])) {
-    throw new Error('Only recruiters, HR managers, and team leads can update hiring stage')
+    throw new Error('Only admins, recruiters, HR managers, and team leads can update hiring stage')
   }
 }
 

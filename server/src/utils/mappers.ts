@@ -1,4 +1,4 @@
-import type { User as DbUser, Requirement as DbReq, Candidate as DbCand, Interview as DbInt, Feedback as DbFb, Offer as DbOffer, ActivityLog as DbLog } from '@prisma/client'
+import type { User as DbUser, Requirement as DbReq, BusinessRequirement as DbBizReq, Candidate as DbCand, Interview as DbInt, Feedback as DbFb, Offer as DbOffer, ActivityLog as DbLog } from '@prisma/client'
 import { defaultUserAvatarUrl } from '../lib/userAvatar.js'
 import { parseFeatureTags } from '../lib/userTags.js'
 import { parseApprovalChainJson } from '../lib/offerApprovalChain.js'
@@ -33,6 +33,7 @@ export function mapRequirement(r: DbReq) {
     title: r.title,
     department: r.department,
     hiringManager: r.hiringManager,
+    accountManager: r.accountManager ?? undefined,
     status: r.status,
     hiringStage: r.hiringStage,
     liveAt: r.liveAt?.toISOString(),
@@ -73,15 +74,54 @@ export function mapRequirement(r: DbReq) {
   }
 }
 
+export function mapBusinessRequirement(r: DbBizReq) {
+  return {
+    id: r.id,
+    title: r.title,
+    client: r.client ?? undefined,
+    department: r.department,
+    accountManager: r.accountManager,
+    hiringManager: r.hiringManager,
+    businessStage: r.businessStage,
+    stagePercentage: r.stagePercentage,
+    status: r.status,
+    publishedRequirementId: r.publishedRequirementId ?? undefined,
+    stageHistory: JSON.parse(r.stageHistory || '[]'),
+    openings: r.openings,
+    priority: r.priority as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | undefined,
+    location: r.location ?? undefined,
+    locationCity: r.locationCity ?? undefined,
+    isRemote: r.isRemote ?? false,
+    workMode: r.workMode ?? undefined,
+    employmentType: r.employmentType ?? undefined,
+    seniorityLevel: r.seniorityLevel ?? undefined,
+    experienceMinYears: r.experienceMinYears ?? undefined,
+    experienceMaxYears: r.experienceMaxYears ?? undefined,
+    salaryBand: r.salaryBand ?? undefined,
+    targetStartDate: r.targetStartDate?.toISOString(),
+    hiringDeadline: r.hiringDeadline?.toISOString(),
+    description: r.description ?? undefined,
+    jobDescription: r.jobDescription ?? r.description ?? undefined,
+    primarySkills: JSON.parse(r.primarySkills || '[]') as string[],
+    secondarySkills: JSON.parse(r.secondarySkills || '[]') as string[],
+    createdBy: r.createdBy ?? undefined,
+    createdByRole: r.createdByRole ?? undefined,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  }
+}
+
 export function mapCandidate(
   c: DbCand,
   ctx?: {
     requirement?: Pick<DbReq, 'id' | 'jobCode' | 'client' | 'title'> | null
     recruiter?: Pick<DbUser, 'id' | 'name'> | null
+    referrer?: Pick<DbUser, 'id' | 'name' | 'email' | 'referralCode' | 'department'> | null
   }
 ) {
   const req = ctx?.requirement
   const recruiter = ctx?.recruiter
+  const referrer = ctx?.referrer
   return {
     id: c.id,
     name: c.name,
@@ -114,6 +154,10 @@ export function mapCandidate(
     vendorId: c.vendorId ?? undefined,
     submittedByUserId: c.submittedByUserId ?? undefined,
     referredByUserId: c.referredByUserId ?? undefined,
+    referredByName: referrer?.name ?? undefined,
+    referredByEmail: referrer?.email ?? undefined,
+    referredByDepartment: referrer?.department ?? undefined,
+    referredByReferralCode: referrer?.referralCode ?? undefined,
     referralRelationship: c.referralRelationship ?? undefined,
     referralNotes: c.referralNotes ?? undefined,
     primarySkills: JSON.parse(c.primarySkills || '[]') as string[],

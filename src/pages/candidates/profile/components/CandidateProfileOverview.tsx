@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react'
-import { Briefcase, Globe, Linkedin } from 'lucide-react'
+import { Briefcase, Globe, Heart, Linkedin, UserCheck } from 'lucide-react'
 import type { Candidate, Requirement } from '@/types'
 import clsx from 'clsx'
 import { PROFILE_INPUT, PROFILE_LABEL } from '@/pages/candidates/profile/profile.utils'
@@ -108,7 +108,7 @@ export function CandidateProfileOverview({
           <div className="px-5 py-4 border-b border-primary/10 dark:border-white/10 bg-primary/[0.02] dark:bg-white/[0.02]">
             <h3 className="text-sm font-bold text-primary dark:text-white">Job assignment</h3>
             <p className="text-xs text-primary/50 dark:text-white/50 mt-0.5">
-              Select a job — role and client fill in automatically.
+              Tag a job to submit the candidate — role and client fill in automatically.
             </p>
           </div>
           <div className="p-5 space-y-4">
@@ -117,9 +117,9 @@ export function CandidateProfileOverview({
                 value={editData.requirementId ?? ''}
                 onChange={applyRequirement}
                 options={requirementOptions}
-                placeholder="Select job requirement"
+                placeholder="Select job requirement (optional)"
                 searchPlaceholder="Search jobs..."
-                allowClear={false}
+                allowClear={displayData.status === 'ADDED' || !displayData.requirementId}
                 icon={<Briefcase size={18} className="text-muted-foreground" />}
               />
             </Field>
@@ -293,6 +293,58 @@ export function CandidateProfileOverview({
             <DetailCard label="Month of joining" value={displayData.joiningMonth} />
             <DetailCard label="Quarter of joining" value={displayData.joiningQuarter} />
           </div>
+        </section>
+      )}
+
+      {!isInterviewerView && (displayData.referredByUserId || displayData.referredByName) && (
+        <section className="rounded-2xl border border-violet-200/70 dark:border-violet-500/30 overflow-hidden">
+          <div className="px-5 py-4 border-b border-violet-200/50 dark:border-violet-500/20 bg-violet-500/[0.04] dark:bg-violet-500/10">
+            <div className="flex items-center gap-2">
+              <UserCheck size={16} className="text-violet-600 dark:text-violet-300" />
+              <h3 className="text-sm font-bold text-primary dark:text-white">
+                Employee referral
+              </h3>
+            </div>
+            <p className="text-xs text-primary/50 dark:text-white/50 mt-0.5">
+              Submitted through the employee referral portal.
+            </p>
+          </div>
+          <div className="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <DetailCard
+              label="Referred by"
+              value={
+                displayData.referredByName
+                  ? displayData.referredByDepartment
+                    ? `${displayData.referredByName} · ${displayData.referredByDepartment}`
+                    : displayData.referredByName
+                  : undefined
+              }
+            />
+            <DetailCard
+              label="Referral code"
+              value={displayData.referredByReferralCode}
+            />
+            <DetailCard
+              label="Relationship"
+              value={displayData.referralRelationship}
+            />
+            {displayData.referredByEmail && (
+              <DetailCard label="Referrer email" value={displayData.referredByEmail} />
+            )}
+          </div>
+          {displayData.referralNotes && (
+            <div className="px-5 pb-5">
+              <div className="p-4 rounded-xl border border-violet-200/40 dark:border-violet-500/20 bg-violet-500/[0.03] dark:bg-violet-500/5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Heart size={12} />
+                  Referrer notes
+                </p>
+                <p className="text-sm text-primary dark:text-white mt-2 leading-relaxed">
+                  {displayData.referralNotes}
+                </p>
+              </div>
+            </div>
+          )}
         </section>
       )}
 

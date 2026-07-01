@@ -34,6 +34,11 @@ import { assertCanRespondToOffer } from '../lib/offerPermissions.js'
 import { appendOfferHistory, loadOfferLetterContext } from '../lib/offerActions.js'
 import { notifyOfferStatusChange } from '../lib/emailDispatch.js'
 import { renderHtmlToPdf } from '../lib/offerPdf.js'
+import {
+  mapPortalPosition,
+  portalPositionsWhere,
+  portalRequirementVisible,
+} from '../lib/portalPositions.js'
 
 const PORTAL_UPDATE_ACTIONS = [
   'APPLIED',
@@ -73,41 +78,6 @@ const profileBodySchema = z.object({
   linkedIn: z.string().url().optional().or(z.literal('')),
   portfolio: z.string().url().optional().or(z.literal('')),
 })
-
-function portalRequirementVisible(
-  requirement: { status: string; visibleToCandidates: boolean } | null
-) {
-  if (!requirement) return false
-  return requirement.status === 'LIVE' && requirement.visibleToCandidates
-}
-
-function mapPortalPosition(r: {
-  id: string
-  jobCode: string | null
-  client: string | null
-  title: string
-  department: string
-  location: string | null
-  priority: string | null
-  openings: number
-  filled: number
-  description: string | null
-  updatedAt: Date
-}) {
-  return {
-    id: r.id,
-    jobCode: r.jobCode ?? r.id.slice(-8).toUpperCase(),
-    client: r.client ?? undefined,
-    title: r.title,
-    department: r.department,
-    location: r.location ?? undefined,
-    priority: r.priority ?? undefined,
-    openings: r.openings,
-    filled: r.filled,
-    description: r.description ?? undefined,
-    updatedAt: r.updatedAt.toISOString(),
-  }
-}
 
 function profileStatusPayload(candidate: { id: string } & Parameters<typeof isCandidateProfileComplete>[0]) {
   const missing = getCandidateProfileMissing(candidate)
@@ -258,7 +228,7 @@ router.put('/profile', async (req, res) => {
         name,
         email,
         role: 'Candidate',
-        status: 'APPLIED',
+        status: 'ADDED',
         matchScore: 0,
         source: 'Candidate Portal',
         phone: body.phone.trim(),
@@ -402,7 +372,7 @@ router.post('/profile/resume', handleUploadResume, async (req, res) => {
 
 router.get('/positions', async (_req, res) => {
   const rows = await prisma.requirement.findMany({
-    where: { status: 'LIVE', visibleToCandidates: true },
+    where: portalPositionsWhere(),
     orderBy: { updatedAt: 'desc' },
   })
   res.json(rows.map(mapPortalPosition))
@@ -467,8 +437,9 @@ router.post('/positions/:id/apply', async (req, res) => {
       requirementId: requirement.id,
       jobTitle: requirement.title,
       role: requirement.title,
-      status: 'APPLIED',
+      status: 'SUBMITTED',
       matchScore: score,
+      submittedAt: new Date(),
       updatedAt: new Date(),
     },
   })
@@ -745,25 +716,30 @@ router.get('/offers/:id/letter/pdf', async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.auth!.userId } })
   if (!user) return res.status(404).json({ error: 'User not found' })
 
-  const access = await assertPortalOfferAccess(user.email, req.params.id)
-  if ('error' in access && access.error) {
-    return res.status(access.status).json({ error: access.error })
+  try {
+    const access = await assertPortalOfferAccess(user.email, req.params.id)
+    if ('error' in access && access.error) {
+      return res.status(access.status).json({ error: access.error })
+    }
+    if (!('offer' in access)) return res.status(500).json({ error: 'Unexpected error' })
+
+    const { offer, candidate } = access
+    if (!['SENT', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'].includes(offer.status)) {
+      return res.status(403).json({ error: 'Offer not available' })
+    }
+
+    const ctx = await loadOfferLetterContext(offer.id)
+    if (!ctx?.letterHtml) return res.status(404).json({ error: 'Letter not found' })
+
+    const pdf = await renderHtmlToPdf(ctx.letterHtml)
+    const safeName = candidate.name.replace(/[^\w.-]+/g, '_').slice(0, 80)
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="offer-${safeName}.pdf"`)
+    res.send(pdf)
+  } catch (err) {
+    console.error('Portal offer letter PDF failed:', err)
+    return res.status(500).json({ error: 'Failed to generate offer letter PDF' })
   }
-  if (!('offer' in access)) return res.status(500).json({ error: 'Unexpected error' })
-
-  const { offer, candidate } = access
-  if (!['SENT', 'ACCEPTED', 'DECLINED', 'WITHDRAWN'].includes(offer.status)) {
-    return res.status(403).json({ error: 'Offer not available' })
-  }
-
-  const ctx = await loadOfferLetterContext(offer.id)
-  if (!ctx?.letterHtml) return res.status(404).json({ error: 'Letter not found' })
-
-  const pdf = await renderHtmlToPdf(ctx.letterHtml)
-  const safeName = candidate.name.replace(/[^\w.-]+/g, '_').slice(0, 80)
-  res.setHeader('Content-Type', 'application/pdf')
-  res.setHeader('Content-Disposition', `attachment; filename="offer-${safeName}.pdf"`)
-  res.send(pdf)
 })
 
 router.post('/offers/:id/accept', async (req, res) => {

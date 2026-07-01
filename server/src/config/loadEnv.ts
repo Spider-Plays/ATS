@@ -4,20 +4,35 @@ import path from 'node:path'
 import { fileURLToPath } from 'url'
 
 const serverRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const useStaging = process.env.ATS_ENV === 'staging'
 const stagingPath = path.join(serverRoot, '.env.staging')
 const defaultPath = path.join(serverRoot, '.env')
+const stagingExists = fs.existsSync(stagingPath)
+const explicitProduction = process.env.ATS_ENV === 'production'
+const isDeployed = process.env.NODE_ENV === 'production'
 
-const envPath =
-  useStaging && fs.existsSync(stagingPath) ? stagingPath : defaultPath
+// Local dev defaults to QA (.env.staging). Set ATS_ENV=production to use server/.env.
+const useStaging =
+  process.env.ATS_ENV === 'staging' ||
+  (!explicitProduction && !isDeployed && stagingExists)
+
+const envPath = useStaging && stagingExists ? stagingPath : defaultPath
 
 dotenv.config({ path: envPath })
 
-if (useStaging && !fs.existsSync(stagingPath)) {
+if (useStaging && stagingExists && process.env.ATS_ENV !== 'production') {
+  process.env.ATS_ENV = 'staging'
+}
+
+if (process.env.ATS_ENV === 'staging' && !stagingExists) {
   console.warn(
     'ATS_ENV=staging but server/.env.staging is missing — falling back to server/.env (likely production).\n' +
       'Copy the Neon qa branch pooled URL into server/.env.staging, or run:\n' +
       '  $env:STAGING_DATABASE_URL="postgresql://..."; npm run env:qa'
+  )
+} else if (!explicitProduction && !isDeployed && !stagingExists) {
+  console.warn(
+    'Local dev: server/.env.staging is missing — using server/.env (production database).\n' +
+      'Run: $env:STAGING_DATABASE_URL="postgresql://..."; npm run env:qa'
   )
 }
 

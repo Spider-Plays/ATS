@@ -43,10 +43,34 @@ import {
   RequirementAccessError,
 } from '../lib/requirementAccess.js'
 import { assertCanChangeCandidateStatus } from '../lib/candidateStagePermissions.js'
+import {
+  buildRequirementTagUpdate,
+  isCandidatePipelineStatus,
+  resolveCreateStatus,
+} from '../lib/candidateStatuses.js'
 import { notifyCandidateStatusChange, notifyNewCandidate } from '../lib/emailDispatch.js'
+import { isEmailConfigured, sendJobDescriptionEmail } from '../services/email.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
+
+const referrerSelect = {
+  id: true,
+  name: true,
+  email: true,
+  referralCode: true,
+  department: true,
+} as const
+
+async function loadReferrersById(ids: Array<string | null | undefined>) {
+  const unique = [...new Set(ids.filter((id): id is string => !!id))]
+  if (!unique.length) return new Map<string, Awaited<ReturnType<typeof prisma.user.findMany>>[number]>()
+  const users = await prisma.user.findMany({
+    where: { id: { in: unique } },
+    select: referrerSelect,
+  })
+  return new Map(users.map((u) => [u.id, u]))
+}
 
 router.get('/', async (req, res) => {
   if (req.auth!.role === 'INTERVIEWER') {
@@ -65,7 +89,7 @@ router.get('/', async (req, res) => {
   const creatorIds = [
     ...new Set(rows.map((r) => r.createdBy).filter((id): id is string => !!id)),
   ]
-  const [requirements, recruiters] = await Promise.all([
+  const [requirements, recruiters, referrerById] = await Promise.all([
     requirementIds.length
       ? prisma.requirement.findMany({
           where: { id: { in: requirementIds } },
@@ -78,6 +102,7 @@ router.get('/', async (req, res) => {
           select: { id: true, name: true },
         })
       : [],
+    loadReferrersById(rows.map((r) => r.referredByUserId)),
   ])
   const reqById = new Map(requirements.map((r) => [r.id, r]))
   const recruiterById = new Map(recruiters.map((u) => [u.id, u]))
@@ -86,6 +111,9 @@ router.get('/', async (req, res) => {
       mapCandidate(c, {
         requirement: c.requirementId ? reqById.get(c.requirementId) ?? null : null,
         recruiter: c.createdBy ? recruiterById.get(c.createdBy) ?? null : null,
+        referrer: c.referredByUserId
+          ? referrerById.get(c.referredByUserId) ?? null
+          : null,
       })
     )
   )
@@ -309,7 +337,7 @@ router.get('/:id', async (req, res) => {
   }
   const row = await prisma.candidate.findUnique({ where: { id: req.params.id } })
   if (!row) return res.status(404).json({ error: 'Not found' })
-  const [requirement, recruiter] = await Promise.all([
+  const [requirement, recruiter, referrer] = await Promise.all([
     row.requirementId
       ? prisma.requirement.findUnique({
           where: { id: row.requirementId },
@@ -322,8 +350,14 @@ router.get('/:id', async (req, res) => {
           select: { id: true, name: true },
         })
       : null,
+    row.referredByUserId
+      ? prisma.user.findUnique({
+          where: { id: row.referredByUserId },
+          select: referrerSelect,
+        })
+      : null,
   ])
-  res.json(mapCandidate(row, { requirement, recruiter }))
+  res.json(mapCandidate(row, { requirement, recruiter, referrer }))
 })
 
 router.post('/', requireRoles(...STAFF_MUTATE), async (req, res) => {
@@ -342,6 +376,11 @@ router.post('/', requireRoles(...STAFF_MUTATE), async (req, res) => {
 
   const requirementId = body.requirementId || null
   let matchScore = typeof body.matchScore === 'number' ? body.matchScore : 0
+  const initialStatus = resolveCreateStatus(requirementId)
+  const createStatus =
+    typeof body.status === 'string' && isCandidatePipelineStatus(body.status)
+      ? body.status
+      : initialStatus
 
   if (requirementId) {
     const requirement = await prisma.requirement.findUnique({
@@ -359,7 +398,7 @@ router.post('/', requireRoles(...STAFF_MUTATE), async (req, res) => {
         name: body.name,
         email: body.email,
         role: body.role,
-        status: body.status ?? 'SOURCED',
+        status: createStatus,
         matchScore: 0,
         source: body.source ?? 'Direct',
         appliedDate: new Date(),
@@ -401,11 +440,12 @@ router.post('/', requireRoles(...STAFF_MUTATE), async (req, res) => {
       name: body.name,
       email: body.email,
       role: body.role,
-      status: body.status ?? 'APPLIED',
+      status: createStatus,
       matchScore,
       source: body.source ?? 'Direct',
       requirementId,
       jobTitle: body.jobTitle,
+      submittedAt: requirementId ? new Date() : null,
       avatar: body.avatar,
       phone: body.phone,
       location: body.location,
@@ -539,6 +579,11 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
       if (requirement) nextJobTitle = requirement.title
     }
 
+    const requirementTagUpdate =
+      b.requirementId !== undefined
+        ? buildRequirementTagUpdate(existing.status, existing.requirementId, nextRequirementId)
+        : {}
+
     const row = await prisma.candidate.update({
       where: { id: req.params.id },
       data: {
@@ -546,6 +591,10 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
         ...(b.email !== undefined && { email: b.email }),
         ...(b.role !== undefined && { role: b.role }),
         ...(b.status !== undefined && { status: b.status }),
+        ...(b.status === undefined && requirementTagUpdate.status && { status: requirementTagUpdate.status }),
+        ...(requirementTagUpdate.submittedAt !== undefined && {
+          submittedAt: requirementTagUpdate.submittedAt,
+        }),
         ...(matchScore !== undefined && { matchScore }),
         ...(b.source !== undefined && { source: b.source }),
         ...(b.requirementId !== undefined && { requirementId: nextRequirementId }),
@@ -576,7 +625,7 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
       await syncRequirementFilled(row.requirementId)
     }
 
-    const [requirement, recruiter] = await Promise.all([
+    const [requirement, recruiter, referrer] = await Promise.all([
       row.requirementId
         ? prisma.requirement.findUnique({
             where: { id: row.requirementId },
@@ -589,6 +638,12 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
             select: { id: true, name: true },
           })
         : null,
+      row.referredByUserId
+        ? prisma.user.findUnique({
+            where: { id: row.referredByUserId },
+            select: referrerSelect,
+          })
+        : null,
     ])
 
     await logActivity({
@@ -599,7 +654,18 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
       details: Object.keys(req.body),
     })
 
-    if (b.status !== undefined && b.status !== existing.status) {
+    const statusChanged =
+      row.status !== existing.status &&
+      (b.status !== undefined || requirementTagUpdate.status !== undefined)
+
+    if (statusChanged) {
+      await logActivity({
+        entityType: 'CANDIDATE',
+        entityId: row.id,
+        action: 'STATUS_CHANGED',
+        performedBy: req.auth!.userId,
+        details: { previousStatus: existing.status, newStatus: row.status },
+      })
       notifyCandidateStatusChange(
         {
           id: row.id,
@@ -614,7 +680,7 @@ router.patch('/:id', requireRoles(...STAFF_MUTATE), async (req, res) => {
       )
     }
 
-    res.json(mapCandidate(row, { requirement, recruiter }))
+    res.json(mapCandidate(row, { requirement, recruiter, referrer }))
   } catch (err) {
     if (err instanceof CandidateAccessError) {
       return res.status(403).json({ error: err.message })
@@ -737,6 +803,85 @@ router.patch('/:id/status', requireRoles(...STAFF_MUTATE), async (req, res) => {
     }
     const msg = err instanceof Error ? err.message : 'Failed to update status'
     res.status(400).json({ error: msg })
+  }
+})
+
+router.post('/:id/send-jd', requireRoles(...STAFF_MUTATE), async (req, res) => {
+  try {
+    await assertCanMutateCandidate(req.auth!, req.params.id)
+    const row = await prisma.candidate.findUnique({ where: { id: req.params.id } })
+    if (!row) return res.status(404).json({ error: 'Not found' })
+
+    if (!row.requirementId) {
+      return res.status(400).json({
+        error: 'Tag this candidate to a job requirement before sending the JD.',
+      })
+    }
+    if (!row.email?.trim()) {
+      return res.status(400).json({ error: 'Candidate email is required to send the job description.' })
+    }
+
+    const requirement = await prisma.requirement.findUnique({
+      where: { id: row.requirementId },
+      select: {
+        title: true,
+        client: true,
+        jobCode: true,
+        jobDescription: true,
+        description: true,
+      },
+    })
+    if (!requirement) {
+      return res.status(404).json({ error: 'Linked requirement not found.' })
+    }
+
+    const jobDescription =
+      requirement.jobDescription?.trim() || requirement.description?.trim() || ''
+    if (!jobDescription) {
+      return res.status(400).json({
+        error: 'This job has no description yet. Add a JD on the requirement first.',
+      })
+    }
+
+    if (!isEmailConfigured()) {
+      return res.status(503).json({ error: 'Email is not configured on this server.' })
+    }
+
+    const emailResult = await sendJobDescriptionEmail({
+      to: row.email,
+      candidateName: row.name,
+      jobTitle: requirement.title,
+      client: requirement.client,
+      jobCode: requirement.jobCode,
+      jobDescription,
+    })
+
+    if (!emailResult.sent) {
+      const message =
+        emailResult.reason === 'error' ? emailResult.message : 'Failed to send email'
+      return res.status(500).json({ error: message })
+    }
+
+    await logActivity({
+      entityType: 'CANDIDATE',
+      entityId: row.id,
+      action: 'JD_SENT',
+      performedBy: req.auth!.userId,
+      details: {
+        requirementId: row.requirementId,
+        jobTitle: requirement.title,
+        jobCode: requirement.jobCode,
+        recipientEmail: row.email,
+      },
+    })
+
+    res.json({ ok: true, emailSent: true })
+  } catch (err) {
+    if (err instanceof CandidateAccessError) {
+      return res.status(403).json({ error: err.message })
+    }
+    console.error('Send JD failed:', err)
+    res.status(500).json({ error: 'Failed to send job description' })
   }
 })
 

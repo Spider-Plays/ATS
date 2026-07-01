@@ -36,6 +36,7 @@ import { OfferDetailsEditPanel } from '@/components/offers/OfferDetailsEditPanel
 import { CompensationBreakdownTable } from '@/components/offers/CompensationBreakdownTable'
 import { OfferLetterFrame } from '@/components/offers/OfferLetterFrame'
 import { PortalOfferPreviewModal } from '@/components/offers/PortalOfferPreviewModal'
+import { BackButton } from '@/components/ui/BackButton'
 import { getOfferApprovalRollbackTarget } from '@/pages/offers/detail/offerApprovalRollback'
 import {
   canUserApproveCurrentStage,
@@ -248,6 +249,12 @@ const OfferDetail = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <BackButton
+        fallback="/offers"
+        to="/offers"
+        label="Back to offers"
+        variant="muted"
+      />
       {offer.rejectionReason && status === 'DRAFT' && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm">
           <strong>Rejected:</strong> {offer.rejectionReason}

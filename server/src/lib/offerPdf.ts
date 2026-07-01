@@ -1,10 +1,50 @@
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import type { Browser } from 'puppeteer-core'
 import puppeteerCore from 'puppeteer-core'
 
 let browserInstance: Browser | null = null
 
+const HEADLESS_ARGS = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+
 function useBundledChromium(): boolean {
   return process.env.RENDER === 'true' || process.platform === 'linux'
+}
+
+function resolveSystemBrowserExecutable(): string | undefined {
+  const fromEnv = process.env.PUPPETEER_EXECUTABLE_PATH?.trim()
+  if (fromEnv && existsSync(fromEnv)) return fromEnv
+
+  const candidates: string[] = []
+  if (process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA
+    if (localAppData) {
+      candidates.push(join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'))
+    }
+    candidates.push(
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+    )
+  } else if (process.platform === 'darwin') {
+    candidates.push(
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'
+    )
+  } else {
+    candidates.push('/usr/bin/google-chrome', '/usr/bin/chromium-browser', '/usr/bin/chromium')
+  }
+
+  return candidates.find((path) => existsSync(path))
+}
+
+async function launchWithExecutable(executablePath: string): Promise<Browser> {
+  return puppeteerCore.launch({
+    executablePath,
+    headless: true,
+    args: HEADLESS_ARGS,
+  })
 }
 
 async function launchBrowser(): Promise<Browser> {
@@ -18,17 +58,35 @@ async function launchBrowser(): Promise<Browser> {
     })
   }
 
-  const puppeteer = await import('puppeteer')
-  return puppeteer.default.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-  })
+  const systemBrowser = resolveSystemBrowserExecutable()
+  if (systemBrowser) {
+    return launchWithExecutable(systemBrowser)
+  }
+
+  try {
+    const puppeteer = await import('puppeteer')
+    return puppeteer.default.launch({
+      headless: true,
+      args: HEADLESS_ARGS,
+    })
+  } catch (bundledErr) {
+    const message =
+      'PDF generation requires a Chromium browser. Install Google Chrome / Microsoft Edge, set PUPPETEER_EXECUTABLE_PATH, or run `npx puppeteer browsers install chrome` in the server folder.'
+    throw new Error(message, {
+      cause: bundledErr instanceof Error ? bundledErr : undefined,
+    })
+  }
 }
 
 async function getBrowser(): Promise<Browser> {
   if (browserInstance?.connected) return browserInstance
-  browserInstance = await launchBrowser()
-  return browserInstance
+  try {
+    browserInstance = await launchBrowser()
+    return browserInstance
+  } catch (err) {
+    browserInstance = null
+    throw err
+  }
 }
 
 export async function renderHtmlToPdf(html: string): Promise<Buffer> {

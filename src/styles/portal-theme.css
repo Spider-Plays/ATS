@@ -1,0 +1,62 @@
+/* Per-portal palettes — candidate (green), referral (purple), vendor (emerald) */
+@import "./portal-palettes.css";
+
+/* Portal utility classes — tokens resolve via data-portal-theme on layout roots */
+
+.portal-page-eyebrow {
+  @apply inline-flex items-center gap-2 px-3 py-1 text-m3-label-sm uppercase;
+  @apply bg-primary-container text-on-primary-container rounded-full;
+}
+
+.portal-link {
+  @apply font-bold text-primary hover:underline;
+}
+
+.portal-btn-primary,
+.portal-btn-primary--auto {
+  @apply inline-flex items-center justify-center font-medium text-m3-label;
+  @apply bg-primary text-primary-foreground rounded-full px-6 h-10;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid hsl(var(--primary) / 0.35);
+  box-shadow: var(--app-control-shadow-hover);
+  transition:
+    box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1),
+    border-color 0.22s cubic-bezier(0.2, 0, 0, 1),
+    transform 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.portal-btn-primary {
+  @apply w-full;
+}
+
+.portal-btn-primary:hover:not(:disabled),
+.portal-btn-primary--auto:hover:not(:disabled) {
+  box-shadow: var(--app-control-shadow-active);
+}
+
+.portal-btn-primary:active:not(:disabled),
+.portal-btn-primary--auto:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.portal-field {
+  @apply w-full px-4 py-3 rounded-xl border border-outline-variant/60 bg-surface-container-lowest font-medium text-foreground focus:border-primary focus:ring-0;
+}
+
+.portal-status-badge,
+.portal-status-badge--applied {
+  @apply px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-primary-container text-on-primary-container;
+}
+
+.portal-promo-card {
+  @apply relative overflow-hidden rounded-2xl p-6 text-white shadow-lg;
+}
+
+.portal-bonus-pill {
+  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tertiary-container/50 border border-tertiary/30;
+}
+
+.portal-bonus-text {
+  @apply text-xs font-black text-tertiary;
+}

@@ -1,4 +1,22 @@
-/* Page styles: Dashboard */
-.dashboard-page {
-  /* Add page-specific overrides here */
+@import "../../styles/portal-home.css";
+
+.staff-home-hero {
+  background: linear-gradient(
+    152deg,
+    hsl(214 82% 32%) 0%,
+    hsl(199 75% 28%) 45%,
+    hsl(192 55% 22%) 100%
+  );
+  box-shadow:
+    0 4px 6px -1px hsl(var(--primary) / 0.15),
+    0 20px 40px -12px hsl(var(--primary) / 0.28);
+}
+
+.dark .staff-home-hero {
+  background: linear-gradient(
+    152deg,
+    hsl(214 55% 24%) 0%,
+    hsl(199 48% 20%) 45%,
+    hsl(192 42% 16%) 100%
+  );
 }

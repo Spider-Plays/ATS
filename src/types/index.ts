@@ -77,6 +77,7 @@ export interface Requirement {
     title: string
     department: string
     hiringManager: string
+    accountManager?: string
     status: RequirementStatus
     hiringStage?: RequirementHiringStage
     liveAt?: string
@@ -126,6 +127,59 @@ export interface Requirement {
     closedAt?: string
 }
 
+export type BusinessStageKey =
+    | 'INITIAL_DISCUSSION'
+    | 'PROPOSAL_SENT'
+    | 'NEGOTIATION'
+    | 'SOW_SIGNED'
+    | 'CONFIRMED'
+
+export type BusinessRequirementStatus = 'ACTIVE' | 'OPEN_TO_HIRING' | 'CANCELLED'
+
+export interface BusinessRequirementStageHistoryEntry {
+    stage: BusinessStageKey
+    percentage: number
+    by: string
+    at: string
+    role?: string
+    description?: string
+}
+
+export interface BusinessRequirement {
+    id: string
+    title: string
+    client?: string
+    department: string
+    accountManager: string
+    hiringManager: string
+    businessStage: BusinessStageKey
+    stagePercentage: number
+    status: BusinessRequirementStatus
+    publishedRequirementId?: string
+    stageHistory: BusinessRequirementStageHistoryEntry[]
+    openings: number
+    priority?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
+    location?: string
+    locationCity?: string
+    isRemote?: boolean
+    workMode?: 'REMOTE' | 'HYBRID' | 'ONSITE'
+    employmentType?: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERN'
+    seniorityLevel?: 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD' | 'PRINCIPAL'
+    experienceMinYears?: number
+    experienceMaxYears?: number
+    salaryBand?: string
+    targetStartDate?: string
+    hiringDeadline?: string
+    description?: string
+    jobDescription?: string
+    primarySkills?: string[]
+    secondarySkills?: string[]
+    createdBy?: string
+    createdByRole?: string
+    createdAt: string
+    updatedAt: string
+}
+
 export type VendorStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
 
 export interface Vendor {
@@ -171,14 +225,13 @@ export interface VendorDetail extends Vendor {
 }
 
 export type CandidateStatus =
-  | 'SOURCED'
-  | 'APPLIED'
+  | 'ADDED'
+  | 'SUBMITTED'
   | 'SCREENING'
   | 'SHORTLISTED'
   | 'INTERVIEW'
   | 'OFFER'
   | 'HIRED'
-  | 'JOINED'
   | 'REJECTED'
 
 export interface Candidate {
@@ -214,6 +267,10 @@ export interface Candidate {
     vendorId?: string
     submittedByUserId?: string
     referredByUserId?: string
+    referredByName?: string
+    referredByEmail?: string
+    referredByDepartment?: string
+    referredByReferralCode?: string
     referralRelationship?: string
     referralNotes?: string
     primarySkills?: string[]
@@ -475,6 +532,7 @@ export type UserRole =
   | 'RECRUITER'
   | 'TEAM_LEAD'
   | 'HIRING_MANAGER'
+  | 'ACCOUNT_MANAGER'
   | 'INTERVIEWER'
   | 'CANDIDATE'
   | 'VENDOR'

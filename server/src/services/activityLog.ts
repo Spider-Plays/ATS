@@ -8,6 +8,7 @@ export async function logActivity(data: {
   performerName?: string
   performerRole?: string
   details?: unknown
+  timestamp?: string | Date
 }) {
   try {
     let performerName = data.performerName
@@ -30,6 +31,7 @@ export async function logActivity(data: {
         performerName: performerName ?? null,
         performerRole: performerRole ?? null,
         details: data.details ? JSON.stringify(data.details) : null,
+        ...(data.timestamp ? { timestamp: new Date(data.timestamp) } : {}),
       },
     })
   } catch (e) {

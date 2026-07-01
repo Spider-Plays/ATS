@@ -1,0 +1,349 @@
+/* Shared candidate portal page shell */
+
+.portal-page {
+  max-width: 72rem;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .portal-page {
+    gap: 1.75rem;
+  }
+}
+
+.portal-page-loading {
+  min-height: 50vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: #64748b;
+}
+
+/* Page hero — shared across portal pages */
+
+.portal-page-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  padding: 1.35rem 1.5rem;
+  color: #fff;
+}
+
+@media (min-width: 768px) {
+  .portal-page-hero {
+    padding: 1.75rem 2rem;
+  }
+}
+
+.portal-page-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 100% 0%,
+      rgb(255 255 255 / 0.12),
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 50% 80% at 0% 100%,
+      hsl(var(--tertiary) / 0.2),
+      transparent 50%
+    );
+  pointer-events: none;
+}
+
+.portal-page-hero__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .portal-page-hero__inner--with-actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.portal-page-hero__eyebrow {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(167 243 208 / 0.9);
+}
+
+.portal-page-hero__title {
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1.2;
+  margin-top: 0.25rem;
+}
+
+@media (min-width: 768px) {
+  .portal-page-hero__title {
+    font-size: 2rem;
+  }
+}
+
+.portal-page-hero__subtitle {
+  font-size: 0.875rem;
+  color: rgb(255 255 255 / 0.75);
+  margin-top: 0.35rem;
+  max-width: 32rem;
+  line-height: 1.45;
+}
+
+.portal-page-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.85rem;
+  margin-top: 0.65rem;
+  font-size: 0.8125rem;
+  color: rgb(255 255 255 / 0.75);
+}
+
+.portal-page-hero__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.portal-page-hero__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.portal-page-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgb(255 255 255 / 0.18);
+  border: 1px solid rgb(255 255 255 / 0.28);
+  color: #fff;
+}
+
+.portal-page-hero__badge--closed {
+  background: rgb(15 23 42 / 0.35);
+  border-color: rgb(255 255 255 / 0.15);
+}
+
+.portal-page-hero__code {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.55);
+}
+
+/* Tab nav in portal panels */
+
+.portal-page-tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border-radius: 0.85rem;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.portal-page-tabs__btn {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #64748b;
+  background: transparent;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.portal-page-tabs__btn--active {
+  background: #fff;
+  color: hsl(var(--primary));
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.08);
+}
+
+/* Onboarding / form panels */
+
+.portal-page-form {
+  border-radius: 1.25rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  padding: 1.35rem 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .portal-page-form {
+    padding: 1.5rem 1.75rem;
+  }
+}
+
+.portal-page-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.portal-page-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.portal-page-step__dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.portal-page-step__dot--active,
+.portal-page-step__dot--done {
+  background: hsl(var(--primary));
+  color: #fff;
+}
+
+.portal-page-step__sep {
+  width: 1.25rem;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+/* Job detail in portal */
+
+.portal-job-detail {
+  border-radius: 1.25rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.portal-job-detail__body {
+  padding: 1.35rem 1.5rem 1.5rem;
+}
+
+.portal-job-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.35rem;
+  border-top: 1px solid #f1f5f9;
+  background: #f8fafc;
+}
+
+.portal-job-detail__apply {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  background: hsl(var(--primary));
+  color: #fff;
+  border: none;
+  transition: background 0.15s ease;
+}
+
+.portal-job-detail__apply:hover:not(:disabled) {
+  background: hsl(var(--primary) / 0.88);
+}
+
+.portal-job-detail__apply:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Offer detail */
+
+.portal-offer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.portal-offer-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+}
+
+.portal-offer-actions__btn--decline {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.portal-offer-actions__btn--accept {
+  background: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: #fff;
+}
+
+.portal-offer-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.portal-offer-status__label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.portal-offer-status__value {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.portal-offer-status__deadline {
+  font-size: 0.8125rem;
+  color: #64748b;
+}

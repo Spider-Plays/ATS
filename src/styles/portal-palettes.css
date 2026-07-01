@@ -1,0 +1,131 @@
+/*
+ * Per-portal M3 token overrides — scoped with data-portal-theme on layout roots.
+ * Staff app (no attribute) keeps default blue/teal from index.css.
+ */
+
+/* ── Candidate — deep forest green (#0f3d38 family) ── */
+
+[data-portal-theme="candidate"] {
+  --primary: 168 61% 22%;
+  --on-primary: 0 0% 100%;
+  --primary-container: 158 42% 91%;
+  --on-primary-container: 168 61% 12%;
+
+  --tertiary: 152 48% 36%;
+  --on-tertiary: 0 0% 100%;
+  --tertiary-container: 152 55% 88%;
+  --on-tertiary-container: 152 50% 14%;
+
+  --portal-hero-from: 168 61% 18%;
+  --portal-hero-mid: 172 52% 14%;
+  --portal-hero-to: 175 58% 10%;
+}
+
+.dark [data-portal-theme="candidate"] {
+  --primary: 158 42% 58%;
+  --on-primary: 168 61% 10%;
+  --primary-container: 168 35% 22%;
+  --on-primary-container: 158 42% 92%;
+
+  --tertiary: 152 38% 62%;
+  --on-tertiary: 152 50% 12%;
+  --tertiary-container: 152 30% 22%;
+  --on-tertiary-container: 152 55% 88%;
+
+  --portal-hero-from: 168 45% 16%;
+  --portal-hero-mid: 172 40% 12%;
+  --portal-hero-to: 175 45% 8%;
+}
+
+/* ── Referral — violet / indigo purple ── */
+
+[data-portal-theme="referral"] {
+  --primary: 262 83% 58%;
+  --on-primary: 0 0% 100%;
+  --primary-container: 263 90% 96%;
+  --on-primary-container: 263 70% 28%;
+
+  --tertiary: 38 92% 50%;
+  --on-tertiary: 0 0% 100%;
+  --tertiary-container: 48 96% 93%;
+  --on-tertiary-container: 32 95% 28%;
+
+  --portal-hero-from: 263 55% 28%;
+  --portal-hero-mid: 245 48% 22%;
+  --portal-hero-to: 230 42% 14%;
+}
+
+.dark [data-portal-theme="referral"] {
+  --primary: 263 75% 72%;
+  --on-primary: 263 70% 14%;
+  --primary-container: 263 40% 26%;
+  --on-primary-container: 263 90% 94%;
+
+  --tertiary: 43 96% 56%;
+  --on-tertiary: 32 95% 14%;
+  --tertiary-container: 38 45% 22%;
+  --on-tertiary-container: 48 96% 90%;
+
+  --portal-hero-from: 263 50% 22%;
+  --portal-hero-mid: 245 42% 18%;
+  --portal-hero-to: 230 38% 12%;
+}
+
+/* ── Vendor — emerald green (brighter than candidate forest) ── */
+
+[data-portal-theme="vendor"] {
+  --primary: 160 84% 30%;
+  --on-primary: 0 0% 100%;
+  --primary-container: 152 65% 92%;
+  --on-primary-container: 160 84% 14%;
+
+  --tertiary: 174 58% 36%;
+  --on-tertiary: 0 0% 100%;
+  --tertiary-container: 168 55% 90%;
+  --on-tertiary-container: 174 58% 14%;
+
+  --portal-hero-from: 160 70% 22%;
+  --portal-hero-mid: 168 55% 18%;
+  --portal-hero-to: 175 50% 12%;
+}
+
+.dark [data-portal-theme="vendor"] {
+  --primary: 160 55% 58%;
+  --on-primary: 160 84% 10%;
+  --primary-container: 160 35% 22%;
+  --on-primary-container: 152 65% 92%;
+
+  --tertiary: 174 42% 62%;
+  --on-tertiary: 174 58% 12%;
+  --tertiary-container: 168 30% 22%;
+  --on-tertiary-container: 168 55% 90%;
+
+  --portal-hero-from: 160 55% 18%;
+  --portal-hero-mid: 168 45% 14%;
+  --portal-hero-to: 175 42% 10%;
+}
+
+/* Hero panels & promo cards pick up portal gradient tokens */
+[data-portal-theme] .login-hero-panel,
+[data-portal-theme] .portal-promo-card {
+  background: linear-gradient(
+    152deg,
+    hsl(var(--portal-hero-from)) 0%,
+    hsl(var(--portal-hero-mid)) 45%,
+    hsl(var(--portal-hero-to)) 100%
+  );
+}
+
+[data-portal-theme] .portal-dash-hero,
+[data-portal-theme] .portal-app-updates-hero,
+[data-portal-theme] .portal-page-hero {
+  background: linear-gradient(
+    152deg,
+    hsl(var(--portal-hero-from)) 0%,
+    hsl(var(--portal-hero-mid)) 45%,
+    hsl(var(--portal-hero-to)) 100%
+  );
+  box-shadow:
+    0 4px 6px -1px hsl(var(--primary) / 0.15),
+    0 20px 40px -12px hsl(var(--primary) / 0.28);
+}

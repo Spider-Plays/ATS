@@ -185,11 +185,11 @@ function emailShell(params: { preheader?: string; headerTitle: string; content: 
 }
 
 const CANDIDATE_STATUS_MESSAGES: Record<string, string> = {
+  SUBMITTED: 'Your profile has been submitted for this role.',
   SHORTLISTED: 'You have been shortlisted for further review.',
   INTERVIEW: 'You have been moved to the interview stage.',
   OFFER: 'Congratulations — your application has progressed to the offer stage.',
   HIRED: 'Congratulations — you have been hired. Welcome aboard!',
-  JOINED: 'Welcome — your joining has been recorded.',
   REJECTED: 'Thank you for your interest. After careful review, we will not be moving forward at this time.',
 }
 
@@ -578,7 +578,7 @@ export async function sendCandidateStatusEmail(params: {
   jobTitle: string
 }): Promise<SendEmailResult> {
   const message = CANDIDATE_STATUS_MESSAGES[params.status] ?? 'Your application status has been updated.'
-  const portalUrl = `${env.clientOrigin.replace(/\/$/, '')}/portal/login`
+  const portalUrl = `${env.clientOrigin.replace(/\/$/, '')}/candidate/login`
   return sendHtmlEmail({
     to: params.to,
     subject: `Application update — ${env.appName}`,
@@ -592,6 +592,42 @@ export async function sendCandidateStatusEmail(params: {
           { label: 'Status', value: params.status.replace(/_/g, ' ') },
         ])}
         ${emailButton(portalUrl, 'View candidate portal')}
+      `,
+    }),
+  })
+}
+
+function jobDescriptionEmailBlock(text: string): string {
+  return `<div style="margin-top:16px;padding:16px 20px;background-color:${EMAIL_BRAND.white};border:1px solid ${EMAIL_BRAND.border};border-radius:8px;">
+    <p style="margin:0 0 8px;font-size:11px;font-weight:600;color:${EMAIL_BRAND.textMuted};text-transform:uppercase;letter-spacing:0.05em;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">Job description</p>
+    <p style="margin:0;font-size:14px;color:${EMAIL_BRAND.text};line-height:1.6;white-space:pre-wrap;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">${escapeHtml(text)}</p>
+  </div>`
+}
+
+export async function sendJobDescriptionEmail(params: {
+  to: string
+  candidateName: string
+  jobTitle: string
+  jobDescription: string
+  client?: string | null
+  jobCode?: string | null
+}): Promise<SendEmailResult> {
+  const portalUrl = `${env.clientOrigin.replace(/\/$/, '')}/candidate/login`
+  const details: Array<{ label: string; value: string }> = [{ label: 'Role', value: params.jobTitle }]
+  if (params.client) details.push({ label: 'Client', value: params.client })
+  if (params.jobCode) details.push({ label: 'Job code', value: params.jobCode, mono: true })
+
+  return sendHtmlEmail({
+    to: params.to,
+    subject: `Job description — ${params.jobTitle} — ${env.appName}`,
+    html: emailShell({
+      headerTitle: 'Job description',
+      content: `
+        ${emailGreeting(params.candidateName)}
+        ${emailLead(`Please find the job description for <strong style="color:${EMAIL_BRAND.text};">${escapeHtml(params.jobTitle)}</strong> below.`)}
+        ${detailBox(details)}
+        ${jobDescriptionEmailBlock(params.jobDescription)}
+        ${emailButton(portalUrl, 'Open candidate portal')}
       `,
     }),
   })
@@ -627,7 +663,7 @@ export async function sendReferralStatusEmail(params: {
   jobTitle: string
   status: string
 }): Promise<SendEmailResult> {
-  const hired = params.status === 'HIRED' || params.status === 'JOINED'
+  const hired = params.status === 'HIRED'
   const headline = hired ? 'Referral hired' : 'Referral update'
   const message = hired
     ? `Great news — ${escapeHtml(params.candidateName)} has been hired for ${escapeHtml(params.jobTitle)}.`

@@ -33,6 +33,7 @@ interface RequirementListItemProps {
   recruiterNames?: string[]
   menuItems: RequirementMenuItem[]
   variant?: 'default' | 'highlight'
+  hidePipeline?: boolean
 }
 
 export function RequirementListItem({
@@ -40,6 +41,7 @@ export function RequirementListItem({
   recruiterNames = [],
   menuItems,
   variant = 'default',
+  hidePipeline = false,
 }: RequirementListItemProps) {
   const navigate = useNavigate()
   const progress = fillProgress(requirement.filled, requirement.openings)
@@ -70,8 +72,13 @@ export function RequirementListItem({
           'border-amber-300/60 dark:border-amber-500/40 ring-1 ring-amber-200/50 dark:ring-amber-500/20'
       )}
     >
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
-        <div className="flex items-start gap-4 min-w-0 flex-1">
+      <div
+        className={clsx(
+          'requirement-list-item__grid',
+          hidePipeline && 'requirement-list-item__grid--no-pipeline'
+        )}
+      >
+        <div className="requirement-list-item__main">
           <div
             className={clsx(
               'shrink-0 p-3 rounded-xl',
@@ -90,7 +97,7 @@ export function RequirementListItem({
                 {requirement.title}
               </h3>
               {requirement.jobCode && (
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-primary/5 dark:bg-white/10 text-primary/70 dark:text-white/60">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-primary/5 dark:bg-white/10 text-primary/70 dark:text-white/60 shrink-0">
                   {requirement.jobCode}
                 </span>
               )}
@@ -120,91 +127,110 @@ export function RequirementListItem({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 lg:gap-4 shrink-0">
+        <div className="requirement-list-item__col requirement-list-item__col--status">
           <span
             className={clsx(
-              'px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border',
+              'requirement-list-item__badge',
               requirementStatusClass(requirement.status)
             )}
           >
             {requirementStatusLabel(requirement.status)}
           </span>
+        </div>
 
-          <span className={clsx('text-xs font-bold', priority.className)}>{priority.label}</span>
+        <div className="requirement-list-item__col requirement-list-item__col--priority">
+          <span className={clsx('text-xs font-bold whitespace-nowrap', priority.className)}>
+            {priority.label}
+          </span>
+        </div>
 
-          {requirement.status !== 'DRAFT' && (
+        <div className="requirement-list-item__col">
+          {requirement.status !== 'DRAFT' ? (
             <span
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-primary/50 dark:text-white/50"
+              className="requirement-list-item__meta-tag text-primary/50 dark:text-white/50"
               title={
                 portalVisible
-                  ? 'Visible on candidate portal'
-                  : 'Hidden from candidate portal'
+                  ? 'Visible on careers page and candidate portal'
+                  : 'Hidden from careers page and candidate portal'
               }
             >
               {portalVisible ? <Eye size={12} /> : <EyeOff size={12} />}
-              {portalVisible ? 'Careers' : 'Careers off'}
+              {portalVisible ? 'Careers' : 'Off'}
+            </span>
+          ) : (
+            <span className="requirement-list-item__meta-tag requirement-list-item__meta-tag--muted">
+              —
             </span>
           )}
+        </div>
 
-          {requirement.status === 'LIVE' && (
+        <div className="requirement-list-item__col">
+          {requirement.status === 'LIVE' ? (
             <span
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-600/80 dark:text-violet-300/80"
+              className="requirement-list-item__meta-tag text-violet-600/80 dark:text-violet-300/80"
               title={
-                referralVisible
-                  ? 'Open on employee referral portal'
-                  : 'Not on employee portal'
+                referralVisible ? 'Open on employee referral portal' : 'Not on employee portal'
               }
             >
               <Users size={12} />
-              {referralVisible ? 'Referrals' : 'Referrals off'}
+              {referralVisible ? 'Referrals' : 'Off'}
+            </span>
+          ) : (
+            <span className="requirement-list-item__meta-tag requirement-list-item__meta-tag--muted">
+              —
             </span>
           )}
+        </div>
 
-          <div className="w-28 flex flex-col gap-1">
-            <div className="flex justify-between text-[10px] font-bold text-primary/60 dark:text-white/50 tabular-nums">
-              <span>{progress.label}</span>
-              <span>{progress.pct}%</span>
-            </div>
-            <div className="h-1.5 w-full bg-primary/10 dark:bg-white/10 rounded-full overflow-hidden">
-              <div
-                className={clsx(
-                  'h-full rounded-full transition-all duration-500',
-                  progress.complete ? 'bg-emerald-500' : 'bg-primary dark:bg-white/80'
-                )}
-                style={{ width: `${progress.pct}%` }}
-              />
-            </div>
+        <div className="requirement-list-item__col requirement-list-item__col--progress">
+          <div className="flex justify-between text-[10px] font-bold text-primary/60 dark:text-white/50 tabular-nums">
+            <span>{progress.label}</span>
+            <span>{progress.pct}%</span>
           </div>
-
-          <div className="flex items-center gap-2 min-w-[100px]" title={recruiterNames.join(', ') || 'No recruiters'}>
-            <Users size={14} className="text-muted-foreground shrink-0" />
-            {recruiterNames.length > 0 ? (
-              <span className="text-xs font-medium text-primary/70 dark:text-white/70 truncate max-w-[120px]">
-                {recruiterNames.slice(0, 2).join(', ')}
-                {recruiterNames.length > 2 ? ` +${recruiterNames.length - 2}` : ''}
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground italic">Unassigned</span>
-            )}
+          <div className="h-1.5 w-full bg-primary/10 dark:bg-white/10 rounded-full overflow-hidden">
+            <div
+              className={clsx(
+                'h-full rounded-full transition-all duration-500',
+                progress.complete ? 'bg-emerald-500' : 'bg-primary dark:bg-white/80'
+              )}
+              style={{ width: `${progress.pct}%` }}
+            />
           </div>
         </div>
 
         <div
-          className="flex items-center gap-2 shrink-0 lg:ml-auto"
+          className="requirement-list-item__col requirement-list-item__col--recruiter"
+          title={recruiterNames.join(', ') || 'No recruiters'}
+        >
+          <Users size={14} className="text-muted-foreground shrink-0" />
+          {recruiterNames.length > 0 ? (
+            <span className="text-xs font-medium text-primary/70 dark:text-white/70 truncate">
+              {recruiterNames.slice(0, 2).join(', ')}
+              {recruiterNames.length > 2 ? ` +${recruiterNames.length - 2}` : ''}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground italic truncate">Unassigned</span>
+          )}
+        </div>
+
+        <div
+          className="requirement-list-item__col requirement-list-item__col--actions"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <Link
-            to={`/pipeline/${requirement.id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/5 dark:bg-white/5 text-primary dark:text-white text-xs font-bold uppercase tracking-wider hover:bg-primary/10 dark:hover:bg-white/10 transition-colors"
-          >
-            <GitBranch size={14} />
-            Pipeline
-          </Link>
+          {!hidePipeline && (
+            <Link
+              to={`/pipeline/${requirement.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/5 dark:bg-white/5 text-primary dark:text-white text-xs font-bold uppercase tracking-wider hover:bg-primary/10 dark:hover:bg-white/10 transition-colors whitespace-nowrap"
+            >
+              <GitBranch size={14} />
+              Pipeline
+            </Link>
+          )}
           <ActionsMenu items={menuItems} aria-label={`Actions for ${requirement.title}`} />
           <ChevronRight
             size={18}
-            className="text-primary/30 dark:text-white/30 group-hover:text-primary dark:group-hover:text-white transition-colors hidden sm:block"
+            className="text-primary/30 dark:text-white/30 group-hover:text-primary dark:group-hover:text-white transition-colors hidden sm:block shrink-0"
           />
         </div>
       </div>

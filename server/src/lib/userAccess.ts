@@ -8,6 +8,7 @@ import { parseRecruiterIds, requirementIdsForAuth } from './requirementAccess.js
 const SCHEDULABLE_STAFF_ROLES = [
   'INTERVIEWER',
   'HIRING_MANAGER',
+  'ACCOUNT_MANAGER',
   'TEAM_LEAD',
   'RECRUITER',
   'HR_MANAGER',

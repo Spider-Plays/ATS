@@ -16,6 +16,7 @@ export const ROLES = {
   RECRUITER: 'RECRUITER',
   TEAM_LEAD: 'TEAM_LEAD',
   HIRING_MANAGER: 'HIRING_MANAGER',
+  ACCOUNT_MANAGER: 'ACCOUNT_MANAGER',
   INTERVIEWER: 'INTERVIEWER',
   CANDIDATE: 'CANDIDATE',
   VENDOR: 'VENDOR',
@@ -34,6 +35,7 @@ export const INTERNAL_STAFF_ROLES = [
   ROLES.RECRUITER,
   ROLES.TEAM_LEAD,
   ROLES.HIRING_MANAGER,
+  ROLES.ACCOUNT_MANAGER,
   ROLES.INTERVIEWER,
 ] as const
 
@@ -61,7 +63,9 @@ export const REFERRAL_PORTAL_ROLES = (
 
 export const PAGE_KEYS = [
   'dashboard',
+  'business_requirements',
   'requirements',
+  'reports',
   'vendors',
   'candidates',
   'pipeline',
@@ -85,6 +89,7 @@ export const CONFIGURABLE_ROLES = [
   ROLES.RECRUITER,
   ROLES.TEAM_LEAD,
   ROLES.HIRING_MANAGER,
+  ROLES.ACCOUNT_MANAGER,
   ROLES.INTERVIEWER,
 ] as const
 
@@ -92,7 +97,13 @@ export type ConfigurableRole = (typeof CONFIGURABLE_ROLES)[number]
 
 export const PAGE_DEFINITIONS: { key: PageKey; label: string; description: string }[] = [
   { key: 'dashboard', label: 'Dashboard', description: 'Home dashboard and overview' },
+  {
+    key: 'business_requirements',
+    label: 'Business Requirements',
+    description: 'Pre-hiring client discussions and deal stages',
+  },
   { key: 'requirements', label: 'Requirements', description: 'Job requirements list and detail' },
+  { key: 'reports', label: 'Reports', description: 'Hiring, employee referral, and vendor reports' },
   { key: 'vendors', label: 'Vendors', description: 'Vendor management' },
   { key: 'candidates', label: 'Candidates', description: 'Candidate profiles and add candidate' },
   { key: 'pipeline', label: 'Pipeline', description: 'Hiring pipeline by requirement' },
@@ -122,6 +133,9 @@ export function effectiveAllowedPages(
   const pages = allowedPages ?? []
   if (role === ROLES.INTERVIEWER) {
     return pages.filter((p) => p !== 'candidates')
+  }
+  if (role === ROLES.ACCOUNT_MANAGER || role === ROLES.HIRING_MANAGER) {
+    return [...new Set([...pages, 'requirements' as PageKey, 'reports' as PageKey])]
   }
   return pages
 }
@@ -155,7 +169,9 @@ export function canAccessOfferLetterTemplate(
 
 export function pathnameToPageKey(pathname: string): PageKey | null {
   if (pathname === '/' || pathname.startsWith('/dashboard')) return 'dashboard'
+  if (pathname.startsWith('/business-requirements')) return 'business_requirements'
   if (pathname.startsWith('/requirements')) return 'requirements'
+  if (pathname.startsWith('/reports')) return 'reports'
   if (pathname.startsWith('/vendors')) return 'vendors'
   if (pathname.startsWith('/candidates')) return 'candidates'
   if (pathname.startsWith('/pipeline')) return 'pipeline'
@@ -173,7 +189,9 @@ export function pathnameToPageKey(pathname: string): PageKey | null {
 export function firstAllowedPath(allowedPages: PageKey[]): string {
   const order: PageKey[] = [
     'dashboard',
+    'business_requirements',
     'requirements',
+    'reports',
     'candidates',
     'interviews',
     'vendors',
@@ -193,6 +211,19 @@ export function firstAllowedPath(allowedPages: PageKey[]): string {
     }
   }
   return '/dashboard'
+}
+
+/** Roles that can view employee referral and vendor staff reports. */
+export const CHANNEL_REPORT_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN,
+  ROLES.HR_HEAD,
+  ROLES.HR_MANAGER,
+] as const
+
+export function canAccessChannelReports(role?: string | null): boolean {
+  if (!role) return false
+  return (CHANNEL_REPORT_ROLES as readonly string[]).includes(role)
 }
 
 // ─── Org-wide access ─────────────────────────────────────────────────────────
@@ -365,9 +396,55 @@ export {
   type CandidateProfileTab,
 } from './candidate-profile'
 
+// ─── Business requirements ───────────────────────────────────────────────────
+
+export const BUSINESS_MUTATE_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN,
+  ROLES.ACCOUNT_MANAGER,
+  ROLES.HIRING_MANAGER,
+] as const
+
+export const BUSINESS_VIEW_ROLES = [
+  ...BUSINESS_MUTATE_ROLES,
+  ROLES.HR_HEAD,
+  ROLES.HR_MANAGER,
+] as const
+
+export function canAccessBusinessRequirements(role?: string | null): boolean {
+  return BUSINESS_VIEW_ROLES.includes(role as (typeof BUSINESS_VIEW_ROLES)[number])
+}
+
+export function canMutateBusinessRequirement(
+  role?: string | null,
+  row?: { createdBy?: string; accountManager?: string; hiringManager?: string },
+  userId?: string
+): boolean {
+  if (isAdminRole(role)) return true
+  if (!BUSINESS_MUTATE_ROLES.includes(role as (typeof BUSINESS_MUTATE_ROLES)[number])) {
+    return false
+  }
+  if (!row || !userId) return true
+  return (
+    row.createdBy === userId ||
+    row.accountManager === userId ||
+    row.hiringManager === userId
+  )
+}
+
+export function isHrBusinessPreviewRole(role?: string | null): boolean {
+  return role === ROLES.HR_HEAD || role === ROLES.HR_MANAGER
+}
+
 // ─── Requirements ────────────────────────────────────────────────────────────
 
-export const HIRING_STAGE_EDIT_ROLES = [ROLES.RECRUITER, ROLES.HR_MANAGER, ROLES.TEAM_LEAD] as const
+export const HIRING_STAGE_EDIT_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN,
+  ROLES.RECRUITER,
+  ROLES.HR_MANAGER,
+  ROLES.TEAM_LEAD,
+] as const
 
 export const POSTING_CONTROL_ROLES = [
   ROLES.SUPER_ADMIN,
@@ -429,6 +506,17 @@ export function isRequirementHiringManager(
   if (requirement.hiringManager === user.uid) return true
   if (!user.name?.trim()) return false
   return requirement.hiringManager.trim().toLowerCase() === user.name.trim().toLowerCase()
+}
+
+export function isRequirementAccountManager(
+  requirement: Pick<Requirement, 'accountManager'>,
+  user?: { uid: string } | null
+): boolean {
+  return !!user?.uid && requirement.accountManager === user.uid
+}
+
+export function isAccountManagerRole(role?: string | null): boolean {
+  return role === ROLES.ACCOUNT_MANAGER
 }
 
 export function canEditRequirement(

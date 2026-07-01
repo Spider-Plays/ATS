@@ -11,8 +11,13 @@ export const INTERNAL_ROLES = [
   'INTERVIEWER',
 ] as const
 
+/** Staff roles that may call GET /api/requirements (includes read-only account managers). */
+export const REQUIREMENT_API_ROLES = [...INTERNAL_ROLES, 'ACCOUNT_MANAGER'] as const
+
 /** Dedicated employee referrer accounts (referral portal only) */
 export const EMPLOYEE_ROLE = 'EMPLOYEE' as const
+
+export const BUSINESS_ROLES = ['ACCOUNT_MANAGER', 'HIRING_MANAGER'] as const
 
 export const STAFF_MUTATE = [
   'SUPER_ADMIN',

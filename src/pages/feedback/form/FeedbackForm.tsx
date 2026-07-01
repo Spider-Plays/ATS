@@ -13,6 +13,7 @@ import clsx from 'clsx'
 import { useAuth } from '@/hooks/useAuth'
 import { useToastStore } from '@/store/toastStore'
 import { StarRatingDisplay, StarRatingInput } from '@/components/ui/StarRating'
+import { BackButton } from '@/components/ui/BackButton'
 import { AppSelect } from '@/components/ui/AppSelect'
 import {
   PROFICIENCY_LEVELS,
@@ -350,6 +351,11 @@ const FeedbackForm = () => {
   return (
     <div className="min-h-full -m-6 bg-slate-100 dark:bg-black">
       <div className="max-w-5xl mx-auto p-6 md:p-10 space-y-6">
+        <BackButton
+          fallback="/interviews"
+          label="Back to interviews"
+          variant="muted"
+        />
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-white">Interview Feedback Form</h1>
@@ -578,13 +584,13 @@ const FeedbackForm = () => {
             </section>
 
             <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => navigate('/interviews')}
-                className="px-6 py-3 font-bold text-slate-600"
-              >
-                Cancel
-              </button>
+              <BackButton
+                to="/interviews"
+                fallback="/interviews"
+                label="Cancel"
+                showIcon={false}
+                variant="muted"
+              />
               <button
                 type="submit"
                 disabled={createMutation.isPending}

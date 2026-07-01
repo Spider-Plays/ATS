@@ -8,6 +8,7 @@ import { prisma } from './lib/prisma.js'
 import { isEmailConfigured } from './services/email.js'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
+import businessRequirementRoutes from './routes/businessRequirements.js'
 import requirementRoutes from './routes/requirements.js'
 import candidateRoutes from './routes/candidates.js'
 import interviewRoutes from './routes/interviews.js'
@@ -16,6 +17,7 @@ import feedbackRoutes from './routes/feedback.js'
 import activityLogRoutes from './routes/activityLogs.js'
 import searchRoutes from './routes/search.js'
 import portalRoutes from './routes/portal.js'
+import careersRoutes from './routes/careers.js'
 import vendorRoutes from './routes/vendors.js'
 import vendorPortalRoutes from './routes/vendorPortal.js'
 import referralPortalRoutes from './routes/referralPortal.js'
@@ -96,6 +98,7 @@ app.get('/api/health', async (_req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/business-requirements', businessRequirementRoutes)
 app.use('/api/requirements', requirementRoutes)
 app.use('/api/candidates', candidateRoutes)
 app.use('/api/interviews', interviewRoutes)
@@ -104,6 +107,7 @@ app.use('/api/feedback', feedbackRoutes)
 app.use('/api/activity-logs', activityLogRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/portal', portalRoutes)
+app.use('/api/careers', careersRoutes)
 app.use('/api/vendors', vendorRoutes)
 app.use('/api/vendor-portal', vendorPortalRoutes)
 app.use('/api/referral-portal', referralPortalRoutes)
@@ -127,6 +131,13 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
       error: env.isProduction
         ? 'Database unavailable.'
         : 'Database unavailable. Wake your Neon project in the console or check DATABASE_URL in server/.env.',
+    })
+  }
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2021') {
+    return res.status(503).json({
+      error: env.isProduction
+        ? 'Database schema is out of date.'
+        : `Database table missing (${err.meta?.table ?? 'unknown'}). Run \`npm run db:push --prefix server\` against your DATABASE_URL, then restart the API.`,
     })
   }
   if (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'LIMIT_FILE_SIZE') {

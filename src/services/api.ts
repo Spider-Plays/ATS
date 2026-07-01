@@ -1,14 +1,25 @@
-import { requirementService, candidateService, userService, interviewService, offerService, offerSettingsService, feedbackService, searchService, portalService, skillService, departmentService, clientService, interviewPanelService } from './http'
+import { requirementService, candidateService, userService, interviewService, offerService, offerSettingsService, feedbackService, searchService, portalService, careersService, skillService, departmentService, clientService, interviewPanelService, businessRequirementService } from './http'
 import { vendorService } from './http/vendors'
 import { vendorPortalService } from './http/vendorPortal'
 import { referralPortalService } from './http/referralPortal'
 import { activityLogService } from './http/activityLogs'
 
 export const api = {
+    businessRequirements: {
+        list: businessRequirementService.list,
+        getById: businessRequirementService.getById,
+        getActivityLogs: businessRequirementService.getActivityLogs,
+        create: businessRequirementService.create,
+        update: businessRequirementService.update,
+        updateStage: businessRequirementService.updateStage,
+        openToHiring: businessRequirementService.openToHiring,
+        cancel: businessRequirementService.cancel,
+    },
     requirements: {
         list: requirementService.getAll,
         getPending: requirementService.getPending,
         getById: requirementService.getById,
+        getActivityLogs: requirementService.getActivityLogs,
         create: requirementService.create,
         parseJobDescription: requirementService.parseJobDescription,
         update: requirementService.update,
@@ -64,6 +75,11 @@ export const api = {
         declineOffer: portalService.declineOffer,
         downloadOfferLetterPdf: portalService.downloadOfferLetterPdf,
     },
+    careers: {
+        getOpenPositions: careersService.getOpenPositions,
+        getDepartments: careersService.getDepartments,
+        getPosition: careersService.getPosition,
+    },
     vendors: {
         list: vendorService.list,
         get: vendorService.get,
@@ -78,10 +94,13 @@ export const api = {
         getPositions: vendorPortalService.getPositions,
         getPosition: vendorPortalService.getPosition,
         getSubmissions: vendorPortalService.getSubmissions,
+        getSubmission: vendorPortalService.getSubmission,
         parseResume: vendorPortalService.parseResume,
         checkEmail: vendorPortalService.checkEmail,
         submitCandidate: vendorPortalService.submitCandidate,
+        updateSubmission: vendorPortalService.updateSubmission,
         uploadResume: vendorPortalService.uploadResume,
+        fetchSubmissionResume: vendorPortalService.fetchSubmissionResume,
     },
     referralPortal: {
         getMe: referralPortalService.getMe,

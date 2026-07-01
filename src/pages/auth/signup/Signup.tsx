@@ -19,7 +19,7 @@ const Signup = () => {
                         Register to browse open roles, complete your profile, and track your application.
                     </p>
                     <Link
-                        to="/portal/signup"
+                        to="/candidate/signup"
                         className="btn-filled inline-flex items-center gap-2 text-sm"
                     >
                         Create candidate account

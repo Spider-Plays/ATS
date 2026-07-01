@@ -23,6 +23,7 @@
     "db:dedupe-users": "tsx src/scripts/dedupe-users.ts",
     "db:reset-passwords": "tsx src/scripts/reset-passwords.ts",
     "db:clear": "tsx src/scripts/clear-db.ts",
+    "db:clear-demo": "tsx src/scripts/clear-demo-data.ts",
     "db:reset-keep-superadmin": "tsx src/scripts/reset-keep-superadmin.ts",
     "db:bootstrap": "tsx src/scripts/bootstrap-admin.ts",
     "db:verify": "tsx src/scripts/verify-db.ts",

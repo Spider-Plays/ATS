@@ -1,94 +1,242 @@
-import React from 'react'
-import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/services/api'
-import { Gift } from 'lucide-react'
-import { ReferralStatusBadge } from '@/components/referral-portal/ReferralStatusBadge'
-import './detail.css'
+import React from "react";
+import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Briefcase,
+  ChevronRight,
+  FileText,
+  Gift,
+  Heart,
+  Loader2,
+  Mail,
+  MapPin,
+  Phone,
+} from "lucide-react";
+import clsx from "clsx";
+import { format } from "date-fns";
+import { api } from "@/services/api";
+import { BackButton } from "@/components/ui/BackButton";
+import { PortalPipelineTracker } from "@/components/portal/PortalPipelineTracker";
+import {
+  candidateStatusClass,
+  candidateStatusLabel,
+} from "@/pages/candidates/_shared/candidate.utils";
+import type { CandidateStatus } from "@/types";
+import "@/pages/vendor-portal/submission-detail/detail.css";
+import "./detail.css";
 
 const ReferralDetail = () => {
-  const { id } = useParams<{ id: string }>()
-  const { data, isLoading } = useQuery({
-    queryKey: ['referral-portal-referral', id],
+  const { id } = useParams<{ id: string }>();
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["referral-portal-referral", id],
     queryFn: () => api.referralPortal.getReferral(id!),
     enabled: !!id,
-  })
+  });
 
-  if (isLoading) return <div className="p-12 text-center text-slate-500">Loading…</div>
-  if (!data) return <div className="p-12 text-center">Referral not found</div>
+  if (isLoading) {
+    return (
+      <div className="p-12 flex justify-center text-slate-500">
+        <Loader2 className="animate-spin" size={28} />
+      </div>
+    );
+  }
 
-  const { candidate, timeline, referralRelationship, referralNotes, referralBonusAmount } = data
+  if (isError || !data) {
+    return (
+      <div className="max-w-lg mx-auto p-12 text-center space-y-4">
+        <p className="text-red-600 font-medium">Referral not found</p>
+        <BackButton
+          fallback="/referral-portal/referrals"
+          label="All referrals"
+          variant="muted"
+        />
+      </div>
+    );
+  }
+
+  const {
+    candidate,
+    timeline,
+    referralRelationship,
+    referralNotes,
+    referralBonusAmount,
+  } = data;
+  const status = candidate.status as CandidateStatus;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 p-6 space-y-4">
-        <div className="flex flex-wrap justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white">{candidate.name}</h1>
-            <p className="text-sm text-slate-500">{candidate.email}</p>
-          </div>
-          <ReferralStatusBadge status={candidate.status} className="px-3 py-1 rounded-lg text-xs h-fit" />
-        </div>
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      <BackButton
+        fallback="/referral-portal/referrals"
+        label="All referrals"
+        variant="muted"
+      />
 
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <dt className="text-[10px] font-bold uppercase text-slate-400">Role</dt>
-            <dd className="font-medium">{candidate.jobTitle ?? candidate.role}</dd>
+      <header className="vendor-submission-detail__header">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <span className="portal-page-eyebrow">Referral</span>
+            <span
+              className={clsx(
+                "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border",
+                candidateStatusClass(status),
+              )}
+            >
+              {candidateStatusLabel(status)}
+            </span>
           </div>
-          <div>
-            <dt className="text-[10px] font-bold uppercase text-slate-400">Relationship</dt>
-            <dd className="font-medium">{referralRelationship ?? '—'}</dd>
-          </div>
-          {candidate.matchScore != null && (
-            <div>
-              <dt className="text-[10px] font-bold uppercase text-slate-400">Match score</dt>
-              <dd className="font-medium">{Math.round(candidate.matchScore)}%</dd>
+          <h1 className="text-page-title">{candidate.name}</h1>
+          <p className="text-page-desc mt-1">{candidate.email}</p>
+        </div>
+        {candidate.requirementId && (
+          <Link
+            to={`/referral-portal/jobs/${candidate.requirementId}`}
+            className="vendor-submission-detail__job-link"
+          >
+            <Briefcase size={16} />
+            {candidate.jobTitle ?? candidate.role}
+            {candidate.reqId ? ` · ${candidate.reqId}` : ""}
+            <ChevronRight size={16} />
+          </Link>
+        )}
+      </header>
+
+      <div className="vendor-submission-detail__layout">
+        <aside className="vendor-submission-detail__sidebar">
+          <section className="vendor-submission-detail__panel">
+            <p className="vendor-submission-detail__panel-label">Match score</p>
+            <div className="vendor-submission-detail__match">
+              <span className="vendor-submission-detail__match-value">
+                {candidate.matchScore != null && candidate.matchScore > 0
+                  ? `${Math.round(candidate.matchScore)}%`
+                  : "—"}
+              </span>
+              <span className="vendor-submission-detail__match-label">
+                Role fit
+              </span>
             </div>
+          </section>
+
+          <section className="vendor-submission-detail__panel">
+            <p className="vendor-submission-detail__panel-label">Pipeline</p>
+            <PortalPipelineTracker status={status} compact />
+          </section>
+
+          <section className="vendor-submission-detail__panel">
+            <p className="vendor-submission-detail__panel-label">Details</p>
+            <ul className="vendor-submission-detail__meta">
+              {referralRelationship && (
+                <li className="flex items-center gap-1.5">
+                  <Heart size={14} /> {referralRelationship}
+                </li>
+              )}
+              {candidate.createdAt && (
+                <li>
+                  Referred {format(new Date(candidate.createdAt), "PPP")}
+                </li>
+              )}
+              {candidate.phone && (
+                <li className="flex items-center gap-1.5">
+                  <Phone size={14} /> {candidate.phone}
+                </li>
+              )}
+              {candidate.location && (
+                <li className="flex items-center gap-1.5">
+                  <MapPin size={14} /> {candidate.location}
+                </li>
+              )}
+              {candidate.hasResume && (
+                <li className="flex items-center gap-1.5">
+                  <FileText size={14} />
+                  {candidate.resumeFileName ?? "Resume on file"}
+                </li>
+              )}
+              {referralBonusAmount ? (
+                <li className="flex items-center gap-1.5 text-tertiary font-bold">
+                  <Gift size={14} />₹
+                  {referralBonusAmount.toLocaleString("en-IN")} bonus on hire
+                </li>
+              ) : null}
+            </ul>
+          </section>
+        </aside>
+
+        <div className="space-y-6">
+          {referralNotes && (
+            <section className="vendor-submission-detail__section">
+              <h2 className="vendor-submission-detail__section-title">
+                Your notes
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {referralNotes}
+              </p>
+            </section>
           )}
-          {referralBonusAmount ? (
-            <div className="flex items-center gap-2">
-              <Gift size={16} className="text-amber-600" />
+
+          <section className="vendor-submission-detail__section">
+            <h2 className="vendor-submission-detail__section-title">
+              Contact
+            </h2>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="text-[10px] font-bold uppercase text-amber-700">Referral bonus</dt>
-                <dd className="font-black text-amber-800">
-                  ₹{referralBonusAmount.toLocaleString('en-IN')} on successful hire
+                <dt className="text-[10px] font-bold uppercase text-muted-foreground">
+                  Email
+                </dt>
+                <dd className="font-medium flex items-center gap-1.5 mt-1">
+                  <Mail size={14} className="text-muted-foreground" />
+                  {candidate.email}
                 </dd>
               </div>
-            </div>
-          ) : null}
-        </dl>
+              {candidate.phone && (
+                <div>
+                  <dt className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Phone
+                  </dt>
+                  <dd className="font-medium mt-1">{candidate.phone}</dd>
+                </div>
+              )}
+              {candidate.location && (
+                <div>
+                  <dt className="text-[10px] font-bold uppercase text-muted-foreground">
+                    Location
+                  </dt>
+                  <dd className="font-medium mt-1">{candidate.location}</dd>
+                </div>
+              )}
+            </dl>
+          </section>
 
-        {referralNotes && (
-          <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 text-sm">
-            <p className="text-[10px] font-bold uppercase text-slate-400 mb-1">Your notes</p>
-            <p className="text-slate-700 dark:text-white/80">{referralNotes}</p>
-          </div>
-        )}
+          <section className="vendor-submission-detail__section">
+            <h2 className="vendor-submission-detail__section-title">
+              Activity timeline
+            </h2>
+            {timeline.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No activity logged yet.
+              </p>
+            ) : (
+              <ul className="referral-detail-timeline">
+                {timeline.map((ev, i) => (
+                  <li key={`${ev.timestamp}-${i}`} className="referral-detail-timeline__item">
+                    <p className="referral-detail-timeline__time">
+                      {format(new Date(ev.timestamp), "PPP p")}
+                    </p>
+                    <p className="referral-detail-timeline__action">
+                      {ev.action.replace(/_/g, " ")}
+                    </p>
+                    {ev.performerName && (
+                      <p className="referral-detail-timeline__performer">
+                        by {ev.performerName}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
-
-      <section className="bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 p-6">
-        <h2 className="font-bold text-lg mb-4">Activity timeline</h2>
-        {timeline.length === 0 ? (
-          <p className="text-sm text-slate-500">No activity logged yet.</p>
-        ) : (
-          <ul className="space-y-4 border-l-2 border-violet-200 dark:border-violet-500/30 ml-2 pl-6">
-            {timeline.map((ev, i) => (
-              <li key={`${ev.timestamp}-${i}`} className="relative">
-                <span className="absolute -left-[1.65rem] top-1 size-3 rounded-full bg-violet-500 ring-4 ring-violet-100 dark:ring-violet-900" />
-                <p className="text-xs font-bold text-slate-400">
-                  {new Date(ev.timestamp).toLocaleString()}
-                </p>
-                <p className="font-bold text-slate-900 dark:text-white">{ev.action.replace(/_/g, ' ')}</p>
-                {ev.performerName && (
-                  <p className="text-xs text-slate-500">by {ev.performerName}</p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </div>
-  )
-}
+  );
+};
 
-export default ReferralDetail
+export default ReferralDetail;

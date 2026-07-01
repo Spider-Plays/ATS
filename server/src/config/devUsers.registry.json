@@ -41,6 +41,12 @@
   { "email": "anjali.desai@stitch-ats.in", "name": "Anjali Desai", "role": "HIRING_MANAGER", "department": "Engineering" },
   { "email": "rohit.saxena@stitch-ats.in", "name": "Rohit Saxena", "role": "HIRING_MANAGER", "department": "Engineering" },
 
+  { "email": "accountmanager@stitch-ats.in", "name": "Neha Kapoor", "role": "ACCOUNT_MANAGER", "department": "Business", "primary": true },
+  { "email": "rahul.bansal@stitch-ats.in", "name": "Rahul Bansal", "role": "ACCOUNT_MANAGER", "department": "Business" },
+  { "email": "simran.chopra@stitch-ats.in", "name": "Simran Chopra", "role": "ACCOUNT_MANAGER", "department": "Business" },
+  { "email": "devesh.agarwal@stitch-ats.in", "name": "Devesh Agarwal", "role": "ACCOUNT_MANAGER", "department": "Business" },
+  { "email": "kiran.malhotra@stitch-ats.in", "name": "Kiran Malhotra", "role": "ACCOUNT_MANAGER", "department": "Business" },
+
   { "email": "interviewer@stitch-ats.in", "name": "Chetan Bhatt", "role": "INTERVIEWER", "department": "Engineering", "primary": true },
   { "email": "nisha.kamath@stitch-ats.in", "name": "Nisha Kamath", "role": "INTERVIEWER", "department": "Engineering" },
   { "email": "pradeep.naidu@stitch-ats.in", "name": "Pradeep Naidu", "role": "INTERVIEWER", "department": "Engineering" },

@@ -1,12 +1,15 @@
+import { portalRequirementVisible } from './portalPositions.js'
+
 const CLOSED_REQUIREMENT_STATUSES = new Set(['CLOSED', 'ON_HOLD', 'CANCELLED'])
 
 export type PortalJobStatus = 'ACTIVE' | 'CLOSED'
 
+/** LIVE requirements posted to the candidate portal also appear on the public careers page. */
 export function isRequirementListedOnPortal(requirement: {
   status: string
   visibleToCandidates: boolean
 }): boolean {
-  return requirement.status === 'LIVE' && requirement.visibleToCandidates
+  return portalRequirementVisible(requirement)
 }
 
 export function resolvePortalJobStatus(

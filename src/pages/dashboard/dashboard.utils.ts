@@ -12,7 +12,8 @@ import { isCompletedPipeline, isUpcoming, needsFeedback } from '@/pages/intervie
 import { requirementStats } from '@/pages/requirements/_shared/requirement.utils'
 
 export const PIPELINE_STAGES: CandidateStatus[] = [
-  'SOURCED',
+  'ADDED',
+  'SUBMITTED',
   'SCREENING',
   'SHORTLISTED',
   'INTERVIEW',
@@ -20,12 +21,37 @@ export const PIPELINE_STAGES: CandidateStatus[] = [
   'HIRED',
 ]
 
+export const PIPELINE_STAGE_COLORS: Record<CandidateStatus, string> = {
+  ADDED: '#94a3b8',
+  SUBMITTED: '#64748b',
+  SCREENING: '#f59e0b',
+  SHORTLISTED: '#d97706',
+  INTERVIEW: '#a855f7',
+  OFFER: '#3b82f6',
+  HIRED: '#10b981',
+  REJECTED: '#ef4444',
+}
+
 export function candidatePipelineCounts(candidates: Candidate[]) {
   return PIPELINE_STAGES.map((stage) => ({
     stage,
     label: stage.charAt(0) + stage.slice(1).toLowerCase(),
     count: candidates.filter((c) => c.status === stage).length,
   }))
+}
+
+export function pipelineSegmentsFromCandidates(candidates: Candidate[]) {
+  const stages = candidatePipelineCounts(candidates).filter((s) => s.count > 0)
+  const total = stages.reduce((sum, s) => sum + s.count, 0)
+  return stages
+    .map((s) => ({
+      key: s.stage,
+      label: s.label,
+      count: s.count,
+      pct: total > 0 ? (s.count / total) * 100 : 0,
+      color: PIPELINE_STAGE_COLORS[s.stage],
+    }))
+    .sort((a, b) => b.count - a.count)
 }
 
 export function adminMetrics(

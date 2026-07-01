@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+    BarChart3,
     Briefcase,
     GitBranch,
     Handshake,
@@ -40,6 +41,7 @@ const ROLE_LABELS: Record<ConfigurableRole, string> = {
     RECRUITER: 'Recruiter',
     TEAM_LEAD: 'Team Lead',
     HIRING_MANAGER: 'Hiring Manager',
+    ACCOUNT_MANAGER: 'Account Manager',
     INTERVIEWER: 'Interviewer',
 }
 
@@ -47,7 +49,9 @@ type PageDef = (typeof PAGE_DEFINITIONS)[number]
 
 const PAGE_ICONS: Record<PageKey, LucideIcon> = {
     dashboard: LayoutDashboard,
+    business_requirements: Handshake,
     requirements: Briefcase,
+    reports: BarChart3,
     vendors: Handshake,
     candidates: Users,
     pipeline: GitBranch,
@@ -68,6 +72,7 @@ function pagesAvailableForRole(role: ConfigurableRole): PageDef[] {
 function pageRoute(key: PageKey): string {
     if (key === 'dashboard') return '/dashboard'
     if (key === 'admin_users') return '/admin'
+    if (key === 'business_requirements') return '/business-requirements'
     if (key === 'offer_compensation_config') return '/offers/compensation-config'
     if (key === 'offer_letter_template') return '/offers/letter-template'
     return `/${key}`
@@ -285,6 +290,7 @@ const RoleAccessEditor = () => {
         RECRUITER: [],
         TEAM_LEAD: [],
         HIRING_MANAGER: [],
+        ACCOUNT_MANAGER: [],
         INTERVIEWER: [],
     })
 

@@ -99,6 +99,7 @@ Same as [TESTER_SETUP.md](./TESTER_SETUP.md):
 
 ## Related
 
+- [API_REFERENCE.md](./API_REFERENCE.md) — all 161 API endpoints with URLs and auth keys
 - [RELEASE_WORKFLOW.md](./RELEASE_WORKFLOW.md) — qa branch → main release process
 - [TESTER_SETUP.md](./TESTER_SETUP.md) — browser support, bug workflow
 - [README.md](../../README.md#qa-staging-full-stack) — infrastructure setup for devops

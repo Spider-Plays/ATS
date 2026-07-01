@@ -1,14 +1,15 @@
-import React from 'react'
-import ReferralSidebar from '../components/ReferralSidebar'
-import { AnimatedOutlet } from '../components/motion/AnimatedOutlet'
+import React from "react";
+import ReferralSidebar from "../components/ReferralSidebar";
+import { AnimatedOutlet } from "../components/motion/AnimatedOutlet";
+import "@/styles/portal-theme.css";
 
 const ReferralPortalLayout = () => (
-  <div className="min-h-screen app-shell-bg">
+  <div className="min-h-screen app-shell-bg" data-portal-theme="referral">
     <ReferralSidebar />
     <main className="app-main-canvas flex-1 ml-[var(--sidebar-width)] p-6 md:p-8 min-h-screen custom-scrollbar">
       <AnimatedOutlet />
     </main>
   </div>
-)
+);
 
-export default ReferralPortalLayout
+export default ReferralPortalLayout;

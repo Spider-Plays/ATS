@@ -5,8 +5,13 @@ import { assertPrismaClientModels, prisma } from './lib/prisma.js'
 import { ensureCandidateMilestoneColumns } from './lib/ensureCandidateMilestoneColumns.js'
 import { ensureReferralColumns } from './lib/ensureReferralColumns.js'
 import { ensureOfferApprovalChainColumn } from './lib/ensureOfferApprovalChainColumn.js'
+import { ensureBusinessRequirementTable } from './lib/ensureBusinessRequirementTable.js'
+import { ensureRequirementAccountManagerColumn } from './lib/ensureRequirementAccountManagerColumn.js'
+import { ensurePrimaryDevUsers } from './lib/ensurePrimaryDevUsers.js'
+import { ensureRolePageAccessPatches } from './lib/ensureRolePageAccessPatches.js'
 import { ensureAppSettingTable } from './lib/ensureAppSettingTable.js'
 import { startInterviewReminderJob } from './lib/emailDispatch.js'
+import { startCandidateScreeningJob } from './lib/candidateStatuses.js'
 
 try {
   assertPrismaClientModels()
@@ -26,7 +31,12 @@ async function prepareDatabase(): Promise<void> {
   await ensureReferralColumns()
   await ensureAppSettingTable()
   await ensureOfferApprovalChainColumn()
+  await ensureBusinessRequirementTable()
+  await ensureRequirementAccountManagerColumn()
+  await ensurePrimaryDevUsers()
+  await ensureRolePageAccessPatches()
   startInterviewReminderJob()
+  startCandidateScreeningJob()
 }
 
 async function start(): Promise<void> {

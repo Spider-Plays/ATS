@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useToastStore } from '@/store/toastStore'
 import { FeatureTagKey, UserRole } from '@/types'
 import { Button } from '@/components/ui/Button'
+import { BackButton } from '@/components/ui/BackButton'
 import { UserStatusToggle } from '@/components/admin/UserStatusToggle'
 import { useConfirm } from '@/hooks/useConfirm'
 import { SearchableMultiSelect } from '@/components/ui/SearchableMultiSelect'
@@ -286,6 +287,12 @@ const UserDetail = () => {
 
     return (
         <div className="flex flex-col gap-6 p-6 md:p-8 max-w-4xl mx-auto w-full">
+            <BackButton
+                fallback="/admin/users"
+                to="/admin/users"
+                label="Back to team"
+                variant="muted"
+            />
             <div className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                     <h1 className="text-2xl font-black text-primary dark:text-white truncate">{user.name}</h1>

@@ -1,9 +1,10 @@
 import React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { canAccessPage, firstAllowedPath, pathnameToPageKey, isAdminRole, canManageUsers, roleMatchesAllowed } from '@/permissions'
+import { canAccessPage, firstAllowedPath, pathnameToPageKey, isAdminRole, canManageUsers, roleMatchesAllowed, isHrBusinessPreviewRole } from '@/permissions'
 import { featureTagFromPath, hasFeatureTag } from '@/permissions'
 import { PageLoader } from './ui/PageLoader'
+import { CANDIDATE_PORTAL, isCandidatePortalPath } from '@/lib/candidatePortalPaths'
 
 export const RequireAuth = ({
     children,
@@ -22,8 +23,8 @@ export const RequireAuth = ({
     }
 
     if (!user) {
-        const loginPath = location.pathname.startsWith('/portal')
-            ? '/portal/login'
+        const loginPath = isCandidatePortalPath(location.pathname) || location.pathname.startsWith('/portal')
+            ? `${CANDIDATE_PORTAL}/login`
             : location.pathname.startsWith('/referral-portal')
               ? '/referral-portal/login'
               : '/login'
@@ -36,10 +37,12 @@ export const RequireAuth = ({
 
     if (
         user.role === 'CANDIDATE' &&
+        !isCandidatePortalPath(location.pathname) &&
         !location.pathname.startsWith('/portal') &&
+        !location.pathname.startsWith('/careers') &&
         location.pathname !== '/login'
     ) {
-        return <Navigate to="/portal/dashboard" replace />
+        return <Navigate to={`${CANDIDATE_PORTAL}/dashboard`} replace />
     }
 
     if (
@@ -52,7 +55,7 @@ export const RequireAuth = ({
     }
 
     if (allowedRoles && !roleMatchesAllowed(user.role, allowedRoles)) {
-        if (user.role === 'CANDIDATE') return <Navigate to="/portal/login" replace />
+        if (user.role === 'CANDIDATE') return <Navigate to={`${CANDIDATE_PORTAL}/login`} replace />
         if (user.role === 'EMPLOYEE') return <Navigate to="/referral-portal/dashboard" replace />
         if (user.role === 'VENDOR') return <Navigate to="/vendor-portal/dashboard" replace />
         if (isAdminRole(user.role)) return <Navigate to="/admin" replace />
@@ -71,8 +74,15 @@ export const RequireAuth = ({
                 return <Navigate to="/admin" replace />
             }
             if (pageKey && !canAccessPage(allowedPages, pageKey, user.role)) {
-                const fallback = firstAllowedPath(allowedPages)
-                return <Navigate to={fallback} replace />
+                const hrBusinessPreview =
+                    pageKey === 'business_requirements' &&
+                    isHrBusinessPreviewRole(user.role) &&
+                    /^\/business-requirements\/[^/]+$/.test(location.pathname) &&
+                    location.pathname !== '/business-requirements/new'
+                if (!hrBusinessPreview) {
+                    const fallback = firstAllowedPath(allowedPages)
+                    return <Navigate to={fallback} replace />
+                }
             }
         }
     }

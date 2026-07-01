@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw, Sparkles } from 'lucide-react'
 import { PageHero, heroBtnSecondary } from '@/components/layout/PageHero'
+import { BackButton } from '@/components/ui/BackButton'
 import clsx from 'clsx'
 import { api } from '@/services/api'
 import { ListSearchBar } from '@/components/ui/ListSearchBar'
@@ -63,6 +64,13 @@ const RequirementMatchingProfiles = () => {
 
     return (
         <div className="p-8 max-w-6xl mx-auto w-full animate-in fade-in duration-500">
+            <BackButton
+                fallback={`/requirements/${id}`}
+                to={`/requirements/${id}`}
+                label="Back to requirement"
+                className="mb-4"
+                variant="muted"
+            />
             <PageHero
                 icon={Sparkles}
                 eyebrow="AI matching"

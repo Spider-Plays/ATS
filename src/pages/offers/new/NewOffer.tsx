@@ -75,19 +75,14 @@ const NewOffer = () => {
     [candidates]
   )
 
-  const selectableCandidates = useMemo(() => {
-    if (!requirementId) return offerStageCandidates
-    return offerStageCandidates.filter((c) => c.requirementId === requirementId)
-  }, [offerStageCandidates, requirementId])
-
   const candidateOptions = useMemo(
     () =>
-      selectableCandidates.map((c) => ({
+      offerStageCandidates.map((c) => ({
         value: c.id,
         label: c.name,
         sublabel: [c.role, c.email, c.status].filter(Boolean).join(' · '),
       })),
-    [selectableCandidates]
+    [offerStageCandidates]
   )
 
   const selectedCandidate = useMemo(
@@ -99,6 +94,17 @@ const NewOffer = () => {
     () => requirements.find((r) => r.id === requirementId),
     [requirements, requirementId]
   )
+
+  useEffect(() => {
+    if (!candidateId) {
+      setValue('requirementId', '')
+      return
+    }
+    const candidate = offerStageCandidates.find((c) => c.id === candidateId)
+    if (candidate?.requirementId) {
+      setValue('requirementId', candidate.requirementId)
+    }
+  }, [candidateId, offerStageCandidates, setValue])
 
   useEffect(() => {
     if (selectedCandidate?.location) {
@@ -125,12 +131,6 @@ const NewOffer = () => {
       if (siteAddress !== '—') setValue('clientSiteAddress', siteAddress)
     }
   }, [currentStep, selectedCandidate, selectedRequirement, setValue])
-
-  useEffect(() => {
-    if (candidateId && !selectableCandidates.some((c) => c.id === candidateId)) {
-      setValue('candidateId', '')
-    }
-  }, [candidateId, selectableCandidates, setValue])
 
   const requirementOptions = useMemo(
     () => requirementSelectOptions(requirements),
@@ -233,11 +233,9 @@ const NewOffer = () => {
                     )}
                   />
                   {errors.candidateId && <p className="text-xs font-bold text-red-500">{errors.candidateId.message}</p>}
-                  {selectableCandidates.length === 0 && (
+                  {offerStageCandidates.length === 0 && (
                     <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
-                      {requirementId
-                        ? 'No candidates in Offer stage are linked to this job. Move a linked candidate to Offer in the pipeline first.'
-                        : 'No candidates are in Offer stage. Move a candidate to Offer in the pipeline before creating an offer.'}
+                      No candidates are in Offer stage. Move a candidate to Offer in the pipeline before creating an offer.
                     </p>
                   )}
                 </div>
@@ -251,9 +249,11 @@ const NewOffer = () => {
                         value={field.value}
                         onChange={field.onChange}
                         options={requirementOptions}
-                        placeholder="Select job"
+                        placeholder="Filled from selected candidate"
                         searchPlaceholder="Search by title, req ID, or client..."
                         icon={<Briefcase size={18} />}
+                        disabled
+                        allowClear={false}
                       />
                     )}
                   />

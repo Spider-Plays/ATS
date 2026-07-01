@@ -1,13 +1,17 @@
+import '../config/loadEnv.js'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
 import { env } from '../config/env.js'
 import { DEV_USERS, DEV_PASSWORD, devUserEmail, devUserName } from '../config/devUsers.js'
 import {
+  DEMO_BUSINESS_REQUIREMENTS,
   DEMO_CANDIDATES,
   DEMO_PORTAL_USERS,
   DEMO_REQUIREMENTS,
   DEMO_VENDOR_CODE,
+  DEMO_VENDOR_NAME,
   type DemoPortalUserSeed,
+  type DemoRequirementSeed,
 } from '../config/demoData.js'
 import { serializeSkills } from '../lib/skills.js'
 import { saveResumeFile } from '../lib/resumeStorage.js'
@@ -23,10 +27,26 @@ import { ensureInterviewPlan } from '../lib/interviewPlan.js'
 import { removeLegacyDevUsers } from '../lib/legacyDevUsers.js'
 import { migrateRequirementJobCodes } from '../lib/jobCode.js'
 import { logActivity } from '../services/activityLog.js'
+import { businessStagePercentage } from '../lib/businessStages.js'
 import type { DemoCandidateSeed } from '../config/demoData.js'
 
 const FRESH = process.argv.includes('--fresh')
 const FORCE = process.argv.includes('--force')
+
+function requirementExtras(r: DemoRequirementSeed, timestamp: Date) {
+  return {
+    accountManager: r.accountManager ?? null,
+    locationCity: r.locationCity ?? null,
+    workMode: r.workMode ?? null,
+    employmentType: r.employmentType ?? null,
+    seniorityLevel: r.seniorityLevel ?? null,
+    experienceMinYears: r.experienceMinYears ?? null,
+    experienceMaxYears: r.experienceMaxYears ?? null,
+    salaryBand: r.salaryBand ?? null,
+    isRemote: r.workMode === 'REMOTE',
+    liveAt: r.status === 'LIVE' ? timestamp : null,
+  }
+}
 
 type InterviewProgress = NonNullable<DemoCandidateSeed['interviewProgress']>
 
@@ -150,7 +170,7 @@ async function seedInterviewRounds(
 async function seedOffers(candidateSeeds: Map<string, DemoCandidateSeed>, recruiterId: string) {
   const candidates = await prisma.candidate.findMany({
     where: {
-      status: { in: ['OFFER', 'HIRED', 'JOINED'] },
+      status: { in: ['OFFER', 'HIRED'] },
       requirementId: { not: null },
     },
   })
@@ -199,7 +219,7 @@ async function seedOffers(candidateSeeds: Map<string, DemoCandidateSeed>, recrui
 async function syncRequirementFilledCounts(reqByCode: Map<string, { id: string }>) {
   for (const [, req] of reqByCode) {
     const filled = await prisma.candidate.count({
-      where: { requirementId: req.id, status: { in: ['HIRED', 'JOINED'] } },
+      where: { requirementId: req.id, status: 'HIRED' },
     })
     await prisma.requirement.update({ where: { id: req.id }, data: { filled } })
   }
@@ -254,6 +274,7 @@ async function clearHiringData() {
     prisma.interviewPlan.deleteMany(),
     prisma.candidate.deleteMany(),
     prisma.vendorRequirement.deleteMany(),
+    prisma.businessRequirement.deleteMany(),
     prisma.requirement.deleteMany(),
   ])
 }
@@ -402,18 +423,19 @@ async function main() {
   const vendor = await prisma.vendor.upsert({
     where: { code: DEMO_VENDOR_CODE },
     update: {
-      name: 'Demo Staffing Co',
+      name: DEMO_VENDOR_NAME,
       status: 'ACTIVE',
       email: 'staffing@stitch-ats.in',
       contactName: 'Raghavendra Murthy',
+      phone: '+91 80 4123 8900',
     },
     create: {
-      name: 'Demo Staffing Co',
+      name: DEMO_VENDOR_NAME,
       code: DEMO_VENDOR_CODE,
       email: 'staffing@stitch-ats.in',
       status: 'ACTIVE',
       contactName: 'Raghavendra Murthy',
-      phone: '+91 98765 43210',
+      phone: '+91 80 4123 8900',
     },
   })
 
@@ -468,6 +490,7 @@ async function main() {
         secondarySkills: serializeSkills([...r.secondarySkills]),
         visibleToCandidates: r.visibleToCandidates,
         visibleToVendors: r.visibleToVendors,
+        ...requirementExtras(r, timestamp),
         approval:
           r.status === 'LIVE'
             ? JSON.stringify({ decision: 'APPROVED' })
@@ -490,6 +513,7 @@ async function main() {
         secondarySkills: serializeSkills([...r.secondarySkills]),
         visibleToCandidates: r.visibleToCandidates,
         visibleToVendors: r.visibleToVendors,
+        ...requirementExtras(r, timestamp),
         createdBy: recruiterId,
         createdByRole: 'RECRUITER',
         recruiters: JSON.stringify([recruiterId]),
@@ -527,6 +551,55 @@ async function main() {
           assignedBy: recruiterId,
         },
       })
+    }
+  }
+
+  console.log('Seeding business requirements...')
+  for (const br of DEMO_BUSINESS_REQUIREMENTS) {
+    const accountManagerId = userByEmail.get(devUserEmail(br.accountManagerRole))!
+    const hiringManagerId = userByEmail.get(devUserEmail(br.hiringManagerRole))!
+    const stage = br.businessStage
+    const percentage = businessStagePercentage(stage)
+    const timestamp = new Date().toISOString()
+
+    const payload = {
+      title: br.title,
+      client: br.client,
+      department: br.department,
+      accountManager: accountManagerId,
+      hiringManager: hiringManagerId,
+      businessStage: stage,
+      stagePercentage: percentage,
+      status: 'ACTIVE' as const,
+      openings: br.openings,
+      priority: br.priority,
+      location: br.location,
+      locationCity: br.locationCity ?? null,
+      workMode: br.workMode,
+      employmentType: br.employmentType,
+      seniorityLevel: br.seniorityLevel,
+      experienceMinYears: br.experienceMinYears,
+      experienceMaxYears: br.experienceMaxYears,
+      salaryBand: br.salaryBand,
+      isRemote: br.workMode === 'REMOTE',
+      description: br.description,
+      jobDescription: br.jobDescription,
+      primarySkills: serializeSkills([...br.primarySkills]),
+      secondarySkills: serializeSkills([...br.secondarySkills]),
+      createdBy: recruiterId,
+      createdByRole: 'RECRUITER',
+      stageHistory: JSON.stringify([
+        { stage, percentage, by: recruiterId, at: timestamp, role: 'RECRUITER' },
+      ]),
+    }
+
+    const existing = await prisma.businessRequirement.findFirst({
+      where: { title: br.title, client: br.client },
+    })
+    if (existing) {
+      await prisma.businessRequirement.update({ where: { id: existing.id }, data: payload })
+    } else {
+      await prisma.businessRequirement.create({ data: payload })
     }
   }
 
@@ -652,7 +725,7 @@ async function main() {
       email: p.email,
       name: p.name,
       role: requirement?.title ?? 'Candidate',
-      status: p.status ?? (p.applyToJobCode ? 'APPLIED' : 'SOURCED'),
+      status: p.status ?? (p.applyToJobCode ? 'SUBMITTED' : 'ADDED'),
       source: p.applyToJobCode ? 'Candidate Portal' : 'Candidate Portal',
       jobCode: p.applyToJobCode,
       phone: p.phone,
@@ -707,7 +780,7 @@ async function main() {
   // Interview rounds + feedback from demo metadata
   await seedInterviewRounds(candidateSeeds, userByEmail)
 
-  // Offers for OFFER / HIRED / JOINED candidates
+  // Offers for OFFER / HIRED candidates
   await seedOffers(candidateSeeds, recruiterId)
 
   await syncRequirementFilledCounts(reqByCode)
@@ -715,6 +788,7 @@ async function main() {
   const counts = await Promise.all([
     prisma.user.count(),
     prisma.requirement.count(),
+    prisma.businessRequirement.count(),
     prisma.candidate.count(),
     prisma.candidate.count({ where: { source: 'Candidate Portal' } }),
     prisma.candidate.count({ where: { vendorId: { not: null } } }),
@@ -723,7 +797,8 @@ async function main() {
   console.log('\nDemo data ready:')
   console.log(`  Users: ${counts[0]} (password: ${DEV_PASSWORD})`)
   console.log(`  Requirements: ${counts[1]}`)
-  console.log(`  Candidates: ${counts[2]} (${counts[3]} self-applied, ${counts[4]} vendor)`)
+  console.log(`  Business requirements: ${counts[2]}`)
+  console.log(`  Candidates: ${counts[3]} (${counts[4]} self-applied, ${counts[5]} vendor)`)
   console.log('  Candidate portal logins (password: password):')
   for (const p of DEMO_PORTAL_USERS) {
     const applied = p.applyToJobCode ? ` → ${p.applyToJobCode}` : ' (profile only, no application)'

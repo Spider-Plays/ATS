@@ -1,8 +1,61 @@
 /** Demo dataset for `npm run db:seed-demo`. Demo emails use @stitch-ats.in — safe to delete/re-seed. */
 
 import { DEV_PASSWORD, devUserEmail, devUserName, devUsersForRole } from './devUsers.js'
+import type { BusinessStageKey } from '../lib/businessStages.js'
 
 export const DEMO_VENDOR_CODE = 'DEMO-STAFFING'
+export const DEMO_VENDOR_NAME = 'TalentBridge Staffing Solutions'
+export const DEMO_VENDOR_SOURCE = `Vendor: ${DEMO_VENDOR_NAME}`
+
+export type DemoRequirementSeed = {
+  jobCode: string
+  title: string
+  department: string
+  hiringManager: string
+  accountManager?: string
+  client: string
+  location: string
+  locationCity?: string
+  workMode?: 'REMOTE' | 'HYBRID' | 'ONSITE'
+  employmentType?: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERN'
+  seniorityLevel?: 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD' | 'PRINCIPAL'
+  experienceMinYears?: number
+  experienceMaxYears?: number
+  salaryBand?: string
+  priority: string
+  openings: number
+  filled: number
+  status: 'LIVE' | 'PENDING_APPROVAL'
+  visibleToCandidates: boolean
+  visibleToVendors: boolean
+  description: string
+  jobDescription: string
+  primarySkills: readonly string[]
+  secondarySkills: readonly string[]
+}
+
+export type DemoBusinessRequirementSeed = {
+  title: string
+  client: string
+  department: string
+  accountManagerRole: 'ACCOUNT_MANAGER'
+  hiringManagerRole: 'HIRING_MANAGER' | 'HR_HEAD' | 'TEAM_LEAD'
+  businessStage: BusinessStageKey
+  priority: string
+  openings: number
+  location: string
+  locationCity?: string
+  workMode: 'REMOTE' | 'HYBRID' | 'ONSITE'
+  employmentType: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERN'
+  seniorityLevel: 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD' | 'PRINCIPAL'
+  experienceMinYears: number
+  experienceMaxYears: number
+  salaryBand: string
+  description: string
+  jobDescription: string
+  primarySkills: readonly string[]
+  secondarySkills: readonly string[]
+}
 
 export type DemoPortalUserSeed = {
   email: string
@@ -67,7 +120,7 @@ export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
     expectedCTC: '36 LPA',
     noticePeriod: '90 Days',
     pan: 'ABCPK5678B',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     primarySkills: ['Product Strategy', 'Roadmapping', 'Agile', 'B2B SaaS'],
     secondarySkills: ['SQL', 'Analytics'],
     resumeSnippet:
@@ -106,7 +159,7 @@ export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
     expectedCTC: '22 LPA',
     noticePeriod: '30 Days',
     pan: 'ABCPD3456D',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     primarySkills: ['Figma', 'User Research', 'Wireframing', 'Design Systems'],
     secondarySkills: ['Accessibility', 'HTML', 'CSS'],
     resumeSnippet:
@@ -144,7 +197,7 @@ export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
     expectedCTC: '18 LPA',
     noticePeriod: '90 Days',
     pan: 'ABCPA2468F',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     primarySkills: ['TypeScript', 'React', 'Node.js'],
     secondarySkills: ['PostgreSQL', 'REST APIs'],
     resumeSnippet:
@@ -163,7 +216,7 @@ export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
     expectedCTC: '32 LPA',
     noticePeriod: '60 Days',
     pan: 'ABCPT1357G',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     primarySkills: ['Product Strategy', 'Agile', 'Stakeholder Management'],
     secondarySkills: ['SQL', 'Analytics'],
     resumeSnippet:
@@ -182,7 +235,7 @@ export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
     expectedCTC: '42 LPA',
     noticePeriod: '90 Days',
     pan: 'ABCPS8642H',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     primarySkills: ['Kubernetes', 'AWS', 'Terraform', 'Linux'],
     secondarySkills: ['Docker', 'CI/CD'],
     resumeSnippet:
@@ -220,7 +273,7 @@ export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
     expectedCTC: '15 LPA',
     noticePeriod: '30 Days',
     pan: 'ABCPV6420K',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     primarySkills: ['SQL', 'Python', 'Excel', 'Tableau'],
     secondarySkills: ['Power BI'],
     resumeSnippet:
@@ -239,7 +292,7 @@ export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
     expectedCTC: '34 LPA',
     noticePeriod: '90 Days',
     pan: 'ABCPD7531L',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     primarySkills: ['Java', 'Spring Boot', 'Microservices', 'PostgreSQL'],
     secondarySkills: ['Kafka', 'Redis'],
     resumeSnippet:
@@ -258,7 +311,7 @@ export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
     expectedCTC: '20 LPA',
     noticePeriod: '60 Days',
     pan: 'ABCPN8642M',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     primarySkills: ['Selenium', 'Cypress', 'API Testing', 'Java'],
     secondarySkills: ['Postman', 'Jest'],
     resumeSnippet:
@@ -306,159 +359,352 @@ export const DEMO_PORTAL_USERS: DemoPortalUserSeed[] = [
 /** Dev registry candidate emails (also seeded via db:seed). */
 export const DEV_CANDIDATE_EMAILS = devUsersForRole('CANDIDATE').map((u) => u.email)
 
-export const DEMO_REQUIREMENTS = [
+export const DEMO_REQUIREMENTS: DemoRequirementSeed[] = [
   {
     jobCode: 'REQ28062026001',
-    title: 'Senior Software Engineer',
+    title: 'Senior Software Engineer — Payments Platform',
     department: 'Engineering',
     hiringManager: devUserName('HIRING_MANAGER'),
-    client: 'Acme Corp',
-    location: 'Bangalore (Hybrid)',
+    accountManager: devUserName('ACCOUNT_MANAGER'),
+    client: 'Razorpay',
+    location: 'Bangalore (Hybrid — 3 days office)',
+    locationCity: 'Bangalore',
+    workMode: 'HYBRID',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'SENIOR',
+    experienceMinYears: 5,
+    experienceMaxYears: 10,
+    salaryBand: '₹28–38 LPA',
     priority: 'HIGH',
     openings: 3,
     filled: 0,
-    status: 'LIVE' as const,
+    status: 'LIVE',
     visibleToCandidates: true,
     visibleToVendors: true,
     primarySkills: ['TypeScript', 'React', 'Node.js', 'PostgreSQL', 'REST APIs'],
     secondarySkills: ['AWS', 'Docker', 'CI/CD', 'System Design'],
-    description: 'Build and scale our hiring platform frontend and API.',
-    jobDescription:
-      'We need a senior engineer with strong TypeScript, React, and Node.js experience. PostgreSQL and REST API design required. AWS and Docker are nice to have.',
+    description:
+      'Staff augmentation for Razorpay merchant dashboard — build payment reconciliation APIs and recruiter-facing analytics.',
+    jobDescription: `About the role
+Razorpay is scaling its B2B merchant platform and needs senior full-stack engineers embedded with the Stitch delivery team. You will own features end-to-end on the payments reconciliation module used by 50k+ merchants.
+
+Responsibilities
+• Design and ship TypeScript/React features for transaction dashboards and dispute workflows
+• Build Node.js REST APIs backed by PostgreSQL with strict SLA targets (p99 < 200ms)
+• Partner with Razorpay product and SRE on incident reviews and capacity planning
+• Mentor 2 mid-level engineers on code quality and observability practices
+
+Must have
+• 5+ years building production web apps with React and Node.js
+• Strong PostgreSQL schema design, indexing, and query tuning
+• Experience in fintech, payments, or other regulated domains
+
+Good to have
+• AWS (ECS/Lambda), Docker, GitHub Actions
+• Event-driven patterns (Kafka/SQS) and idempotent API design`,
   },
   {
     jobCode: 'REQ28062026002',
-    title: 'Product Manager',
+    title: 'Product Manager — B2B SaaS Growth',
     department: 'Product',
     hiringManager: devUserName('HR_HEAD'),
-    client: 'Acme Corp',
-    location: 'Mumbai (Remote)',
+    accountManager: devUserName('ACCOUNT_MANAGER'),
+    client: 'Freshworks',
+    location: 'Chennai (Remote-first)',
+    locationCity: 'Chennai',
+    workMode: 'REMOTE',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'SENIOR',
+    experienceMinYears: 6,
+    experienceMaxYears: 12,
+    salaryBand: '₹32–45 LPA',
     priority: 'MEDIUM',
     openings: 1,
     filled: 0,
-    status: 'LIVE' as const,
+    status: 'LIVE',
     visibleToCandidates: true,
     visibleToVendors: false,
     primarySkills: ['Product Strategy', 'Roadmapping', 'Stakeholder Management', 'Agile'],
     secondarySkills: ['SQL', 'Analytics', 'B2B SaaS'],
-    description: 'Own the ATS product roadmap and delivery.',
-    jobDescription:
-      'Product manager with B2B SaaS background, agile delivery, and strong stakeholder communication.',
+    description:
+      'Lead discovery and GTM for Freshworks CRM add-ons sold to mid-market IT services firms.',
+    jobDescription: `About the role
+Freshworks is hiring a product manager to define the roadmap for an IT services vertical bundle (CRM + project tracking). You will sit with customer success and sales weekly and translate pipeline feedback into quarterly OKRs.
+
+Responsibilities
+• Own PRD writing, user story breakdown, and UAT sign-off with Freshworks engineering
+• Run fortnightly stakeholder reviews with sales, CS, and legal on packaging and pricing
+• Define success metrics (activation, expansion revenue) and instrument funnels in Mixpanel/Looker
+• Prioritize backlog across 2 engineering squads using RICE scoring
+
+Must have
+• 6+ years PM experience in B2B SaaS with shipped revenue impact
+• Strong written communication for exec-ready status decks
+• SQL fluency for self-serve analysis
+
+Good to have
+• IT services / staffing domain knowledge
+• Experience with Salesforce or Freshsales integrations`,
   },
   {
     jobCode: 'REQ28062026003',
-    title: 'DevOps Engineer',
+    title: 'DevOps Engineer — Cloud Platform',
     department: 'Platform',
     hiringManager: devUserName('TEAM_LEAD'),
-    client: 'Internal',
-    location: 'Hyderabad',
+    accountManager: devUserName('ACCOUNT_MANAGER'),
+    client: 'PhonePe',
+    location: 'Bangalore',
+    locationCity: 'Bangalore',
+    workMode: 'HYBRID',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'MID',
+    experienceMinYears: 4,
+    experienceMaxYears: 8,
+    salaryBand: '₹22–32 LPA',
     priority: 'HIGH',
     openings: 2,
     filled: 0,
-    status: 'LIVE' as const,
+    status: 'LIVE',
     visibleToCandidates: true,
     visibleToVendors: true,
     primarySkills: ['Kubernetes', 'Terraform', 'AWS', 'CI/CD', 'Linux'],
     secondarySkills: ['Prometheus', 'Grafana', 'Helm'],
-    description: 'Run production infrastructure for the ATS stack.',
-    jobDescription:
-      'DevOps engineer skilled in Kubernetes, Terraform, AWS, and CI/CD pipelines on Linux.',
+    description:
+      'Platform reliability for PhonePe UPI settlement microservices — EKS, IaC, and observability.',
+    jobDescription: `About the role
+PhonePe's platform team is modernizing settlement pipelines ahead of peak festival traffic. You will implement infrastructure-as-code and improve deployment safety for 40+ microservices.
+
+Responsibilities
+• Maintain EKS clusters, node pools, and pod autoscaling policies in AWS ap-south-1
+• Author Terraform modules for VPC, RDS, and IAM with peer review standards
+• Build GitOps pipelines (Argo CD / GitHub Actions) with canary and rollback playbooks
+• On-call rotation with SRE — participate in postmortems and error budget reviews
+
+Must have
+• 4+ years DevOps/SRE with Kubernetes in production
+• Terraform or CloudFormation at scale; Linux troubleshooting
+• CI/CD design (Jenkins, GitHub Actions, or GitLab)
+
+Good to have
+• Prometheus/Grafana/Alertmanager stack
+• PCI-DSS or financial services compliance exposure`,
   },
   {
     jobCode: 'REQ28062026004',
-    title: 'UX Designer',
+    title: 'Senior UX Designer — Fintech',
     department: 'Design',
     hiringManager: devUserName('HIRING_MANAGER'),
-    client: 'Acme Corp',
-    location: 'Remote',
+    accountManager: devUserName('ACCOUNT_MANAGER'),
+    client: 'Paytm',
+    location: 'Remote (India)',
+    locationCity: 'Noida',
+    workMode: 'REMOTE',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'SENIOR',
+    experienceMinYears: 5,
+    experienceMaxYears: 9,
+    salaryBand: '₹24–34 LPA',
     priority: 'LOW',
     openings: 2,
     filled: 0,
-    status: 'LIVE' as const,
+    status: 'LIVE',
     visibleToCandidates: true,
     visibleToVendors: false,
     primarySkills: ['Figma', 'User Research', 'Wireframing', 'Design Systems'],
     secondarySkills: ['HTML', 'CSS', 'Accessibility'],
-    description: 'Design recruiter and candidate experiences.',
-    jobDescription:
-      'UX designer with Figma, user research, wireframing, and design system experience.',
+    description:
+      'Redesign merchant onboarding for Paytm for Business — reduce drop-off in KYC and bank linking.',
+    jobDescription: `About the role
+Paytm for Business is revamping onboarding for kirana and SME merchants. You will lead UX from research through hi-fi handoff, working with a dedicated content designer and 3 engineering pods.
+
+Responsibilities
+• Plan and synthesize contextual inquiry with merchants in Tier-2 cities ( Hindi/English )
+• Produce journey maps, wireframes, and Figma prototypes validated in moderated tests
+• Extend Paytm design system tokens for form-heavy flows and error recovery patterns
+• Ensure WCAG 2.1 AA compliance on all shipped screens
+
+Must have
+• 5+ years product/UX design with shipped mobile-first flows
+• Portfolio showing end-to-end problem framing and measurable outcomes
+• Expert Figma including components, variants, and dev-ready specs
+
+Good to have
+• Fintech or regulated onboarding (KYC/AML) experience
+• Basic HTML/CSS for design QA`,
   },
   {
     jobCode: 'REQ28062026005',
-    title: 'Data Analyst',
+    title: 'Senior Data Analyst — Talent Analytics',
     department: 'Analytics',
     hiringManager: devUserName('HR_MANAGER'),
-    client: 'Internal',
+    accountManager: devUserName('ACCOUNT_MANAGER'),
+    client: 'Stitch Internal',
     location: 'Chennai',
+    locationCity: 'Chennai',
+    workMode: 'HYBRID',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'SENIOR',
+    experienceMinYears: 4,
+    experienceMaxYears: 8,
+    salaryBand: '₹16–24 LPA',
     priority: 'MEDIUM',
     openings: 2,
     filled: 0,
-    status: 'LIVE' as const,
+    status: 'LIVE',
     visibleToCandidates: true,
     visibleToVendors: true,
     primarySkills: ['SQL', 'Python', 'Tableau', 'Excel'],
     secondarySkills: ['dbt', 'Snowflake', 'Statistics'],
-    description: 'Hiring funnel analytics and reporting.',
-    jobDescription:
-      'Data analyst with SQL, Python, Tableau, and strong Excel skills for recruiting metrics.',
+    description:
+      'Internal hiring funnel analytics — time-to-fill, source quality, and recruiter productivity dashboards.',
+    jobDescription: `About the role
+Stitch's people analytics team needs an analyst to own recruiting metrics used by HR leadership and account managers. You will work directly with the ATS product team to define event schemas.
+
+Responsibilities
+• Build and maintain Tableau/Looker dashboards for funnel conversion by client and role family
+• Write SQL against PostgreSQL and Snowflake marts; document definitions in dbt
+• Partner with recruiters on ad-hoc cohort analysis (source ROI, offer acceptance drivers)
+• Present monthly insights to HR Head and account management leads
+
+Must have
+• 4+ years analytics with advanced SQL and dashboard ownership
+• Python (pandas) for data cleaning and statistical sanity checks
+• Strong stakeholder communication with non-technical audiences
+
+Good to have
+• Recruiting/HRIS domain (Greenhouse, Lever, or custom ATS)
+• dbt + Snowflake in production`,
   },
   {
     jobCode: 'REQ28062026006',
-    title: 'HR Coordinator',
+    title: 'HR Operations Coordinator',
     department: 'HR',
     hiringManager: devUserName('HR_HEAD'),
-    client: 'Internal',
-    location: 'Delhi NCR',
+    accountManager: devUserName('ACCOUNT_MANAGER'),
+    client: 'Stitch Internal',
+    location: 'Gurgaon',
+    locationCity: 'Gurgaon',
+    workMode: 'ONSITE',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'MID',
+    experienceMinYears: 2,
+    experienceMaxYears: 5,
+    salaryBand: '₹6–10 LPA',
     priority: 'LOW',
     openings: 1,
     filled: 0,
-    status: 'PENDING_APPROVAL' as const,
+    status: 'PENDING_APPROVAL',
     visibleToCandidates: false,
     visibleToVendors: false,
     primarySkills: ['Onboarding', 'HR Operations', 'Communication'],
     secondarySkills: ['ATS', 'Compliance'],
-    description: 'Coordinate interviews and offers.',
-    jobDescription: 'HR coordinator for interview scheduling and offer coordination.',
+    description:
+      'Coordinate interview scheduling, offer rollouts, and background verification for multi-client hiring programs.',
+    jobDescription: `About the role
+Support Stitch's shared services HR desk handling 15+ concurrent client requisitions. Pending leadership approval for Q3 headcount.
+
+Responsibilities
+• Schedule panel interviews across time zones; manage calendar conflicts and room bookings
+• Prepare offer letters and track acceptance / negotiation status in the ATS
+• Coordinate with vendors on BGV initiation and document collection
+• Maintain compliance checklists for client-specific onboarding requirements
+
+Must have
+• 2+ years HR coordination or recruiting ops in IT services or staffing
+• Excellent email and phone etiquette with candidates and hiring managers
+• Comfort with Excel trackers and modern ATS tools
+
+Good to have
+• Experience with background verification vendors (AuthBridge, IDfy)
+• Basic knowledge of Indian labour compliance for offer documentation`,
   },
   {
     jobCode: 'REQ28062026007',
-    title: 'SDET / QA Automation Engineer',
+    title: 'SDET — API & Regression Automation',
     department: 'Engineering',
     hiringManager: devUserName('HIRING_MANAGER'),
-    client: 'Acme Corp',
+    accountManager: devUserName('ACCOUNT_MANAGER'),
+    client: 'Swiggy',
     location: 'Bangalore (Hybrid)',
+    locationCity: 'Bangalore',
+    workMode: 'HYBRID',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'MID',
+    experienceMinYears: 4,
+    experienceMaxYears: 7,
+    salaryBand: '₹18–26 LPA',
     priority: 'MEDIUM',
     openings: 2,
     filled: 0,
-    status: 'LIVE' as const,
+    status: 'LIVE',
     visibleToCandidates: true,
     visibleToVendors: true,
     primarySkills: ['Selenium', 'Cypress', 'API Testing', 'Java', 'CI/CD'],
     secondarySkills: ['Playwright', 'Jest', 'Postman'],
-    description: 'Automate regression and API test suites for the hiring platform.',
-    jobDescription:
-      'SDET with strong automation experience in Selenium or Cypress, API testing, and CI integration. Java or TypeScript test stacks preferred.',
+    description:
+      'Quality engineering for Swiggy Instamart order orchestration APIs — contract tests and release gates.',
+    jobDescription: `About the role
+Swiggy Instamart is hardening API contracts between inventory, pricing, and delivery services. You will build automation that gates every production deploy on critical path coverage.
+
+Responsibilities
+• Design API test suites (REST/JSON) with Postman/Newman or RestAssured in CI
+• Maintain Cypress/Playwright smoke suites for ops dashboards used by city teams
+• Partner with developers on testability — fixtures, test hooks, and environment parity
+• Track flake rate and MTTR for failing builds; drive below 2% weekly flake target
+
+Must have
+• 4+ years SDET/QA automation in agile product teams
+• Strong Java or TypeScript test frameworks
+• API testing including auth, pagination, and error contract validation
+
+Good to have
+• Kafka consumer testing or load testing (k6/JMeter)
+• Experience in hyperlocal logistics or e-commerce`,
   },
   {
     jobCode: 'REQ28062026008',
-    title: 'Senior Java Backend Engineer',
+    title: 'Senior Java Engineer — Core Banking',
     department: 'Engineering',
     hiringManager: devUserName('TEAM_LEAD'),
-    client: 'FinServe Ltd',
-    location: 'Pune',
+    accountManager: devUserName('ACCOUNT_MANAGER'),
+    client: 'HDFC Bank',
+    location: 'Mumbai / Pune',
+    locationCity: 'Mumbai',
+    workMode: 'HYBRID',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'SENIOR',
+    experienceMinYears: 6,
+    experienceMaxYears: 12,
+    salaryBand: '₹30–42 LPA',
     priority: 'HIGH',
     openings: 2,
     filled: 0,
-    status: 'LIVE' as const,
+    status: 'LIVE',
     visibleToCandidates: true,
     visibleToVendors: true,
     primarySkills: ['Java', 'Spring Boot', 'Microservices', 'PostgreSQL', 'Kafka'],
     secondarySkills: ['AWS', 'Redis', 'JUnit'],
-    description: 'Build high-throughput services for payments and lending workflows.',
-    jobDescription:
-      'Senior Java engineer with Spring Boot, microservices, PostgreSQL, and event-driven architecture using Kafka.',
+    description:
+      'Lending origination microservices for HDFC retail loans — high-throughput, audit-ready services.',
+    jobDescription: `About the role
+HDFC Bank is replatforming loan origination for the legacy monolith. Engineers will deliver Spring Boot services with strict audit trails and RBI-aligned data handling.
+
+Responsibilities
+• Implement REST microservices for application intake, credit bureau pulls, and status tracking
+• Design PostgreSQL schemas with immutable audit logs and PII encryption at rest
+• Integrate Kafka topics for async handoffs to underwriting and document generation
+• Participate in architecture reviews, performance testing, and DR failover drills
+
+Must have
+• 6+ years Java/Spring Boot in enterprise or banking software
+• Microservices patterns — circuit breakers, sagas, idempotency keys
+• Production Kafka experience and SQL performance tuning
+
+Good to have
+• AWS (ECS/RDS), Redis caching layers
+• Exposure to RBI/NPCI compliance or ISO 27001 environments`,
   },
-] as const
+]
 
 export type DemoCandidateSeed = {
   email: string
@@ -489,11 +735,11 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     jobCode: 'REQ28062026001',
     location: 'Bangalore',
     totalExperience: '6 Years',
-    currentCompany: 'TechNova',
+    currentCompany: 'Thoughtworks',
     primarySkills: ['TypeScript', 'React', 'Node.js', 'PostgreSQL'],
     secondarySkills: ['AWS', 'Docker'],
     resumeSnippet:
-      'Arjun Pillai — Full Stack Developer with 6 years experience. Skills: TypeScript, React, Node.js, PostgreSQL, REST APIs, AWS, Docker.',
+      'Arjun Pillai — Full Stack Developer, Thoughtworks (Bangalore), 6 years. Led React/Node migration for a UK retail client; TypeScript, PostgreSQL, AWS ECS, daily deploys.',
   },
   {
     email: 'sneha.reddy@stitch-ats.in',
@@ -504,18 +750,18 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     jobCode: 'REQ28062026001',
     location: 'Hyderabad',
     totalExperience: '8 Years',
-    currentCompany: 'CloudBase',
+    currentCompany: 'VMware',
     primarySkills: ['Node.js', 'TypeScript', 'PostgreSQL', 'System Design'],
     secondarySkills: ['Kubernetes', 'Redis'],
     resumeSnippet:
-      'Sneha Reddy — Backend engineer, 8 years. Node.js, TypeScript, PostgreSQL, REST APIs, system design, Kubernetes.',
+      'Sneha Reddy — Backend engineer, VMware India, 8 years. Node.js platform services, PostgreSQL at scale, Kubernetes operators, Redis caching.',
   },
   // —— Senior SWE pipeline: one realistic profile per kanban stage ——
   {
     email: 'kavitha.narasimhan@stitch-ats.in',
     name: 'Kavitha Narasimhan',
     role: 'Senior Software Engineer',
-    status: 'SOURCED',
+    status: 'SUBMITTED',
     source: 'LinkedIn Recruiter',
     jobCode: 'REQ28062026001',
     phone: '+91 98450 11223',
@@ -567,8 +813,8 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     email: 'divya.menon@stitch-ats.in',
     name: 'Divya Menon',
     role: 'Senior Software Engineer',
-    status: 'JOINED',
-    source: 'Vendor: Demo Staffing Co',
+    status: 'HIRED',
+    source: 'Vendor: TalentBridge Staffing Solutions',
     jobCode: 'REQ28062026001',
     phone: '+91 91234 55678',
     location: 'Bangalore',
@@ -668,7 +914,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     name: 'Lakshmi Rao',
     role: 'Platform Engineer',
     status: 'HIRED',
-    source: 'Vendor: Demo Staffing Co',
+    source: 'Vendor: TalentBridge Staffing Solutions',
     jobCode: 'REQ28062026003',
     location: 'Hyderabad',
     totalExperience: '8 Years',
@@ -685,7 +931,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     email: 'harish.naidu@stitch-ats.in',
     name: 'Harish Naidu',
     role: 'DevOps Engineer',
-    status: 'JOINED',
+    status: 'HIRED',
     source: 'Employee Referral',
     jobCode: 'REQ28062026003',
     location: 'Chennai',
@@ -703,11 +949,11 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     name: 'Nitin Gupta',
     role: 'Systems Administrator',
     status: 'REJECTED',
-    source: 'Vendor: Demo Staffing Co',
+    source: 'Vendor: TalentBridge Staffing Solutions',
     jobCode: 'REQ28062026003',
     location: 'Jaipur',
     totalExperience: '4 Years',
-    currentCompany: 'Local IT Services',
+    currentCompany: 'CMS IT Services',
     primarySkills: ['Linux', 'Bash'],
     secondarySkills: ['VMware'],
     resumeSnippet:
@@ -719,7 +965,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     email: 'shruti.desai@stitch-ats.in',
     name: 'Shruti Desai',
     role: 'SDET',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     source: 'Candidate Portal',
     jobCode: 'REQ28062026007',
     location: 'Pune',
@@ -766,8 +1012,8 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     email: 'rohan.jadhav@stitch-ats.in',
     name: 'Rohan Jadhav',
     role: 'Platform Engineer',
-    status: 'SOURCED',
-    source: 'Vendor: Demo Staffing Co',
+    status: 'SUBMITTED',
+    source: 'Vendor: TalentBridge Staffing Solutions',
     jobCode: 'REQ28062026003',
     location: 'Pune',
     totalExperience: '4 Years',
@@ -783,7 +1029,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     name: 'Pooja Shah',
     role: 'SRE',
     status: 'SCREENING',
-    source: 'Vendor: Demo Staffing Co',
+    source: 'Vendor: TalentBridge Staffing Solutions',
     jobCode: 'REQ28062026003',
     location: 'Mumbai',
     totalExperience: '9 Years',
@@ -798,8 +1044,8 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     email: 'jayesh.mehta@stitch-ats.in',
     name: 'Jayesh Mehta',
     role: 'DevOps Consultant',
-    status: 'APPLIED',
-    source: 'Vendor: Demo Staffing Co',
+    status: 'SUBMITTED',
+    source: 'Vendor: TalentBridge Staffing Solutions',
     jobCode: 'REQ28062026003',
     location: 'Chennai',
     totalExperience: '3 Years',
@@ -847,7 +1093,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     email: 'aadhya.krishnan@stitch-ats.in',
     name: 'Aadhya Krishnan',
     role: 'Product Designer',
-    status: 'JOINED',
+    status: 'HIRED',
     source: 'LinkedIn',
     jobCode: 'REQ28062026004',
     location: 'Bangalore',
@@ -869,18 +1115,18 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     jobCode: 'REQ28062026005',
     location: 'Chennai',
     totalExperience: '4 Years',
-    currentCompany: 'DataFirst',
+    currentCompany: 'Fractal Analytics',
     primarySkills: ['SQL', 'Python', 'Tableau', 'Excel'],
     secondarySkills: ['Statistics', 'Power BI'],
     resumeSnippet:
-      'Anita Krishnan — Data analyst, SQL, Python, Tableau, Excel, hiring analytics and reporting.',
+      'Anita Krishnan — Data analyst, Fractal Analytics, 4 years. SQL, Python, Tableau, hiring funnel and workforce planning analytics for IT clients.',
   },
   {
     email: 'chaitanya.joshi@stitch-ats.in',
     name: 'Chaitanya Joshi',
     role: 'Analytics Engineer',
     status: 'SCREENING',
-    source: 'Vendor: Demo Staffing Co',
+    source: 'Vendor: TalentBridge Staffing Solutions',
     jobCode: 'REQ28062026005',
     location: 'Pune',
     totalExperience: '6 Years',
@@ -900,7 +1146,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     jobCode: 'REQ28062026005',
     location: 'Indore',
     totalExperience: '2 Years',
-    currentCompany: 'Retail Solutions India',
+    currentCompany: 'Reliance Retail',
     primarySkills: ['Excel', 'SQL'],
     secondarySkills: ['R'],
     resumeSnippet:
@@ -910,7 +1156,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     email: 'oviya.ramesh@stitch-ats.in',
     name: 'Oviya Ramesh',
     role: 'Frontend Developer',
-    status: 'SOURCED',
+    status: 'SUBMITTED',
     source: 'LinkedIn',
     jobCode: null,
     location: 'Kochi',
@@ -925,22 +1171,22 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     email: 'raj.malhotra@stitch-ats.in',
     name: 'Raj Malhotra',
     role: 'Engineering Manager',
-    status: 'SOURCED',
+    status: 'SUBMITTED',
     source: 'Referral',
     jobCode: null,
     location: 'Gurgaon',
     totalExperience: '12 Years',
-    currentCompany: 'BigTech India',
+    currentCompany: 'Amazon India',
     primarySkills: ['Leadership', 'System Design', 'TypeScript'],
     secondarySkills: ['Hiring', 'Agile'],
     resumeSnippet:
-      'Raj Malhotra — Engineering manager, system design, TypeScript, team leadership, agile.',
+      'Raj Malhotra — Engineering manager, Amazon India, 12 years. Led 18-engineer team on seller fulfillment APIs; system design, hiring, agile at scale.',
   },
   {
     email: 'shreya.pandey@stitch-ats.in',
     name: 'Shreya Pandey',
     role: 'QA Engineer',
-    status: 'SOURCED',
+    status: 'SUBMITTED',
     source: 'Recruiter Added',
     jobCode: null,
     location: 'Lucknow',
@@ -955,7 +1201,7 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     email: 'bharat.choudhury@stitch-ats.in',
     name: 'Bharat Choudhury',
     role: 'Mobile Developer',
-    status: 'APPLIED',
+    status: 'SUBMITTED',
     source: 'Direct',
     jobCode: 'REQ28062026001',
     location: 'Kolkata',
@@ -980,5 +1226,129 @@ export const DEMO_CANDIDATES: DemoCandidateSeed[] = [
     secondarySkills: ['Confluence', 'Git'],
     resumeSnippet:
       'Gauri Kulkarni — Technical writer at Zoho, API documentation, Markdown, Confluence, Git.',
+  },
+]
+
+/** Pre-sales pipeline — mirrors real staffing engagements before reqs go LIVE. */
+export const DEMO_BUSINESS_REQUIREMENTS: DemoBusinessRequirementSeed[] = [
+  {
+    title: 'Engineering augmentation — UPI settlement platform',
+    client: 'PhonePe',
+    department: 'Platform Engineering',
+    accountManagerRole: 'ACCOUNT_MANAGER',
+    hiringManagerRole: 'TEAM_LEAD',
+    businessStage: 'SOW_SIGNED',
+    priority: 'HIGH',
+    openings: 4,
+    location: 'Bangalore (Hybrid)',
+    locationCity: 'Bangalore',
+    workMode: 'HYBRID',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'SENIOR',
+    experienceMinYears: 5,
+    experienceMaxYears: 10,
+    salaryBand: '₹28–40 LPA',
+    description:
+      'Signed SOW for 4 platform engineers (DevOps + backend) starting Q3 — settlement peak readiness.',
+    jobDescription:
+      'PhonePe signed a 12-month staff augmentation SOW for settlement platform reliability. Scope covers EKS hardening, Terraform modules, and on-call rotation with their SRE guild.',
+    primarySkills: ['Kubernetes', 'Terraform', 'AWS', 'Java'],
+    secondarySkills: ['Kafka', 'Prometheus'],
+  },
+  {
+    title: 'Product & design pod — merchant onboarding',
+    client: 'Paytm',
+    department: 'Product & Design',
+    accountManagerRole: 'ACCOUNT_MANAGER',
+    hiringManagerRole: 'HIRING_MANAGER',
+    businessStage: 'NEGOTIATION',
+    priority: 'MEDIUM',
+    openings: 3,
+    location: 'Remote (India)',
+    locationCity: 'Noida',
+    workMode: 'REMOTE',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'SENIOR',
+    experienceMinYears: 5,
+    experienceMaxYears: 9,
+    salaryBand: '₹24–36 LPA',
+    description:
+      'Commercial terms under review for 1 PM + 2 senior UX designers on Paytm for Business onboarding.',
+    jobDescription:
+      'Paytm requested a blended product/design pod to reduce merchant KYC drop-off. Proposal sent; negotiating rate card and IP ownership for design system contributions.',
+    primarySkills: ['Product Strategy', 'Figma', 'User Research'],
+    secondarySkills: ['B2B SaaS', 'Accessibility'],
+  },
+  {
+    title: 'Core banking microservices — lending origination',
+    client: 'HDFC Bank',
+    department: 'Engineering',
+    accountManagerRole: 'ACCOUNT_MANAGER',
+    hiringManagerRole: 'TEAM_LEAD',
+    businessStage: 'CONFIRMED',
+    priority: 'HIGH',
+    openings: 6,
+    location: 'Mumbai / Pune',
+    locationCity: 'Mumbai',
+    workMode: 'HYBRID',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'SENIOR',
+    experienceMinYears: 6,
+    experienceMaxYears: 12,
+    salaryBand: '₹30–45 LPA',
+    description:
+      'Confirmed demand for Java microservices squad — linked to REQ28062026008 once background checks complete.',
+    jobDescription:
+      'HDFC retail lending replatforming program. Client confirmed 6 senior Java engineers across two pods; first 2 reqs published, remainder queued for July intake.',
+    primarySkills: ['Java', 'Spring Boot', 'Kafka', 'PostgreSQL'],
+    secondarySkills: ['AWS', 'Microservices'],
+  },
+  {
+    title: 'Instamart QA automation — release gates',
+    client: 'Swiggy',
+    department: 'Engineering',
+    accountManagerRole: 'ACCOUNT_MANAGER',
+    hiringManagerRole: 'HIRING_MANAGER',
+    businessStage: 'PROPOSAL_SENT',
+    priority: 'MEDIUM',
+    openings: 2,
+    location: 'Bangalore',
+    locationCity: 'Bangalore',
+    workMode: 'HYBRID',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'MID',
+    experienceMinYears: 4,
+    experienceMaxYears: 7,
+    salaryBand: '₹18–26 LPA',
+    description:
+      'Proposal delivered for SDET pair supporting Instamart API regression and Cypress smoke suites.',
+    jobDescription:
+      'Swiggy Instamart eng leadership requested dedicated QA automation capacity before festival season. Commercial proposal sent; awaiting security review of vendor onboarding.',
+    primarySkills: ['Selenium', 'API Testing', 'CI/CD', 'Java'],
+    secondarySkills: ['Cypress', 'Postman'],
+  },
+  {
+    title: 'Freshworks CRM vertical bundle — product lead',
+    client: 'Freshworks',
+    department: 'Product',
+    accountManagerRole: 'ACCOUNT_MANAGER',
+    hiringManagerRole: 'HR_HEAD',
+    businessStage: 'INITIAL_DISCUSSION',
+    priority: 'LOW',
+    openings: 1,
+    location: 'Chennai',
+    locationCity: 'Chennai',
+    workMode: 'REMOTE',
+    employmentType: 'FULL_TIME',
+    seniorityLevel: 'SENIOR',
+    experienceMinYears: 6,
+    experienceMaxYears: 12,
+    salaryBand: '₹32–45 LPA',
+    description:
+      'Early discovery with Freshworks PMO on IT services vertical packaging — not yet in commercial negotiation.',
+    jobDescription:
+      'Introductory workshop completed with Freshworks product ops. Stitch to submit capability deck and sample PM profiles before moving to formal proposal.',
+    primarySkills: ['Product Strategy', 'B2B SaaS', 'Roadmapping'],
+    secondarySkills: ['SQL', 'Agile'],
   },
 ]

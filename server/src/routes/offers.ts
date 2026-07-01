@@ -795,7 +795,7 @@ router.post('/:id/send', requireRoles(...OFFER_ROLES), async (req, res) => {
       to: candidate.email,
       candidateName: candidate.name,
       annualCtc: ctx.annualCtc,
-      portalOfferUrl: `${env.clientOrigin}/portal/offers/${row.id}`,
+      portalOfferUrl: `${env.clientOrigin}/candidate/offers/${row.id}`,
       validUntil: validUntil.toISOString(),
     })
   }
