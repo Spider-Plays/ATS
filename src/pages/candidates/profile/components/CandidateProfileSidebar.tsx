@@ -1,9 +1,12 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import {
+  ArrowRight,
   Briefcase,
   CalendarCheck,
+  FileText,
   GitBranch,
+  Loader2,
   Sparkles,
   UserX,
 } from 'lucide-react'
@@ -13,11 +16,12 @@ import {
   CANDIDATE_STAGE_ORDER,
   candidateStatusClass,
   candidateStatusLabel,
+  getNextPipelineStage,
   isHighMatch,
 } from '@/pages/candidates/_shared/candidate.utils'
 import { matchScoreBarClass, matchScoreTone } from '@/pages/candidates/profile/profile.utils'
 import { useAuth } from '@/hooks/useAuth'
-import { isHiredStageLocked } from '@/permissions'
+import { canChangeCandidateStage, isHiredStageLocked } from '@/permissions'
 import { AppSelect } from '@/components/ui/AppSelect'
 
 type CandidateProfileSidebarProps = {
@@ -27,6 +31,10 @@ type CandidateProfileSidebarProps = {
   canEdit: boolean
   onMoveStage: (status: CandidateStatus) => void
   onOpenInterviewsTab?: () => void
+  onSendJd?: () => void
+  sendJdLoading?: boolean
+  sendJdDisabled?: boolean
+  sendJdDisabledReason?: string
 }
 
 export function CandidateProfileSidebar({
@@ -36,11 +44,18 @@ export function CandidateProfileSidebar({
   canEdit,
   onMoveStage,
   onOpenInterviewsTab,
+  onSendJd,
+  sendJdLoading = false,
+  sendJdDisabled = false,
+  sendJdDisabledReason,
 }: CandidateProfileSidebarProps) {
   const { user } = useAuth()
   const score = displayData.matchScore ?? 0
   const strongMatch = isHighMatch(displayData)
   const hiredLocked = isHiredStageLocked(displayData, user?.role)
+  const nextStage = getNextPipelineStage(displayData.status)
+  const canAdvanceStage =
+    !!nextStage && canChangeCandidateStage(displayData, nextStage, user?.role)
 
   const stageOptions = CANDIDATE_STAGE_ORDER.map((status) => ({
     value: status,
@@ -100,8 +115,20 @@ export function CandidateProfileSidebar({
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/5 dark:bg-white/5 text-primary dark:text-white text-xs font-bold uppercase tracking-wider hover:bg-primary/10 dark:hover:bg-white/10"
               >
                 <GitBranch size={16} />
-                Open pipeline
+                Open job pipeline
               </Link>
+              {canEdit && onSendJd && (
+                <button
+                  type="button"
+                  onClick={onSendJd}
+                  disabled={sendJdLoading || sendJdDisabled}
+                  title={sendJdDisabled ? sendJdDisabledReason : undefined}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/5 dark:bg-white/5 text-primary dark:text-white text-xs font-bold uppercase tracking-wider hover:bg-primary/10 dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {sendJdLoading ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
+                  Send JD to candidate
+                </button>
+              )}
             </>
           )}
           <button
@@ -131,6 +158,16 @@ export function CandidateProfileSidebar({
             disabled={hiredLocked}
             aria-label="Pipeline stage"
           />
+          {!hiredLocked && canAdvanceStage && nextStage && (
+            <button
+              type="button"
+              onClick={() => onMoveStage(nextStage)}
+              className="mt-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90"
+            >
+              Move to {candidateStatusLabel(nextStage)}
+              <ArrowRight size={16} />
+            </button>
+          )}
           {!hiredLocked && (
             <button
               type="button"

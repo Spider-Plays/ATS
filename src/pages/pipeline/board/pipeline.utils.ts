@@ -18,7 +18,7 @@ export function pipelineStats(candidates: Candidate[]) {
   const base = candidateStats(candidates)
   return {
     ...base,
-    sourced: candidates.filter((c) => c.status === 'SOURCED' || c.status === 'APPLIED').length,
+    added: candidates.filter((c) => c.status === 'ADDED' || c.status === 'SUBMITTED').length,
     screening: candidates.filter((c) =>
       ['SCREENING', 'SHORTLISTED'].includes(c.status)
     ).length,
@@ -38,14 +38,13 @@ export function pipelineSearchFields(candidate: Candidate, jobTitle?: string) {
 }
 
 const STAGE_DOT_COLORS: Record<CandidateStatus, string> = {
-  SOURCED: 'bg-slate-400',
-  APPLIED: 'bg-slate-500',
+  ADDED: 'bg-slate-400',
+  SUBMITTED: 'bg-slate-500',
   SCREENING: 'bg-sky-500',
   SHORTLISTED: 'bg-blue-500',
   INTERVIEW: 'bg-violet-500',
   OFFER: 'bg-amber-500',
   HIRED: 'bg-emerald-500',
-  JOINED: 'bg-emerald-600',
   REJECTED: 'bg-red-400',
 }
 

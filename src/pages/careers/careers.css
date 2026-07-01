@@ -1,0 +1,157 @@
+/* Stitch careers — aligned with Stitch ATS M3 UI (login hero, app cards, primary tokens) */
+
+.careers-page {
+  background-color: hsl(var(--surface));
+}
+
+.careers-hero {
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(
+    152deg,
+    hsl(214 72% 24%) 0%,
+    hsl(192 48% 22%) 45%,
+    hsl(214 58% 16%) 100%
+  );
+}
+
+.careers-hero__grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.07) 1px, transparent 0);
+  background-size: 26px 26px;
+}
+
+.careers-hero__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  pointer-events: none;
+}
+
+.careers-hero__orb--a {
+  top: -6rem;
+  left: -4rem;
+  width: 18rem;
+  height: 18rem;
+  background: rgb(56 189 248 / 0.28);
+}
+
+.careers-hero__orb--b {
+  top: 33%;
+  right: -5rem;
+  width: 24rem;
+  height: 24rem;
+  background: rgb(94 234 212 / 0.22);
+}
+
+.careers-section {
+  padding: 4rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .careers-section {
+    padding: 5rem 2rem;
+  }
+}
+
+.careers-hero-card {
+  backdrop-filter: blur(14px);
+  background: rgb(255 255 255 / 0.09);
+  border: 1px solid rgb(255 255 255 / 0.14);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.careers-hero-card:hover {
+  background: rgb(255 255 255 / 0.12);
+  border-color: rgb(255 255 255 / 0.22);
+}
+
+.careers-hero-card .material-symbols-outlined {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: rgb(255 255 255 / 0.1);
+  border: 1px solid rgb(255 255 255 / 0.12);
+  font-size: 1.125rem;
+}
+
+.careers-hero-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  padding: 0 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: #fff;
+  color: hsl(var(--primary));
+  border: 1px solid rgb(255 255 255 / 0.9);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.15);
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.careers-hero-btn-primary:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+}
+
+.careers-hero-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  padding: 0 1.5rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid rgb(255 255 255 / 0.28);
+  backdrop-filter: blur(8px);
+  transition: background 0.2s;
+}
+
+.careers-hero-btn-secondary:hover {
+  background: rgb(255 255 255 / 0.14);
+}
+
+.careers-values-grid {
+  background-color: hsl(var(--surface-container-low));
+  background-image:
+    linear-gradient(
+      165deg,
+      hsl(var(--primary-container) / 0.35) 0%,
+      transparent 42%,
+      hsl(var(--tertiary-container) / 0.25) 100%
+    ),
+    radial-gradient(ellipse 120% 75% at 0% -10%, hsl(var(--primary-container) / 0.5), transparent 55%);
+}
+
+.careers-open-roles {
+  background: hsl(var(--surface-container-lowest));
+  border-top: 1px solid hsl(var(--outline-variant) / 0.45);
+}
+
+.careers-bottom-cta {
+  background-color: hsl(var(--surface-container));
+  background-image:
+    radial-gradient(ellipse 90% 60% at 100% -10%, hsl(var(--primary-container) / 0.45), transparent 55%),
+    radial-gradient(ellipse 70% 50% at -10% 110%, hsl(var(--tertiary-container) / 0.3), transparent 50%);
+}
+
+.careers-layout-header {
+  border-bottom: 1px solid hsl(var(--outline-variant) / 0.45);
+  background: hsl(var(--surface-container-lowest) / 0.92);
+  backdrop-filter: blur(12px);
+}

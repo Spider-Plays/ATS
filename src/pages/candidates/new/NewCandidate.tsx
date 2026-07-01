@@ -61,7 +61,7 @@ const schema = z.object({
     .min(1, 'Location is required')
     .refine((v) => isIndianItCity(v), 'Select a city from the list'),
   portfolio: z.string().url('Invalid URL').optional().or(z.literal('')),
-  requirementId: requiredString('Job requirement'),
+  requirementId: z.string().optional(),
   primarySkills: z.array(z.string()).min(1, 'Select at least one primary skill'),
   secondarySkills: z.array(z.string()).default([]),
 })
@@ -71,8 +71,8 @@ type CandidateFormValues = z.infer<typeof schema>
 const STEPS = [
   {
     id: 0,
-    label: 'Resume & job',
-    description: 'Upload resume and link to a role',
+    label: 'Resume & role',
+    description: 'Upload resume and optionally link to a job',
     icon: Upload,
   },
   {
@@ -104,7 +104,7 @@ const PARSED_FIELD_LABELS: Record<keyof ParsedResumeFields, string> = {
   secondarySkills: 'Secondary skills',
 }
 
-const STEP_0_FIELDS = ['requirementId', 'role', 'source'] as const
+const STEP_0_FIELDS = ['role', 'source'] as const
 const STEP_1_FIELDS = [
   'firstName',
   'lastName',
@@ -334,11 +334,10 @@ const NewCandidate = () => {
         name: `${data.firstName} ${data.lastName}`,
         email: data.email,
         role: data.role,
-        status: 'SOURCED',
         matchScore: 0,
         source: data.source,
         appliedDate: new Date().toISOString(),
-        requirementId: data.requirementId,
+        requirementId: data.requirementId || undefined,
         jobTitle: selectedReq?.title || data.role,
         phone: data.phone,
         location: data.location.trim(),
@@ -433,7 +432,7 @@ const NewCandidate = () => {
         icon={UserPlus}
         eyebrow="New candidate"
         title="Add candidate"
-        description={`Upload a resume to auto-fill, link to a job, then review before adding them as ${candidateStatusLabel('SOURCED')} in your pipeline.`}
+        description={`Upload a resume, optionally link to a job, then review before adding them as ${candidateStatusLabel('ADDED')} in your pool.`}
         actions={
           <span className="text-xs font-bold uppercase tracking-wider text-white/80">
             Step {currentStep + 1} of {STEPS.length}
@@ -612,10 +611,10 @@ const NewCandidate = () => {
 
                 <FormSection
                   title="Job assignment"
-                  description="Every candidate must be linked to an open requirement."
+                  description="Link to a requirement now, or add to the pool and tag a job later from the profile."
                 >
                   <div className="space-y-2">
-                    <FieldLabel>Job requirement</FieldLabel>
+                    <FieldLabel>Job requirement (optional)</FieldLabel>
                     <Controller
                       control={control}
                       name="requirementId"
@@ -624,9 +623,9 @@ const NewCandidate = () => {
                           value={field.value ?? ''}
                           onChange={field.onChange}
                           options={requirementOptions}
-                          placeholder="Select job requirement"
+                          placeholder="Select job requirement (optional)"
                           searchPlaceholder="Search jobs..."
-                          allowClear={false}
+                          allowClear
                           icon={<Briefcase size={18} className="text-primary/40" />}
                         />
                       )}
@@ -968,8 +967,9 @@ const NewCandidate = () => {
                   <CheckCircle2 size={20} className="shrink-0 mt-0.5" />
                   <p className="text-sm font-medium leading-relaxed">
                     This candidate will be created as{' '}
-                    <strong>{candidateStatusLabel('SOURCED')}</strong> and linked to the selected
-                    job. Match score is calculated after save.
+                    <strong>{candidateStatusLabel(data.requirementId ? 'SUBMITTED' : 'ADDED')}</strong>
+                    {data.requirementId ? ' and linked to the selected job.' : ' in your candidate pool.'}
+                    {' '}Match score is calculated after save.
                   </p>
                 </div>
 

@@ -1,5 +1,6 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
+import { BackButton, backButtonClass } from './BackButton'
 
 type WizardStepFooterProps = {
   currentStep: number
@@ -9,11 +10,8 @@ type WizardStepFooterProps = {
   children: React.ReactNode
 }
 
-const secondaryActionClass =
-  'text-sm font-bold text-primary/70 dark:text-white/70 hover:text-primary dark:hover:text-white transition-colors'
-
 /**
- * Footer for multi-step wizards. Step 0 shows a text exit link; later steps show Previous.
+ * Footer for multi-step wizards. Step 0 shows an exit button; later steps show Previous.
  */
 export function WizardStepFooter({
   currentStep,
@@ -27,11 +25,16 @@ export function WizardStepFooter({
   return (
     <div className="mt-8 pt-6 border-t border-primary/10 dark:border-white/10 flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3">
       {isFirst ? (
-        <Link to={exitTo} className={secondaryActionClass}>
-          {exitLabel}
-        </Link>
+        <BackButton
+          to={exitTo}
+          fallback={exitTo}
+          label={exitLabel}
+          showIcon={false}
+          variant="muted"
+        />
       ) : (
-        <button type="button" onClick={onPreviousStep} className={secondaryActionClass}>
+        <button type="button" onClick={onPreviousStep} className={backButtonClass('muted')}>
+          <ArrowLeft size={16} aria-hidden />
           Previous
         </button>
       )}

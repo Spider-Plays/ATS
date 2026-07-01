@@ -76,4 +76,9 @@ export const candidateService = {
 
   delete: (id: string) =>
     apiRequest<void>(`/candidates/${id}`, { method: 'DELETE' }),
+
+  sendJobDescription: (id: string) =>
+    apiRequest<{ ok: boolean; emailSent: boolean }>(`/candidates/${id}/send-jd`, {
+      method: 'POST',
+    }),
 }

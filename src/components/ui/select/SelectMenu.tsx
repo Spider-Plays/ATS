@@ -17,6 +17,7 @@ type SelectMenuProps = {
   allowClear?: boolean
   clearLabel?: string
   onClear?: () => void
+  menuClassName?: string
 }
 
 export function SelectMenu({
@@ -30,6 +31,7 @@ export function SelectMenu({
   allowClear,
   clearLabel = 'Clear selection',
   onClear,
+  menuClassName,
 }: SelectMenuProps) {
   if (!anchor) return null
 
@@ -37,7 +39,7 @@ export function SelectMenu({
     <div
       id={menuId}
       role="listbox"
-      className="app-select-menu custom-scrollbar"
+      className={clsx('app-select-menu custom-scrollbar', menuClassName)}
       style={menuPositionStyle(anchor)}
     >
       {search}

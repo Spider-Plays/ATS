@@ -96,7 +96,13 @@ export const userService = {
     phoneNumber?: string
     address?: string
     temporaryPassword: string
-  }): Promise<{ user: User }> => {
+    sendInviteEmail?: boolean
+  }): Promise<{
+    user: User
+    inviteEmailSent?: boolean
+    inviteEmailWarning?: string
+    inviteDevHint?: string
+  }> => {
     return apiRequest('/users', {
       method: 'POST',
       body: JSON.stringify(data),

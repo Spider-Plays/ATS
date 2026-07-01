@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import { prisma } from '../lib/prisma.js'
-import { mapCandidate, mapRequirement } from '../utils/mappers.js'
+import { mapActivityLog, mapCandidate, mapRequirement } from '../utils/mappers.js'
 import { requireAuth, requireActiveUser, requireRoles } from '../middleware/auth.js'
-import { INTERNAL_ROLES, INTERVIEW_PLAN_EDITORS, REQ_APPROVERS, STAFF_MUTATE } from '../lib/roles.js'
+import { INTERNAL_ROLES, INTERVIEW_PLAN_EDITORS, REQ_APPROVERS, REQUIREMENT_API_ROLES, STAFF_MUTATE } from '../lib/roles.js'
 import {
   ensureInterviewPlan,
   getCandidateStageProgress,
@@ -61,7 +61,7 @@ import { extractResumeText } from '../lib/resumeParse.js'
 import { parseJobDescriptionSkills } from '../lib/jdParse.js'
 import { handleUploadResume } from '../middleware/uploadResume.js'
 const router = Router()
-router.use(requireAuth, requireActiveUser, requireRoles(...INTERNAL_ROLES))
+router.use(requireAuth, requireActiveUser, requireRoles(...REQUIREMENT_API_ROLES))
 
 router.get('/', async (req, res) => {
   const listWhere = await buildRequirementListWhere(req.auth!)
@@ -445,6 +445,27 @@ router.get('/:id/interview-plan/candidate/:candidateId/progress', async (req, re
   if (!candidate) return res.status(404).json({ error: 'Candidate not found' })
   const progress = await getCandidateStageProgress(req.params.id, req.params.candidateId)
   res.json(progress)
+})
+
+/** Full activity history for anyone who can open this requirement detail (same access as GET /:id). */
+router.get('/:id/activity-logs', async (req, res) => {
+  try {
+    await assertCanViewRequirement(req.auth!, req.params.id)
+  } catch (err) {
+    if (err instanceof RequirementAccessError) {
+      const status = err.message === 'Requirement not found' ? 404 : 403
+      return res.status(status).json({ error: err.message })
+    }
+    throw err
+  }
+
+  const limit = Math.min(Number(req.query.limit) || 50, 100)
+  const rows = await prisma.activityLog.findMany({
+    where: { entityId: req.params.id, entityType: 'REQUIREMENT' },
+    orderBy: { timestamp: 'desc' },
+    take: limit,
+  })
+  res.json(rows.map(mapActivityLog))
 })
 
 router.get('/:id', async (req, res) => {

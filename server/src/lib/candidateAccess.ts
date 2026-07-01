@@ -82,7 +82,7 @@ export async function buildCandidateListWhere(
   const own: Prisma.CandidateWhereInput = { createdBy: auth.userId }
 
   if (auth.role === 'RECRUITER') {
-    return { createdBy: auth.userId }
+    return withFeatureScopes({ createdBy: auth.userId }, tagScopes)
   }
 
   const reqIds = await requirementIdsForAuth(auth)
@@ -183,9 +183,41 @@ export async function buildOfferListWhere(
     select: { id: true },
   })
   const candidateIds = candidates.map((c) => c.id)
-  return candidateIds.length > 0
-    ? { candidateId: { in: candidateIds } }
-    : { candidateId: { in: ['__none__'] } }
+  const candidateFilter: Prisma.OfferWhereInput =
+    candidateIds.length > 0
+      ? { candidateId: { in: candidateIds } }
+      : { candidateId: { in: ['__none__'] } }
+
+  if (auth.role === 'RECRUITER' || auth.role === 'TEAM_LEAD') {
+    return {
+      createdBy: auth.userId,
+      ...candidateFilter,
+    }
+  }
+
+  return candidateFilter
+}
+
+export async function canViewOffer(
+  auth: { userId: string; role: string; name?: string },
+  offerId: string
+): Promise<boolean> {
+  const where = await buildOfferListWhere(auth)
+  const row = await prisma.offer.findFirst({
+    where: { id: offerId, ...where },
+    select: { id: true },
+  })
+  return !!row
+}
+
+export async function assertCanViewOffer(
+  auth: { userId: string; role: string; name?: string },
+  offerId: string
+): Promise<void> {
+  const ok = await canViewOffer(auth, offerId)
+  if (!ok) {
+    throw new CandidateAccessError('Not allowed to view this offer')
+  }
 }
 
 /** Candidate-profile activity actions visible to assigned interviewers. */

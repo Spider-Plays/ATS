@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useThemeStore } from '../store/themeStore'
 import { useSidebarStore } from '../store/sidebarStore'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../services/api'
-import { canApproveRequirement, isAdminRole, isAssignedInterviewer } from '@/permissions'
-import { needsFeedback } from '@/pages/interviews/_shared/interview.utils'
+import { isAdminRole, isInterviewerCandidateView } from '@/permissions'
+import { HeaderApprovalsPanel } from '@/components/HeaderApprovalsPanel'
+import { HeaderNotificationsPanel } from '@/components/HeaderNotificationsPanel'
 import clsx from 'clsx'
 
 const iconBtnClass =
@@ -22,24 +23,7 @@ const Header = () => {
     const wrapRef = useRef<HTMLDivElement>(null)
 
     const canSearch = user && user.role !== 'CANDIDATE'
-    const canReviewPendingApprovals = canApproveRequirement(user?.role)
-    const isInterviewer = user?.role === 'INTERVIEWER'
-
-    const { data: pendingRequirements = [] } = useQuery({
-        queryKey: ['pendingRequirements'],
-        queryFn: api.requirements.getPending,
-        enabled: canReviewPendingApprovals,
-        staleTime: 30_000,
-        refetchInterval: 60_000,
-    })
-
-    const { data: interviews = [] } = useQuery({
-        queryKey: ['interviews', 'header-notifications'],
-        queryFn: api.interviews.list,
-        enabled: isInterviewer,
-        staleTime: 60_000,
-        refetchInterval: 120_000,
-    })
+    const isInterviewer = isInterviewerCandidateView(user?.role)
 
     const { data: results } = useQuery({
         queryKey: ['search', query],
@@ -56,13 +40,9 @@ const Header = () => {
         return () => document.removeEventListener('mousedown', onClick)
     }, [])
 
-    const interviewerFeedbackCount = isInterviewer
-        ? interviews.filter((i) => isAssignedInterviewer(i, user?.uid) && needsFeedback(i)).length
-        : 0
-    const showNotificationDot = pendingRequirements.length > 0 || interviewerFeedbackCount > 0
     const isAdmin = isAdminRole(user?.role)
     const hasResults =
-        (results?.candidates?.length ?? 0) > 0 ||
+        (!isInterviewer && (results?.candidates?.length ?? 0) > 0) ||
         (results?.requirements?.length ?? 0) > 0 ||
         (results?.interviews?.length ?? 0) > 0 ||
         (results?.users?.length ?? 0) > 0
@@ -111,21 +91,22 @@ const Header = () => {
                                     <p className="p-4 text-sm text-muted-foreground">No results</p>
                                 ) : (
                                     <>
-                                        {results?.candidates?.map((c) => (
-                                            <button
-                                                key={c.id}
-                                                type="button"
-                                                className={searchResultBtn}
-                                                onClick={() => {
-                                                    navigate(`/candidates/${c.id}`)
-                                                    setOpen(false)
-                                                    setQuery('')
-                                                }}
-                                            >
-                                                <p className="text-sm font-semibold text-foreground">{c.name}</p>
-                                                <p className="text-xs text-muted-foreground mt-0.5">{c.role} · Candidate</p>
-                                            </button>
-                                        ))}
+                                        {!isInterviewer &&
+                                            results?.candidates?.map((c) => (
+                                                <button
+                                                    key={c.id}
+                                                    type="button"
+                                                    className={searchResultBtn}
+                                                    onClick={() => {
+                                                        navigate(`/candidates/${c.id}`)
+                                                        setOpen(false)
+                                                        setQuery('')
+                                                    }}
+                                                >
+                                                    <p className="text-sm font-semibold text-foreground">{c.name}</p>
+                                                    <p className="text-xs text-muted-foreground mt-0.5">{c.role} · Candidate</p>
+                                                </button>
+                                            ))}
                                         {results?.requirements?.map((r) => (
                                             <button
                                                 key={r.id}
@@ -147,7 +128,13 @@ const Header = () => {
                                                 type="button"
                                                 className={searchResultBtn}
                                                 onClick={() => {
-                                                    navigate(i.candidateId ? `/candidates/${i.candidateId}` : '/interviews')
+                                                    navigate(
+                                                        isInterviewer
+                                                            ? `/interviews/${i.id}/resume`
+                                                            : i.candidateId
+                                                              ? `/candidates/${i.candidateId}`
+                                                              : '/interviews'
+                                                    )
                                                     setOpen(false)
                                                     setQuery('')
                                                 }}
@@ -184,19 +171,16 @@ const Header = () => {
                 )}
             </div>
 
-            <div className="flex items-center gap-0.5 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <button onClick={toggleTheme} className={iconBtnClass} type="button" aria-label="Toggle theme">
                     <span className="material-symbols-outlined text-[22px]">
                         {theme === 'light' ? 'dark_mode' : 'light_mode'}
                     </span>
                 </button>
 
-                <Link to="/notifications" className={clsx(iconBtnClass, 'relative')}>
-                    <span className="material-symbols-outlined text-[22px]">notifications</span>
-                    {showNotificationDot && (
-                        <span className="absolute top-2 right-2 size-2 bg-red-500 rounded-full ring-2 ring-card" />
-                    )}
-                </Link>
+                <HeaderApprovalsPanel />
+
+                <HeaderNotificationsPanel />
             </div>
         </header>
     )

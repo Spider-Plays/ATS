@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Download, FileText, Loader2, X } from 'lucide-react'
+import { FileText, Loader2, X } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
+import { DocumentPreviewFrame } from '@/components/documents/DocumentPreviewFrame'
 import { api } from '@/services/api'
 
 type DocumentKind = 'resume' | 'jobDescription'
@@ -84,11 +85,6 @@ export function InterviewSessionDocumentModal({
 
   const resumeDisplayName = candidate?.resumeFileName ?? 'Resume'
 
-  const isPdf =
-    candidate?.resumeMimeType === 'application/pdf' ||
-    resumeDisplayName.toLowerCase().endsWith('.pdf') ||
-    resumeMimeType === 'application/pdf'
-
   const title =
     kind === 'resume'
       ? `${candidateName || 'Candidate'} — resume`
@@ -96,7 +92,7 @@ export function InterviewSessionDocumentModal({
 
   const subtitle =
     kind === 'resume'
-      ? 'Candidate resume for this interview.'
+      ? 'View-only resume preview for this interview session.'
       : 'Job description from the linked requirement.'
 
   const jobDescriptionText =
@@ -125,7 +121,7 @@ export function InterviewSessionDocumentModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 bg-slate-50 dark:bg-slate-950/40">
+        <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50 dark:bg-slate-950/40">
           {kind === 'resume' ? (
             resumeLoading ? (
               <div className="py-20 flex flex-col items-center gap-3 text-slate-500">
@@ -137,39 +133,29 @@ export function InterviewSessionDocumentModal({
                 {resumeError}
               </p>
             ) : resumeBlobUrl ? (
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
-                <div className="p-3 border-b border-slate-200 dark:border-white/10 flex justify-between items-center gap-4">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 truncate">
-                    <FileText size={16} />
-                    {resumeDisplayName}
-                  </span>
-                  <a
-                    href={resumeBlobUrl}
-                    download={resumeDisplayName}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary dark:text-white hover:opacity-80 shrink-0"
-                  >
-                    <Download size={14} />
-                    Download
-                  </a>
-                </div>
-                {isPdf ? (
-                  <iframe
-                    src={resumeBlobUrl}
-                    className="w-full h-[min(72vh,640px)] min-h-[480px] bg-white border-0"
-                    title="Resume preview"
-                  />
-                ) : (
-                  <div className="p-8 text-center text-sm text-slate-500">
-                    <a
-                      href={resumeBlobUrl}
-                      download={resumeDisplayName}
-                      className="font-bold text-primary dark:text-white hover:underline"
-                    >
-                      Download resume file
-                    </a>
+              <>
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase text-slate-500">Document</p>
+                    <p className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2 mt-1">
+                      <FileText size={18} className="shrink-0 text-slate-400" />
+                      <span className="truncate">{resumeDisplayName}</span>
+                    </p>
+                    <p className="text-sm text-slate-500 mt-1">
+                      View only — downloading is not available in the interviewer session.
+                    </p>
                   </div>
-                )}
-              </div>
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden p-1">
+                  <DocumentPreviewFrame
+                    blobUrl={resumeBlobUrl}
+                    title="Resume preview"
+                    mimeType={resumeMimeType ?? candidate?.resumeMimeType}
+                    fileName={resumeDisplayName}
+                  />
+                </div>
+              </>
             ) : (
               <p className="text-sm text-slate-500 text-center py-12">
                 No resume has been uploaded for this candidate yet.

@@ -35,6 +35,7 @@ import {
   canControlPortalVisibility,
   canCreateRequirement,
   canManageRequirementPosting,
+  isAccountManagerRole,
   isAdminRole,
 } from '@/permissions'
 import './list.css'
@@ -48,6 +49,7 @@ const RequirementsList = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<RequirementFilter>('ALL')
   const isAdmin = isAdminRole(user?.role)
+  const isAccountManager = isAccountManagerRole(user?.role)
   const canManagePosting = (req: Requirement) =>
     canManageRequirementPosting(user?.role, req, user)
   const canVisibility = canControlPortalVisibility(user?.role)
@@ -66,6 +68,7 @@ const RequirementsList = () => {
   const { data: candidates = [] } = useQuery({
     queryKey: ['candidates'],
     queryFn: api.candidates.list,
+    enabled: !isAccountManager,
   })
 
   const recruiterNameById = useMemo(
@@ -138,6 +141,15 @@ const RequirementsList = () => {
   }
 
   const requirementMenuItems = (req: Requirement) => {
+    if (isAccountManager) {
+      return [
+        {
+          id: 'view',
+          label: 'View details',
+          onClick: () => navigate(`/requirements/${req.id}`),
+        },
+      ]
+    }
     const portalVisible = req.visibleToCandidates ?? true
     const referralVisible = req.visibleToReferrals ?? true
     return [
@@ -188,13 +200,13 @@ const RequirementsList = () => {
       },
       {
         id: 'visibility',
-        label: portalVisible ? 'Hide from candidate portal' : 'Post to candidate portal',
+        label: portalVisible ? 'Hide from careers & portal' : 'Post to careers & portal',
         hidden: !canVisibility || req.status === 'ON_HOLD' || req.status === 'CLOSED' || req.status === 'CANCELLED',
         onClick: async () => {
           try {
             await api.requirements.setVisibility(req.id, !portalVisible)
             addToast(
-              portalVisible ? 'Hidden from candidate portal' : 'Posted to candidate portal',
+              portalVisible ? 'Hidden from careers page and portal' : 'Posted to careers page and portal',
               'success'
             )
             invalidateRequirements()
@@ -244,7 +256,11 @@ const RequirementsList = () => {
         icon={Briefcase}
         eyebrow="Hiring hub"
         title="Job requirements"
-        description="Open roles, approval workflow, and fill progress. Post jobs, assign recruiters, and open the pipeline from one place."
+        description={
+          isAccountManager
+            ? 'Roles you opened to hiring — track status and progress after HR approval.'
+            : 'Open roles, approval workflow, and fill progress. Post jobs, assign recruiters, and open the pipeline from one place.'
+        }
         actions={
           canCreate ? (
             <Link to="/requirements/new" className={heroBtnPrimary}>
@@ -302,6 +318,7 @@ const RequirementsList = () => {
       </div>
 
       {/* Summary strip */}
+      {!isAccountManager && (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="app-card flex items-center gap-4 p-4">
           <div className="p-2.5 rounded-xl bg-primary/10 dark:bg-white/10 text-primary dark:text-white">
@@ -330,6 +347,7 @@ const RequirementsList = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Search + filter pills */}
       <div className="list-toolbar">
@@ -365,7 +383,9 @@ const RequirementsList = () => {
                 ? 'Try a different search or clear filters.'
                 : canCreate
                   ? 'Post your first role to start hiring.'
-                  : 'Requirements assigned to you will appear here.'
+                  : isAccountManager
+                    ? 'Requirements you manage as account manager will appear here after opening to hiring.'
+                    : 'Requirements assigned to you will appear here.'
             }
           />
           {canCreate && !searchTerm.trim() && (
@@ -422,6 +442,7 @@ const RequirementsList = () => {
                     recruiterNames={recruiterNames(req)}
                     menuItems={requirementMenuItems(req)}
                     variant="highlight"
+                    hidePipeline={isAccountManager}
                   />
                 ))}
               </div>
@@ -446,6 +467,7 @@ const RequirementsList = () => {
                       recruiterNames={recruiterNames(req)}
                       menuItems={requirementMenuItems(req)}
                       variant="default"
+                      hidePipeline={isAccountManager}
                     />
                   ))}
                 </div>
@@ -460,6 +482,7 @@ const RequirementsList = () => {
                   recruiterNames={recruiterNames(req)}
                   menuItems={requirementMenuItems(req)}
                   variant={req.status === 'PENDING_APPROVAL' ? 'highlight' : 'default'}
+                  hidePipeline={isAccountManager}
                 />
               ))}
             </section>

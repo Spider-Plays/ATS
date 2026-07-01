@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+    BarChart3,
     Briefcase,
     GitBranch,
     Handshake,
@@ -25,7 +26,6 @@ import {
     ConfigurableRole,
     PageKey,
     PAGE_DEFINITIONS,
-    isSuperAdminRole,
 } from '@/permissions'
 import { useToastStore } from '@/store/toastStore'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -37,9 +37,11 @@ const ROLE_LABELS: Record<ConfigurableRole, string> = {
     ADMIN: 'Admin',
     HR_HEAD: 'HR Head',
     HR_MANAGER: 'HR Manager',
+    FINANCE_HEAD: 'Finance Head',
     RECRUITER: 'Recruiter',
     TEAM_LEAD: 'Team Lead',
     HIRING_MANAGER: 'Hiring Manager',
+    ACCOUNT_MANAGER: 'Account Manager',
     INTERVIEWER: 'Interviewer',
 }
 
@@ -47,24 +49,32 @@ type PageDef = (typeof PAGE_DEFINITIONS)[number]
 
 const PAGE_ICONS: Record<PageKey, LucideIcon> = {
     dashboard: LayoutDashboard,
+    business_requirements: Handshake,
     requirements: Briefcase,
+    reports: BarChart3,
     vendors: Handshake,
     candidates: Users,
     pipeline: GitBranch,
     interviews: Video,
     offers: LayoutGrid,
+    offer_compensation_config: LayoutGrid,
+    offer_letter_template: LayoutGrid,
     admin_users: UserPlus,
     notifications: LayoutGrid,
     settings: Settings,
 }
 
 function pagesAvailableForRole(role: ConfigurableRole): PageDef[] {
-    return PAGE_DEFINITIONS.filter((p) => p.key !== 'admin_users' || isSuperAdminRole(role))
+    if (role === 'SUPER_ADMIN' || role === 'ADMIN') return [...PAGE_DEFINITIONS]
+    return PAGE_DEFINITIONS.filter((p) => p.key !== 'admin_users')
 }
 
 function pageRoute(key: PageKey): string {
     if (key === 'dashboard') return '/dashboard'
     if (key === 'admin_users') return '/admin'
+    if (key === 'business_requirements') return '/business-requirements'
+    if (key === 'offer_compensation_config') return '/offers/compensation-config'
+    if (key === 'offer_letter_template') return '/offers/letter-template'
     return `/${key}`
 }
 
@@ -108,6 +118,14 @@ const PageAccessCard = ({
                         <X size={16} />
                     </button>
                 )}
+                {locked && (
+                    <span
+                        className="text-[10px] font-bold uppercase tracking-wide text-primary/40 dark:text-white/40 shrink-0"
+                        title="Required for this role"
+                    >
+                        Required
+                    </span>
+                )}
             </div>
 
             <div className="flex items-center gap-2 rounded bg-primary/5 p-2 dark:bg-white/5">
@@ -122,6 +140,7 @@ const PageAccessCard = ({
 const RoleColumn = ({
     role,
     enabledPages,
+    pageCount,
     onAdd,
     onRemove,
     onReset,
@@ -131,6 +150,7 @@ const RoleColumn = ({
 }: {
     role: ConfigurableRole
     enabledPages: PageDef[]
+    pageCount: number
     onAdd: (pageKey: PageKey) => void
     onRemove: (pageKey: PageKey) => void
     onReset: () => void
@@ -142,14 +162,14 @@ const RoleColumn = ({
     const [menuOpen, setMenuOpen] = useState(false)
 
     return (
-        <div className="flex-shrink-0 w-80 flex flex-col h-full">
-            <div className="flex items-center justify-between px-1 mb-4">
+        <div className="role-access-column flex-shrink-0 w-80 flex flex-col min-h-0">
+            <div className="flex items-center justify-between px-1 mb-4 shrink-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-primary/60 dark:text-white/60 truncate">
                         {ROLE_LABELS[role]}
                     </h3>
                     <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary dark:bg-white/10 dark:text-white shrink-0">
-                        {enabledPages.length}
+                        {pageCount}
                     </span>
                 </div>
                 <div className="relative shrink-0">
@@ -189,7 +209,7 @@ const RoleColumn = ({
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 pb-20">
+            <div className="role-access-column-scroll flex-1 min-h-0 flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-2 pb-4">
                 {enabledPages.map((page) => (
                         <PageAccessCard
                             key={page.key}
@@ -210,18 +230,24 @@ const RoleColumn = ({
                 <div className="rounded-xl border border-dashed border-primary/15 dark:border-white/15 p-3 bg-primary/[0.02] dark:bg-white/[0.02]">
                     {pickerOpen ? (
                         <div className="space-y-2">
-                            <SearchableSelect
-                                value=""
-                                onChange={(key) => {
-                                    if (key) {
-                                        onAdd(key as PageKey)
-                                        setPickerOpen(false)
-                                    }
-                                }}
-                                options={addOptions}
-                                placeholder="Select page..."
-                                searchPlaceholder="Search pages..."
-                            />
+                            {addOptions.length > 0 ? (
+                                <SearchableSelect
+                                    value=""
+                                    onChange={(key) => {
+                                        if (key) {
+                                            onAdd(key as PageKey)
+                                            setPickerOpen(false)
+                                        }
+                                    }}
+                                    options={addOptions}
+                                    placeholder="Select page..."
+                                    searchPlaceholder="Search pages..."
+                                />
+                            ) : (
+                                <p className="text-xs font-medium text-primary/50 dark:text-white/50 text-center py-2">
+                                    All available pages are already assigned to this role.
+                                </p>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => setPickerOpen(false)}
@@ -234,7 +260,7 @@ const RoleColumn = ({
                         <button
                             type="button"
                             onClick={() => setPickerOpen(true)}
-                            disabled={saving || addOptions.length === 0}
+                            disabled={saving}
                             className="w-full flex items-center justify-center gap-2 py-2 text-[12px] font-bold text-primary dark:text-white hover:bg-primary/5 dark:hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
                         >
                             <UserPlus size={16} />
@@ -260,9 +286,11 @@ const RoleAccessEditor = () => {
         ADMIN: [],
         HR_HEAD: [],
         HR_MANAGER: [],
+        FINANCE_HEAD: [],
         RECRUITER: [],
         TEAM_LEAD: [],
         HIRING_MANAGER: [],
+        ACCOUNT_MANAGER: [],
         INTERVIEWER: [],
     })
 
@@ -349,7 +377,7 @@ const RoleAccessEditor = () => {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-6rem)] animate-in fade-in duration-500">
+        <div className="role-access-editor flex flex-col min-h-0">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div className="flex gap-4 items-center min-w-0">
                     <div className="size-10 m3-surface-primary rounded-xl flex items-center justify-center shadow-m3-2 shrink-0">
@@ -395,7 +423,7 @@ const RoleAccessEditor = () => {
             />
 
             <p className="text-xs text-primary/50 dark:text-white/40 mb-4 -mt-2">
-                Candidate and Vendor portals use separate routes and are not configured here. Super Admin always has full access and cannot be restricted.
+                Candidate and Vendor portals use separate routes and are not configured here. The Super Admin role always has every page; use the other columns to configure access for each role.
             </p>
 
             {isLoading ? (
@@ -403,15 +431,16 @@ const RoleAccessEditor = () => {
                     Loading role access…
                 </p>
             ) : (
-                <div className="flex-1 min-h-[420px] flex gap-6 overflow-x-auto pb-6 custom-scrollbar">
+                <div className="role-access-board flex gap-6 overflow-x-auto pb-6 custom-scrollbar">
                     {visibleRoles.map((role) => {
                         const rolePages = accessByRole[role] ?? []
-                        const enabledPages = pagesAvailableForRole(role)
-                            .filter((p) => rolePages.includes(p.key))
-                            .filter(matchesSearch)
+                        const assignedPages = pagesAvailableForRole(role).filter((p) =>
+                            rolePages.includes(p.key)
+                        )
+                        const enabledPages = assignedPages.filter(matchesSearch)
 
                         const addOptions = pagesAvailableForRole(role)
-                            .filter((p) => !rolePages.includes(p.key) && matchesSearch(p))
+                            .filter((p) => !rolePages.includes(p.key))
                             .map((p) => ({
                                 value: p.key,
                                 label: p.label,
@@ -424,6 +453,7 @@ const RoleAccessEditor = () => {
                                 role={role}
                                 readOnly={role === 'SUPER_ADMIN'}
                                 enabledPages={enabledPages}
+                                pageCount={assignedPages.length}
                                 saving={saveMutation.isPending || resetMutation.isPending}
                                 addOptions={addOptions}
                                 onAdd={(pageKey) => updateRolePages(role, [...rolePages, pageKey])}

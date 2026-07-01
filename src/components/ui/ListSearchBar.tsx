@@ -7,6 +7,7 @@ type ListSearchBarProps = {
   placeholder?: string
   className?: string
   inputClassName?: string
+  iconClassName?: string
 }
 
 export function ListSearchBar({
@@ -15,11 +16,15 @@ export function ListSearchBar({
   placeholder = 'Search...',
   className,
   inputClassName,
+  iconClassName,
 }: ListSearchBarProps) {
   return (
     <div className={clsx('relative flex-1 min-w-[200px] max-w-md', className)}>
       <span
-        className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-lg pointer-events-none z-[1]"
+        className={clsx(
+          'material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-lg pointer-events-none z-[1]',
+          iconClassName
+        )}
         aria-hidden
       >
         search

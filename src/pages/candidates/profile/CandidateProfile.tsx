@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useMutation, keepPreviousData } from '@tanstack/react-query'
 import { AnimatedTabNav } from '@/components/motion/AnimatedTabNav'
 import { TabContent } from '@/components/motion/TabContent'
 import { useAuth } from '@/hooks/useAuth'
@@ -26,6 +26,7 @@ import { CandidateProfileInterviews } from '@/pages/candidates/profile/component
 import { CandidateStageDetailsModal } from '@/components/candidates/CandidateStageDetailsModal'
 import { useCandidateStageChange } from '@/hooks/useCandidateStageChange'
 import { canScheduleInterviews } from '@/permissions'
+import { BackButton } from '@/components/ui/BackButton'
 import './profile.css'
 
 const CandidateProfile = () => {
@@ -157,6 +158,28 @@ const CandidateProfile = () => {
   const canManageInterviews = canScheduleInterviews(user?.role)
   const isAdmin = isAdminRole(user?.role)
 
+  const linkedRequirement = requirements.find((r) => r.id === candidate?.requirementId)
+  const linkedJobDescription =
+    linkedRequirement?.jobDescription?.trim() || linkedRequirement?.description?.trim() || ''
+
+  const sendJdMutation = useMutation({
+    mutationFn: () => api.candidates.sendJobDescription(candidate!.id),
+    onSuccess: () => {
+      addToast('Job description emailed to candidate', 'success')
+      void queryClient.invalidateQueries({ queryKey: ['candidate-activity', id] })
+    },
+    onError: (err: unknown) => {
+      const msg = err instanceof ApiError ? err.message : 'Failed to send job description'
+      addToast(msg, 'error')
+    },
+  })
+
+  const sendJdDisabledReason = !candidate?.email?.trim()
+    ? 'Candidate email is required'
+    : !linkedJobDescription
+      ? 'Add a job description on the requirement first'
+      : undefined
+
   const handleDeleteProfile = async () => {
     if (!id || !candidate) return
     const ok = await confirm({
@@ -220,7 +243,7 @@ const CandidateProfile = () => {
       }
     }
 
-    if (!editData.requirementId) {
+    if (!editData.requirementId && candidate.status !== 'ADDED' && !candidate.requirementId) {
       addToast('Select a job requirement', 'error')
       setActiveTab('overview')
       return
@@ -333,11 +356,17 @@ const CandidateProfile = () => {
 
   return (
     <div className="max-w-7xl mx-auto w-full space-y-6 pb-12">
+      <BackButton
+        fallback={isInterviewerView ? '/interviews' : '/candidates'}
+        label={isInterviewerView ? 'Back to interviews' : 'Back to candidates'}
+        variant="muted"
+      />
       {stageModal && (
         <CandidateStageDetailsModal
           open
           targetStatus={stageModal.status}
           candidateName={stageModal.candidateName}
+          initialExpectedCTC={stageModal.expectedCTC}
           onClose={closeStageModal}
           onConfirm={handleStageModalConfirm}
           isSubmitting={stageSubmitting}
@@ -453,6 +482,10 @@ const CandidateProfile = () => {
             canEdit={canEdit}
             onMoveStage={handleMoveStage}
             onOpenInterviewsTab={() => setActiveTab('interviews')}
+            onSendJd={() => sendJdMutation.mutate()}
+            sendJdLoading={sendJdMutation.isPending}
+            sendJdDisabled={!!sendJdDisabledReason}
+            sendJdDisabledReason={sendJdDisabledReason}
           />
         )}
       </div>

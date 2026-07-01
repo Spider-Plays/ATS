@@ -10,6 +10,15 @@ export function apiUrl(path: string): string {
   return `${API_BASE}/api${path}`
 }
 
+/** Public routes must not attach session tokens (avoids 401 side-effects on logged-in staff/candidates). */
+export function isPublicApiPath(path: string): boolean {
+  return (
+    path === '/auth/login' ||
+    path === '/auth/register-candidate' ||
+    path.startsWith('/careers/')
+  )
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
@@ -36,7 +45,7 @@ export async function apiRequest<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = path === '/auth/login' || path === '/auth/register-candidate' ? null : getToken()
+  const token = isPublicApiPath(path) ? null : getToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
@@ -55,7 +64,7 @@ export async function apiRequest<T>(
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}))
-      const isLoginAttempt = path === '/auth/login' || path === '/auth/register-candidate'
+      const isLoginAttempt = isPublicApiPath(path)
       if (res.status === 401 && !isLoginAttempt) {
         clearToken()
         window.dispatchEvent(new Event('auth:session-expired'))

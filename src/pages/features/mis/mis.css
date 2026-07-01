@@ -1,4 +1,144 @@
-/* Page styles: MisDashboard */
-.misdashboard-page {
-  /* Add page-specific overrides here */
+.mis-coming-soon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 8rem);
+  padding: 2rem 1.5rem;
+}
+
+.mis-coming-soon__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+}
+
+.mis-coming-soon__icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 6rem;
+  height: 6rem;
+  margin-bottom: 0.5rem;
+}
+
+.mis-coming-soon__icon {
+  position: relative;
+  z-index: 1;
+  color: hsl(var(--primary));
+  animation: mis-icon-float 2.4s ease-in-out infinite;
+}
+
+.mis-coming-soon__ring {
+  position: absolute;
+  inset: 0;
+  border: 2px solid hsl(var(--primary) / 0.25);
+  border-radius: 50%;
+  animation: mis-ring-pulse 2.4s ease-out infinite;
+}
+
+.mis-coming-soon__ring--delay {
+  animation-delay: 1.2s;
+}
+
+.mis-coming-soon__status {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  color: hsl(var(--on-surface));
+  animation: mis-text-glow 2s ease-in-out infinite;
+}
+
+.mis-coming-soon__dots {
+  display: inline-flex;
+  gap: 0.2rem;
+  margin-left: 0.15rem;
+  vertical-align: baseline;
+}
+
+.mis-coming-soon__dots span {
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  animation: mis-dot-bounce 1.2s ease-in-out infinite;
+}
+
+.mis-coming-soon__dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.mis-coming-soon__dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.mis-coming-soon__title {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  padding-bottom: 0.125em;
+  color: hsl(var(--primary));
+  animation: mis-title-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes mis-icon-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes mis-ring-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes mis-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-0.35rem);
+    opacity: 1;
+  }
+}
+
+@keyframes mis-title-pulse {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes mis-text-glow {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
 }

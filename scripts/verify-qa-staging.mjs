@@ -67,6 +67,15 @@ await check('Staging API direct health', async () => {
   }
 })
 
+await check('Staging API email configured', async () => {
+  const body = await fetchJson(`${STAGING_API_ORIGIN}/api/health`)
+  if (body?.email !== 'configured') {
+    throw new Error(
+      'Email not configured — copy M365_* (or RESEND_API_KEY) from production Render stitch-ats-api to stitch-ats-api-staging'
+    )
+  }
+})
+
 await check('Production API still healthy (unchanged)', async () => {
   const body = await fetchJson(`${PROD_API_ORIGIN}/api/health`)
   if (!body?.ok || body?.database !== 'connected') {

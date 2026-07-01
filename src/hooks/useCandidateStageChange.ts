@@ -4,7 +4,12 @@ import { api } from '../services/api'
 import { ApiError } from '../lib/apiClient'
 import { useToastStore } from '../store/toastStore'
 import { useAuth } from './useAuth'
-import { candidateStatusLabel } from '@/pages/candidates/_shared/candidate.utils'
+import {
+  candidateStatusLabel,
+  isBackwardCandidateStageMove,
+  requiresCandidateStageChangeConfirmation,
+} from '@/pages/candidates/_shared/candidate.utils'
+import { useConfirmStore } from '../store/confirmStore'
 import {
   canChangeCandidateStage,
   HIRED_STAGE_LOCK_MESSAGE,
@@ -17,6 +22,7 @@ import type { HiredMilestoneInput, OfferMilestoneInput } from '../lib/candidateM
 type PendingModal = {
   candidateId: string
   candidateName: string
+  expectedCTC?: string
   status: 'OFFER' | 'HIRED'
 }
 
@@ -141,6 +147,43 @@ function shouldRefreshInterviewProgress(
   return previousStatus === 'INTERVIEW' || nextStatus === 'INTERVIEW'
 }
 
+function stageChangeConfirmOptions(
+  candidateName: string,
+  current: CandidateStatus,
+  next: CandidateStatus
+) {
+  if (next === 'REJECTED') {
+    return {
+      title: 'Reject candidate',
+      message: `Reject ${candidateName}? They will be marked as rejected and removed from the active pipeline.`,
+      confirmLabel: 'Reject',
+      variant: 'danger' as const,
+    }
+  }
+  if (next === 'OFFER') {
+    return {
+      title: 'Move to offer',
+      message: `Move ${candidateName} to the ${candidateStatusLabel('OFFER')} stage? You will be asked for offer details next.`,
+      confirmLabel: 'Continue',
+      variant: 'primary' as const,
+    }
+  }
+  if (isBackwardCandidateStageMove(current, next)) {
+    return {
+      title: 'Move to earlier stage',
+      message: `Move ${candidateName} from ${candidateStatusLabel(current)} back to ${candidateStatusLabel(next)}?`,
+      confirmLabel: 'Move back',
+      variant: 'primary' as const,
+    }
+  }
+  return {
+    title: 'Change pipeline stage',
+    message: `Move ${candidateName} to ${candidateStatusLabel(next)}?`,
+    confirmLabel: 'Confirm',
+    variant: 'primary' as const,
+  }
+}
+
 export function useCandidateStageChange(options?: { requirementId?: string }) {
   const queryClient = useQueryClient()
   const { addToast } = useToastStore()
@@ -236,17 +279,25 @@ export function useCandidateStageChange(options?: { requirementId?: string }) {
     }
   }
 
-  const requestStageChange = (candidate: Candidate, newStage: CandidateStatus) => {
+  const requestStageChange = async (candidate: Candidate, newStage: CandidateStatus) => {
+    if (candidate.status === newStage) return
     if (!canChangeCandidateStage(candidate, newStage, user?.role)) {
       if (candidate.status === 'HIRED' && newStage !== candidate.status) {
         addToast(HIRED_STAGE_LOCK_MESSAGE, 'error')
       }
       return
     }
+    if (requiresCandidateStageChangeConfirmation(candidate.status, newStage)) {
+      const ok = await useConfirmStore.getState().requestConfirm(
+        stageChangeConfirmOptions(candidate.name, candidate.status, newStage)
+      )
+      if (!ok) return
+    }
     if (requiresStageDetailsModal(newStage)) {
       setPendingModal({
         candidateId: candidate.id,
         candidateName: candidate.name,
+        expectedCTC: candidate.expectedCTC,
         status: newStage,
       })
       return

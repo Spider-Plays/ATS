@@ -1,3 +1,3 @@
-import './profile-setup.css'
+import "./profile-setup.css";
 /** @deprecated Use PortalOnboarding */
-export { default } from '../onboarding/PortalOnboarding'
+export { default } from "../onboarding/PortalOnboarding";

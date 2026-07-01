@@ -11,6 +11,7 @@ server/dist
 server/prisma/dev.db
 server/prisma/dev.db-journal
 server/.env
+server/.env.staging
 server/uploads/
 
 # Design mockups (not part of the app)

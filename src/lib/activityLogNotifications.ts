@@ -147,6 +147,58 @@ export function activityLogToNotificationItem(log: ActivityLog): ActivityNotific
         colorClass = 'text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400'
       }
     }
+  } else if (log.entityType === 'BUSINESS_REQUIREMENT') {
+    recognized = true
+    link = `/business-requirements/${log.entityId}`
+    icon = 'handshake'
+    if (log.action === 'SOW_SIGNED') {
+      title = 'Business requirement reached SOW Signed'
+      const base = `${log.details?.title ?? 'Role'}${log.details?.client ? ` · ${log.details.client}` : ''}`
+      const note =
+        log.details?.description && typeof log.details.description === 'string'
+          ? log.details.description
+          : null
+      subtitle = note ? `${base} — ${note}` : `${base} — ${log.performerName || 'User'}`
+      colorClass = 'text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400'
+    } else if (log.action === 'OPENED_TO_HIRING') {
+      title = 'Business requirement opened to hiring'
+      subtitle = `${log.details?.title ?? 'Role'} published to hiring workflow`
+      colorClass = 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400'
+    } else if (log.action === 'CREATED') {
+      title = 'Business requirement created'
+      subtitle = `${log.details?.title ?? 'Role'} by ${log.performerName || 'User'}`
+      colorClass = 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400'
+    } else if (log.action === 'STAGE_CHANGED') {
+      title = 'Business requirement stage updated'
+      const stageLabel = String(log.details?.stage ?? '').replace(/_/g, ' ')
+      const note =
+        log.details?.description && typeof log.details.description === 'string'
+          ? log.details.description
+          : null
+      subtitle = note
+        ? `${log.details?.title ?? 'Role'} · ${stageLabel} — ${note}`
+        : `${log.details?.title ?? 'Role'} · ${stageLabel}`
+    } else if (log.action === 'CANCELLED') {
+      title = 'Business requirement cancelled'
+      subtitle = `${log.details?.title ?? 'Role'} was cancelled`
+      colorClass = 'text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400'
+    } else if (log.action === 'UPDATED') {
+      title = 'Business requirement updated'
+      const changes = Array.isArray(log.details?.changes) ? log.details.changes : []
+      if (changes.length > 0) {
+        const labels = changes
+          .map((c: { label?: string }) =>
+            c && typeof c === 'object' && c.label ? String(c.label) : null
+          )
+          .filter(Boolean) as string[]
+        subtitle =
+          labels.length > 0
+            ? `${log.details?.title ?? 'Role'} — ${labels.join(', ')}`
+            : `${log.details?.title ?? 'Role'} updated by ${log.performerName || 'User'}`
+      } else {
+        subtitle = `${log.details?.title ?? 'Role'} updated by ${log.performerName || 'User'}`
+      }
+    }
   }
 
   const type: ActivityNotificationItem['type'] = recognized ? 'UPDATE' : 'SYSTEM'

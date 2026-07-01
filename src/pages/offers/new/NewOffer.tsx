@@ -4,14 +4,25 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight, IndianRupee, CheckCircle, User, Briefcase, Calendar } from 'lucide-react'
+import { ArrowRight, IndianRupee, CheckCircle, User, Briefcase, Calendar, Users } from 'lucide-react'
 import { api } from '@/services/api'
 import { useAuth } from '@/hooks/useAuth'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
+import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { WizardStepFooter } from '@/components/ui/WizardStepFooter'
 import { TabContent } from '@/components/motion/TabContent'
 import { CompensationBreakdownTable } from '@/components/offers/CompensationBreakdownTable'
 import { useToastStore } from '@/store/toastStore'
+import { isOfferStageCandidate } from '@/pages/candidates/_shared/candidate.utils'
+import { requirementSelectOptions } from '@/lib/selectOptions'
+import { formatRequirementLocation } from '@/lib/requirementFields'
+import { OfferApprovalChainEditor } from '@/components/offers/OfferApprovalChainEditor'
+import {
+  createDefaultApprovalChain,
+  OFFER_APPROVER_ELIGIBLE_ROLES,
+  validateApprovalChain,
+} from '@/lib/offerApprovalChain'
+import type { OfferApprovalChain } from '@/types'
 import './new.css'
 
 const schema = z.object({
@@ -34,11 +45,12 @@ const NewOffer = () => {
   const { user } = useAuth()
   const { addToast } = useToastStore()
   const [currentStep, setCurrentStep] = useState(0)
+  const [approvalChain, setApprovalChain] = useState<OfferApprovalChain>(createDefaultApprovalChain)
 
   const { register, handleSubmit, control, trigger, watch, setValue, formState: { errors } } = useForm<OfferFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      annualCtc: 864480,
+      annualCtc: 0,
       reportingTime: '9:30 AM',
     },
   })
@@ -47,6 +59,7 @@ const NewOffer = () => {
 
   const { data: candidates = [] } = useQuery({ queryKey: ['candidates'], queryFn: api.candidates.list })
   const { data: requirements = [] } = useQuery({ queryKey: ['requirements'], queryFn: api.requirements.list })
+  const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: api.users.list })
 
   const { data: breakdown } = useQuery({
     queryKey: ['offer-comp-preview', annualCtc],
@@ -57,46 +70,99 @@ const NewOffer = () => {
   const candidateId = watch('candidateId')
   const requirementId = watch('requirementId')
 
-  useEffect(() => {
-    const c = candidates.find((x) => x.id === candidateId)
-    if (c?.location) setValue('candidateAddress', c.location)
-    if (c?.role) setValue('positionTitle', c.role)
-  }, [candidateId, candidates, setValue])
-
-  useEffect(() => {
-    const r = requirements.find((x) => x.id === requirementId)
-    if (r?.client) setValue('clientCompanyName', r.client)
-    if (r?.location) setValue('clientSiteAddress', r.location)
-    if (r?.title) setValue('positionTitle', r.title)
-  }, [requirementId, requirements, setValue])
+  const offerStageCandidates = useMemo(
+    () => candidates.filter(isOfferStageCandidate),
+    [candidates]
+  )
 
   const candidateOptions = useMemo(
     () =>
-      candidates.map((c) => ({
+      offerStageCandidates.map((c) => ({
         value: c.id,
         label: c.name,
         sublabel: [c.role, c.email, c.status].filter(Boolean).join(' · '),
       })),
-    [candidates]
+    [offerStageCandidates]
   )
 
+  const selectedCandidate = useMemo(
+    () => offerStageCandidates.find((c) => c.id === candidateId),
+    [offerStageCandidates, candidateId]
+  )
+
+  const selectedRequirement = useMemo(
+    () => requirements.find((r) => r.id === requirementId),
+    [requirements, requirementId]
+  )
+
+  useEffect(() => {
+    if (!candidateId) {
+      setValue('requirementId', '')
+      return
+    }
+    const candidate = offerStageCandidates.find((c) => c.id === candidateId)
+    if (candidate?.requirementId) {
+      setValue('requirementId', candidate.requirementId)
+    }
+  }, [candidateId, offerStageCandidates, setValue])
+
+  useEffect(() => {
+    if (selectedCandidate?.location) {
+      setValue('candidateAddress', selectedCandidate.location)
+    }
+    if (selectedRequirement?.client) {
+      setValue('clientCompanyName', selectedRequirement.client)
+    }
+    if (selectedRequirement) {
+      const siteAddress = formatRequirementLocation(selectedRequirement)
+      if (siteAddress !== '—') setValue('clientSiteAddress', siteAddress)
+    }
+    if (selectedRequirement?.title) setValue('positionTitle', selectedRequirement.title)
+    else if (selectedCandidate?.role) setValue('positionTitle', selectedCandidate.role)
+  }, [selectedCandidate, selectedRequirement, setValue])
+
+  useEffect(() => {
+    if (currentStep !== 2) return
+    if (selectedCandidate?.location) {
+      setValue('candidateAddress', selectedCandidate.location)
+    }
+    if (selectedRequirement) {
+      const siteAddress = formatRequirementLocation(selectedRequirement)
+      if (siteAddress !== '—') setValue('clientSiteAddress', siteAddress)
+    }
+  }, [currentStep, selectedCandidate, selectedRequirement, setValue])
+
   const requirementOptions = useMemo(
-    () =>
-      requirements.map((r) => ({
-        value: r.id,
-        label: r.title,
-        sublabel: `${r.department} · ${r.client || 'Internal'}`,
-      })),
+    () => requirementSelectOptions(requirements),
     [requirements]
   )
 
+  const approverOptions = useMemo(
+    () =>
+      users
+        .filter((u) =>
+          OFFER_APPROVER_ELIGIBLE_ROLES.includes(
+            u.role as (typeof OFFER_APPROVER_ELIGIBLE_ROLES)[number]
+          )
+        )
+        .map((u) => ({
+          value: u.uid,
+          label: u.name,
+          sublabel: [u.role.replace(/_/g, ' '), u.email].join(' · '),
+        })),
+    [users]
+  )
+
   const createMutation = useMutation({
-    mutationFn: (data: OfferFormValues) =>
-      api.offers.create({
+    mutationFn: (data: OfferFormValues) => {
+      const chainError = validateApprovalChain(approvalChain)
+      if (chainError) throw new Error(chainError)
+      return api.offers.create({
         candidateId: data.candidateId,
         requirementId: data.requirementId,
         annualCtc: data.annualCtc,
         createdBy: user?.uid!,
+        approvalChain,
         letterMeta: {
           candidateAddress: data.candidateAddress,
           positionTitle: data.positionTitle,
@@ -105,13 +171,15 @@ const NewOffer = () => {
           clientSiteAddress: data.clientSiteAddress,
           reportingTime: data.reportingTime,
         },
-      }),
+      })
+    },
     onSuccess: (offer) => {
       queryClient.invalidateQueries({ queryKey: ['offers'] })
       addToast('Offer draft created', 'success')
       navigate(`/offers/${offer.id}`)
     },
-    onError: () => addToast('Failed to create offer', 'error'),
+    onError: (err: unknown) =>
+      addToast(err instanceof Error ? err.message : 'Failed to create offer', 'error'),
   })
 
   const onSubmit = (data: OfferFormValues) => {
@@ -126,7 +194,7 @@ const NewOffer = () => {
 
   const nextStep = async () => {
     const ok = await trigger(stepFields[currentStep])
-    if (ok) setCurrentStep((s) => Math.min(s + 1, 2))
+    if (ok) setCurrentStep((s) => Math.min(s + 1, 3))
   }
 
   const prevStep = () => setCurrentStep((s) => Math.max(s - 1, 0))
@@ -136,7 +204,7 @@ const NewOffer = () => {
       <div>
         <h1 className="text-2xl font-black text-primary dark:text-white tracking-tight">Create New Offer</h1>
         <p className="text-sm font-medium text-primary/60 dark:text-white/60">
-          Step {currentStep + 1} of 3 — candidate, CTC breakdown, and letter details.
+          Step {currentStep + 1} of 4 — candidate, CTC, letter details, and approvers.
         </p>
       </div>
 
@@ -165,6 +233,11 @@ const NewOffer = () => {
                     )}
                   />
                   {errors.candidateId && <p className="text-xs font-bold text-red-500">{errors.candidateId.message}</p>}
+                  {offerStageCandidates.length === 0 && (
+                    <p className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                      No candidates are in Offer stage. Move a candidate to Offer in the pipeline before creating an offer.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-primary/60 uppercase tracking-wider">Requirement</label>
@@ -176,9 +249,11 @@ const NewOffer = () => {
                         value={field.value}
                         onChange={field.onChange}
                         options={requirementOptions}
-                        placeholder="Select job"
-                        searchPlaceholder="Search requirements..."
+                        placeholder="Filled from selected candidate"
+                        searchPlaceholder="Search by title, req ID, or client..."
                         icon={<Briefcase size={18} />}
+                        disabled
+                        allowClear={false}
                       />
                     )}
                   />
@@ -213,7 +288,7 @@ const NewOffer = () => {
               </h2>
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-primary/60 uppercase tracking-wider">Candidate address</label>
+                  <label className="text-xs font-bold text-primary/60 uppercase tracking-wider">Candidate location</label>
                   <textarea rows={3} className="w-full mt-1 px-3 py-2 rounded-xl border text-sm" {...register('candidateAddress')} />
                   {errors.candidateAddress && <p className="text-xs text-red-500">{errors.candidateAddress.message}</p>}
                 </div>
@@ -224,7 +299,19 @@ const NewOffer = () => {
                   </div>
                   <div>
                     <label className="text-xs font-bold text-primary/60 uppercase tracking-wider">Joining date</label>
-                    <input type="date" className="w-full mt-1 px-3 py-2 rounded-xl border" {...register('joiningDate')} />
+                    <Controller
+                      control={control}
+                      name="joiningDate"
+                      render={({ field }) => (
+                        <AppDatePicker
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          className="mt-1"
+                          aria-label="Joining date"
+                        />
+                      )}
+                    />
+                    {errors.joiningDate && <p className="text-xs text-red-500">{errors.joiningDate.message}</p>}
                   </div>
                   <div>
                     <label className="text-xs font-bold text-primary/60 uppercase tracking-wider">Client company</label>
@@ -236,16 +323,29 @@ const NewOffer = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-primary/60 uppercase tracking-wider">Client site / reporting address</label>
+                  <label className="text-xs font-bold text-primary/60 uppercase tracking-wider">Requirement location</label>
                   <textarea rows={3} className="w-full mt-1 px-3 py-2 rounded-xl border text-sm" {...register('clientSiteAddress')} />
                 </div>
               </div>
             </section>
           )}
+
+          {currentStep === 3 && (
+            <section className="bg-white dark:bg-white/5 p-8 rounded-2xl border border-primary/10 shadow-sm space-y-6">
+              <h2 className="text-xl font-bold text-primary dark:text-white flex items-center gap-2">
+                <Users size={20} /> Approval chain
+              </h2>
+              <OfferApprovalChainEditor
+                value={approvalChain}
+                onChange={setApprovalChain}
+                approverOptions={approverOptions}
+              />
+            </section>
+          )}
         </TabContent>
 
         <WizardStepFooter currentStep={currentStep} onPreviousStep={prevStep} exitTo="/offers" exitLabel="Cancel">
-          {currentStep < 2 ? (
+          {currentStep < 3 ? (
             <button type="button" onClick={nextStep} className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-xl font-bold text-sm">
               Continue <ArrowRight size={18} />
             </button>

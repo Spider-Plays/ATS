@@ -1,17 +1,12 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/services/api'
-import { useAuth } from '@/hooks/useAuth'
 import clsx from 'clsx'
+import { useAuth } from '@/hooks/useAuth'
+import { useNotifications } from '@/hooks/useNotifications'
 import { ListSearchBar } from '@/components/ui/ListSearchBar'
 import { matchesAnySearch } from '@/lib/textSearch'
-import { canApproveRequirement } from '@/permissions'
-import { isInterviewerCandidateView } from '@/permissions'
-import {
-  activityLogToNotificationItem,
-  type ActivityNotificationItem,
-} from '@/lib/activityLogNotifications'
+import { isInterviewerCandidateView, canViewSystemNotifications } from '@/permissions'
+import type { ActivityNotificationItem } from '@/lib/activityLogNotifications'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { AnimatedTabNav } from '@/components/motion/AnimatedTabNav'
 import { heroBtnSecondary } from '@/components/layout/PageHero'
@@ -27,64 +22,32 @@ const NOTIFICATION_TABS: { key: NotificationFilter; label: string }[] = [
   { key: 'SYSTEM', label: 'System' },
 ]
 
-interface NotificationAction {
-  label: string
-  primary: boolean
-}
-
-type NotificationItem = ActivityNotificationItem & {
-  image?: string
-  actions?: NotificationAction[]
-}
-
 const Notifications = () => {
   const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState<NotificationFilter>('ALL')
   const isInterviewerView = isInterviewerCandidateView(user?.role)
-  const canReviewPendingApprovals = canApproveRequirement(user?.role)
+  const showSystemTab = canViewSystemNotifications(user?.role)
+  const notificationTabs = useMemo(
+    () =>
+      showSystemTab
+        ? NOTIFICATION_TABS
+        : NOTIFICATION_TABS.filter((tab) => tab.key !== 'SYSTEM'),
+    [showSystemTab]
+  )
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    markAllNotificationsAsRead,
+    markNotificationAsRead,
+  } = useNotifications()
 
-  const { data: pendingRequirements = [], isLoading: isLoadingReqs } = useQuery({
-    queryKey: ['pendingRequirements'],
-    queryFn: api.requirements.getPending,
-    enabled: canReviewPendingApprovals,
-  })
-
-  const { data: activityLogs = [], isLoading: isLoadingLogs } = useQuery({
-    queryKey: ['activityLogs', user?.role, user?.uid],
-    queryFn: () => api.activityLogs.list(),
-  })
-
-  const isLoading = (canReviewPendingApprovals && isLoadingReqs) || isLoadingLogs
-
-  const notifications = useMemo(() => {
-    const items: NotificationItem[] = []
-
-    if (pendingRequirements.length > 0) {
-      items.push(
-        ...pendingRequirements.map((req) => ({
-          id: `req-${req.id}`,
-          type: 'ACTION_REQUIRED' as const,
-          title: 'Requirement approval needed',
-          subtitle: `${req.title} · ${req.department}`,
-          time: new Date(req.createdAt).toLocaleDateString(),
-          read: false,
-          icon: 'gavel',
-          colorClass: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400',
-          link: `/requirements/${req.id}`,
-          actions: [{ label: 'Review', primary: true }],
-          timestamp: new Date(req.createdAt).getTime(),
-        }))
-      )
+  useEffect(() => {
+    if (!showSystemTab && activeFilter === 'SYSTEM') {
+      setActiveFilter('ALL')
     }
-
-    if (activityLogs.length > 0) {
-      items.push(...activityLogs.map((log) => activityLogToNotificationItem(log)))
-    }
-
-    items.sort((a, b) => b.timestamp - a.timestamp)
-    return items
-  }, [pendingRequirements, activityLogs])
+  }, [showSystemTab, activeFilter])
 
   const filteredNotifications = useMemo(() => {
     const byType =
@@ -125,8 +88,12 @@ const Notifications = () => {
         }
         className="mb-8"
         actions={
-          !isInterviewerView ? (
-            <button type="button" className={heroBtnSecondary}>
+          unreadCount > 0 ? (
+            <button
+              type="button"
+              className={heroBtnSecondary}
+              onClick={markAllNotificationsAsRead}
+            >
               Mark all as read
             </button>
           ) : undefined
@@ -148,7 +115,7 @@ const Notifications = () => {
             <AnimatedTabNav
               layoutId="notifications-filter-tabs"
               variant="pill"
-              tabs={NOTIFICATION_TABS.map((tab) => ({ id: tab.key, label: tab.label }))}
+              tabs={notificationTabs.map((tab) => ({ id: tab.key, label: tab.label }))}
               activeId={activeFilter}
               onChange={(id) => setActiveFilter(id as NotificationFilter)}
               aria-label="Notification filters"
@@ -186,15 +153,7 @@ const Notifications = () => {
                     notification.colorClass
                   )}
                 >
-                  {notification.image ? (
-                    <img
-                      src={notification.image}
-                      alt=""
-                      className="size-full rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="material-symbols-outlined">{notification.icon}</span>
-                  )}
+                  <span className="material-symbols-outlined">{notification.icon}</span>
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
@@ -215,6 +174,7 @@ const Notifications = () => {
                         <Link
                           key={action.label}
                           to={notification.link || '#'}
+                          onClick={() => markNotificationAsRead(notification.id)}
                           className={clsx(
                             'text-xs px-3 py-1.5 rounded-lg font-bold transition-colors inline-block',
                             action.primary
@@ -228,24 +188,17 @@ const Notifications = () => {
                     </div>
                   )}
                   {!notification.actions && notification.link && (
-                    <Link to={notification.link} className="absolute inset-0 z-10" />
+                    <Link
+                      to={notification.link}
+                      onClick={() => markNotificationAsRead(notification.id)}
+                      className="absolute inset-0 z-10"
+                    />
                   )}
                 </div>
               </div>
             </div>
           ))}
         </div>
-
-        {!isInterviewerView && (
-          <div className="p-4 border-t border-primary/10 dark:border-white/10 bg-primary/[0.02] dark:bg-white/[0.02] text-center">
-            <button
-              type="button"
-              className="text-xs font-bold text-primary dark:text-white hover:underline"
-            >
-              Load older notifications
-            </button>
-          </div>
-        )}
       </div>
     </div>
   )

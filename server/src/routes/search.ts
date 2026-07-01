@@ -109,7 +109,8 @@ router.get('/', async (req, res) => {
   })
 
   res.json({
-    candidates: candidates.map((c) => mapCandidate(c)),
+    candidates:
+      auth.role === 'INTERVIEWER' ? [] : candidates.map((c) => mapCandidate(c)),
     requirements: requirements.map(mapRequirement),
     users: users.map(mapUser),
     interviews,

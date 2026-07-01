@@ -27,6 +27,11 @@ export const requirementService = {
     }
   },
 
+  getActivityLogs: (id: string, limit = 50) =>
+    apiRequest<import('../../types').ActivityLog[]>(
+      `/requirements/${id}/activity-logs?limit=${limit}`
+    ),
+
   create: (data: Omit<Requirement, 'id' | 'createdAt' | 'filled' | 'updatedAt'>) =>
     apiRequest<Requirement>('/requirements', { method: 'POST', body: JSON.stringify(data) }),
 

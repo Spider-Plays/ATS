@@ -12,9 +12,11 @@ export const ROLES = {
   ADMIN: 'ADMIN',
   HR_HEAD: 'HR_HEAD',
   HR_MANAGER: 'HR_MANAGER',
+  FINANCE_HEAD: 'FINANCE_HEAD',
   RECRUITER: 'RECRUITER',
   TEAM_LEAD: 'TEAM_LEAD',
   HIRING_MANAGER: 'HIRING_MANAGER',
+  ACCOUNT_MANAGER: 'ACCOUNT_MANAGER',
   INTERVIEWER: 'INTERVIEWER',
   CANDIDATE: 'CANDIDATE',
   VENDOR: 'VENDOR',
@@ -29,9 +31,11 @@ export const INTERNAL_STAFF_ROLES = [
   ROLES.ADMIN,
   ROLES.HR_HEAD,
   ROLES.HR_MANAGER,
+  ROLES.FINANCE_HEAD,
   ROLES.RECRUITER,
   ROLES.TEAM_LEAD,
   ROLES.HIRING_MANAGER,
+  ROLES.ACCOUNT_MANAGER,
   ROLES.INTERVIEWER,
 ] as const
 
@@ -42,6 +46,7 @@ export const VENDOR_MANAGER_ROLES = [
   ROLES.HR_HEAD,
   ROLES.HR_MANAGER,
   ROLES.RECRUITER,
+  ROLES.TEAM_LEAD,
 ] as const
 
 /** Roles that cannot use the employee referral portal. */
@@ -58,12 +63,16 @@ export const REFERRAL_PORTAL_ROLES = (
 
 export const PAGE_KEYS = [
   'dashboard',
+  'business_requirements',
   'requirements',
+  'reports',
   'vendors',
   'candidates',
   'pipeline',
   'interviews',
   'offers',
+  'offer_compensation_config',
+  'offer_letter_template',
   'admin_users',
   'notifications',
   'settings',
@@ -76,9 +85,11 @@ export const CONFIGURABLE_ROLES = [
   ROLES.ADMIN,
   ROLES.HR_HEAD,
   ROLES.HR_MANAGER,
+  ROLES.FINANCE_HEAD,
   ROLES.RECRUITER,
   ROLES.TEAM_LEAD,
   ROLES.HIRING_MANAGER,
+  ROLES.ACCOUNT_MANAGER,
   ROLES.INTERVIEWER,
 ] as const
 
@@ -86,12 +97,28 @@ export type ConfigurableRole = (typeof CONFIGURABLE_ROLES)[number]
 
 export const PAGE_DEFINITIONS: { key: PageKey; label: string; description: string }[] = [
   { key: 'dashboard', label: 'Dashboard', description: 'Home dashboard and overview' },
+  {
+    key: 'business_requirements',
+    label: 'Business Requirements',
+    description: 'Pre-hiring client discussions and deal stages',
+  },
   { key: 'requirements', label: 'Requirements', description: 'Job requirements list and detail' },
+  { key: 'reports', label: 'Reports', description: 'Hiring, employee referral, and vendor reports' },
   { key: 'vendors', label: 'Vendors', description: 'Vendor management' },
   { key: 'candidates', label: 'Candidates', description: 'Candidate profiles and add candidate' },
   { key: 'pipeline', label: 'Pipeline', description: 'Hiring pipeline by requirement' },
   { key: 'interviews', label: 'Interviews', description: 'Schedule and manage interviews' },
   { key: 'offers', label: 'Offers', description: 'Offer letters and approvals' },
+  {
+    key: 'offer_compensation_config',
+    label: 'Salary Breakdown',
+    description: 'CTC component percentages and allowances',
+  },
+  {
+    key: 'offer_letter_template',
+    label: 'Offer Letter Template',
+    description: 'Offer letter wording and employment clauses',
+  },
   { key: 'admin_users', label: 'User Management', description: 'Admin user administration' },
   { key: 'notifications', label: 'Notifications', description: 'In-app notifications' },
   { key: 'settings', label: 'Settings', description: 'Account and app settings' },
@@ -103,7 +130,14 @@ export function effectiveAllowedPages(
   allowedPages: PageKey[] | undefined
 ): PageKey[] {
   if (isSuperAdminRole(role)) return [...PAGE_KEYS]
-  return allowedPages ?? []
+  const pages = allowedPages ?? []
+  if (role === ROLES.INTERVIEWER) {
+    return pages.filter((p) => p !== 'candidates')
+  }
+  if (role === ROLES.ACCOUNT_MANAGER || role === ROLES.HIRING_MANAGER) {
+    return [...new Set([...pages, 'requirements' as PageKey, 'reports' as PageKey])]
+  }
+  return pages
 }
 
 export function canAccessPage(
@@ -112,17 +146,38 @@ export function canAccessPage(
   role?: string | null
 ): boolean {
   if (isSuperAdminRole(role)) return true
-  if (!allowedPages?.length) return false
-  return allowedPages.includes(page)
+  const pages = effectiveAllowedPages(role, allowedPages)
+  if (!pages.length) return false
+  return pages.includes(page)
+}
+
+/** Salary breakdown page access (role page access config). */
+export function canAccessOfferCompensationConfig(
+  role?: string | null,
+  allowedPages?: PageKey[]
+): boolean {
+  return canAccessPage(allowedPages, 'offer_compensation_config', role)
+}
+
+/** Offer letter template page access (role page access config). */
+export function canAccessOfferLetterTemplate(
+  role?: string | null,
+  allowedPages?: PageKey[]
+): boolean {
+  return canAccessPage(allowedPages, 'offer_letter_template', role)
 }
 
 export function pathnameToPageKey(pathname: string): PageKey | null {
   if (pathname === '/' || pathname.startsWith('/dashboard')) return 'dashboard'
+  if (pathname.startsWith('/business-requirements')) return 'business_requirements'
   if (pathname.startsWith('/requirements')) return 'requirements'
+  if (pathname.startsWith('/reports')) return 'reports'
   if (pathname.startsWith('/vendors')) return 'vendors'
   if (pathname.startsWith('/candidates')) return 'candidates'
   if (pathname.startsWith('/pipeline')) return 'pipeline'
   if (pathname.startsWith('/interviews')) return 'interviews'
+  if (pathname.startsWith('/offers/compensation-config')) return 'offer_compensation_config'
+  if (pathname.startsWith('/offers/letter-template')) return 'offer_letter_template'
   if (pathname.startsWith('/offers')) return 'offers'
   if (pathname.startsWith('/admin/users')) return 'admin_users'
   if (pathname.startsWith('/admin')) return null
@@ -134,12 +189,16 @@ export function pathnameToPageKey(pathname: string): PageKey | null {
 export function firstAllowedPath(allowedPages: PageKey[]): string {
   const order: PageKey[] = [
     'dashboard',
+    'business_requirements',
     'requirements',
+    'reports',
     'candidates',
     'interviews',
     'vendors',
     'pipeline',
     'offers',
+    'offer_compensation_config',
+    'offer_letter_template',
     'admin_users',
     'notifications',
     'settings',
@@ -152,6 +211,19 @@ export function firstAllowedPath(allowedPages: PageKey[]): string {
     }
   }
   return '/dashboard'
+}
+
+/** Roles that can view employee referral and vendor staff reports. */
+export const CHANNEL_REPORT_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN,
+  ROLES.HR_HEAD,
+  ROLES.HR_MANAGER,
+] as const
+
+export function canAccessChannelReports(role?: string | null): boolean {
+  if (!role) return false
+  return (CHANNEL_REPORT_ROLES as readonly string[]).includes(role)
 }
 
 // ─── Org-wide access ─────────────────────────────────────────────────────────
@@ -173,6 +245,11 @@ export function isSuperAdminRole(role?: string | null): boolean {
 
 export function isAdminRole(role?: string | null): boolean {
   return role === ROLES.ADMIN || role === ROLES.SUPER_ADMIN
+}
+
+/** Generic system / unrecognized activity logs — admins only. */
+export function canViewSystemNotifications(role?: string | null): boolean {
+  return isAdminRole(role)
 }
 
 /** Super Admin and Admin — create/edit/delete users, assign roles, reset passwords. */
@@ -280,6 +357,7 @@ export const CANDIDATE_CREATE_ROLES = [
   ROLES.ADMIN,
   ROLES.HR_HEAD,
   ROLES.HR_MANAGER,
+  ROLES.FINANCE_HEAD,
   ROLES.RECRUITER,
   ROLES.TEAM_LEAD,
 ] as const
@@ -318,9 +396,55 @@ export {
   type CandidateProfileTab,
 } from './candidate-profile'
 
+// ─── Business requirements ───────────────────────────────────────────────────
+
+export const BUSINESS_MUTATE_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN,
+  ROLES.ACCOUNT_MANAGER,
+  ROLES.HIRING_MANAGER,
+] as const
+
+export const BUSINESS_VIEW_ROLES = [
+  ...BUSINESS_MUTATE_ROLES,
+  ROLES.HR_HEAD,
+  ROLES.HR_MANAGER,
+] as const
+
+export function canAccessBusinessRequirements(role?: string | null): boolean {
+  return BUSINESS_VIEW_ROLES.includes(role as (typeof BUSINESS_VIEW_ROLES)[number])
+}
+
+export function canMutateBusinessRequirement(
+  role?: string | null,
+  row?: { createdBy?: string; accountManager?: string; hiringManager?: string },
+  userId?: string
+): boolean {
+  if (isAdminRole(role)) return true
+  if (!BUSINESS_MUTATE_ROLES.includes(role as (typeof BUSINESS_MUTATE_ROLES)[number])) {
+    return false
+  }
+  if (!row || !userId) return true
+  return (
+    row.createdBy === userId ||
+    row.accountManager === userId ||
+    row.hiringManager === userId
+  )
+}
+
+export function isHrBusinessPreviewRole(role?: string | null): boolean {
+  return role === ROLES.HR_HEAD || role === ROLES.HR_MANAGER
+}
+
 // ─── Requirements ────────────────────────────────────────────────────────────
 
-export const HIRING_STAGE_EDIT_ROLES = [ROLES.RECRUITER, ROLES.HR_MANAGER, ROLES.TEAM_LEAD] as const
+export const HIRING_STAGE_EDIT_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN,
+  ROLES.RECRUITER,
+  ROLES.HR_MANAGER,
+  ROLES.TEAM_LEAD,
+] as const
 
 export const POSTING_CONTROL_ROLES = [
   ROLES.SUPER_ADMIN,
@@ -382,6 +506,17 @@ export function isRequirementHiringManager(
   if (requirement.hiringManager === user.uid) return true
   if (!user.name?.trim()) return false
   return requirement.hiringManager.trim().toLowerCase() === user.name.trim().toLowerCase()
+}
+
+export function isRequirementAccountManager(
+  requirement: Pick<Requirement, 'accountManager'>,
+  user?: { uid: string } | null
+): boolean {
+  return !!user?.uid && requirement.accountManager === user.uid
+}
+
+export function isAccountManagerRole(role?: string | null): boolean {
+  return role === ROLES.ACCOUNT_MANAGER
 }
 
 export function canEditRequirement(
@@ -446,6 +581,7 @@ export const INTERVIEW_SCHEDULER_ROLES = [
   ROLES.ADMIN,
   ROLES.HR_HEAD,
   ROLES.HR_MANAGER,
+  ROLES.FINANCE_HEAD,
   ROLES.RECRUITER,
   ROLES.TEAM_LEAD,
   ROLES.HIRING_MANAGER,
@@ -461,6 +597,27 @@ export const INTERVIEW_PLAN_EDIT_ROLES = [
 ] as const
 
 export const OFFER_MANAGER_ROLES = [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR_HEAD, ROLES.HR_MANAGER] as const
+
+/** Roles that may list and read offers (matches server OFFER_VIEW_ROLES). */
+export const OFFER_VIEW_ROLES = [
+  ROLES.SUPER_ADMIN,
+  ROLES.ADMIN,
+  ROLES.HR_HEAD,
+  ROLES.HR_MANAGER,
+  ROLES.RECRUITER,
+  ROLES.TEAM_LEAD,
+] as const
+
+/** Roles that may create and manage offer drafts (matches server OFFER_ROLES). */
+export const OFFER_CREATE_ROLES = OFFER_VIEW_ROLES
+
+export function canViewOffers(role?: string | null): boolean {
+  return OFFER_VIEW_ROLES.includes(role as (typeof OFFER_VIEW_ROLES)[number])
+}
+
+export function canCreateOffers(role?: string | null): boolean {
+  return OFFER_CREATE_ROLES.includes(role as (typeof OFFER_CREATE_ROLES)[number])
+}
 
 export const OFFER_HR_APPROVAL_ROLES = [ROLES.HR_HEAD, ROLES.SUPER_ADMIN, ROLES.ADMIN] as const
 
@@ -500,6 +657,30 @@ export function canEditInterviewPlan(role?: string | null): boolean {
 
 export function canDeleteOffer(role?: string | null): boolean {
   return isAdminRole(role)
+}
+
+export function canRollbackOfferApproval(role?: string | null): boolean {
+  return isSuperAdminRole(role)
+}
+
+export const OFFER_DETAIL_EDITOR_ROLES = [ROLES.SUPER_ADMIN, ROLES.HR_HEAD, ROLES.HR_MANAGER] as const
+
+const OFFER_HR_EDITABLE_STATUSES = [
+  'DRAFT',
+  'NEGOTIATION',
+  'PENDING_HR_APPROVAL',
+  'PENDING_EXEC_APPROVAL',
+  'PENDING_APPROVAL',
+] as const
+
+export function canEditOfferDetails(role?: string | null, status?: string): boolean {
+  if (!role || !status) return false
+  if (OFFER_DETAIL_EDITOR_ROLES.includes(role as (typeof OFFER_DETAIL_EDITOR_ROLES)[number])) {
+    return OFFER_HR_EDITABLE_STATUSES.includes(
+      status as (typeof OFFER_HR_EDITABLE_STATUSES)[number]
+    )
+  }
+  return status === 'DRAFT' || status === 'NEGOTIATION'
 }
 
 export function isAssignedInterviewer(interview: Interview, userId?: string | null): boolean {

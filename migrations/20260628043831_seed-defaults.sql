@@ -4,10 +4,10 @@ INSERT INTO "RolePageAccess" (role, pages, "updatedAt") VALUES
   ('ADMIN', '["dashboard","requirements","vendors","candidates","pipeline","interviews","offers","notifications","settings"]', NOW()),
   ('HR_HEAD', '["dashboard","requirements","vendors","candidates","pipeline","interviews","offers","notifications","settings"]', NOW()),
   ('HR_MANAGER', '["dashboard","requirements","vendors","candidates","pipeline","interviews","offers","notifications","settings"]', NOW()),
-  ('RECRUITER', '["dashboard","requirements","vendors","candidates","pipeline","interviews","notifications","settings"]', NOW()),
+  ('RECRUITER', '["dashboard","requirements","vendors","candidates","pipeline","interviews","offers","notifications","settings"]', NOW()),
   ('TEAM_LEAD', '["dashboard","requirements","vendors","candidates","pipeline","interviews","offers","notifications","settings"]', NOW()),
   ('HIRING_MANAGER', '["dashboard","requirements","notifications","settings"]', NOW()),
-  ('INTERVIEWER', '["dashboard","candidates","interviews","notifications","settings"]', NOW())
+  ('INTERVIEWER', '["dashboard","interviews","notifications","settings"]', NOW())
 ON CONFLICT (role) DO NOTHING;
 
 -- Default skill catalog seeds (categories match server/src/config/defaultSkills.ts)

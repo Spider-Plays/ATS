@@ -41,12 +41,30 @@ const Sidebar = () => {
             variant={navVariant}
           />
         )}
+        {show('business_requirements') && (
+          <SidebarNavItem
+            to="/business-requirements"
+            icon="handshake"
+            label="Business Requirements"
+            active={path.startsWith('/business-requirements')}
+            variant={navVariant}
+          />
+        )}
         {show('requirements') && (
           <SidebarNavItem
             to="/requirements"
             icon="work"
             label="Requirements"
             active={path.startsWith('/requirements')}
+            variant={navVariant}
+          />
+        )}
+        {show('reports') && (
+          <SidebarNavItem
+            to="/reports"
+            icon="bar_chart"
+            label="Reports"
+            active={path.startsWith('/reports')}
             variant={navVariant}
           />
         )}
@@ -91,7 +109,25 @@ const Sidebar = () => {
             to="/offers"
             icon="card_giftcard"
             label="Offers"
-            active={path.startsWith('/offers')}
+            active={path.startsWith('/offers') && !path.startsWith('/offers/compensation-config') && !path.startsWith('/offers/letter-template')}
+            variant={navVariant}
+          />
+        )}
+        {show('offer_compensation_config') && (
+          <SidebarNavItem
+            to="/offers/compensation-config"
+            icon="payments"
+            label="Salary Breakdown"
+            active={path.startsWith('/offers/compensation-config')}
+            variant={navVariant}
+          />
+        )}
+        {show('offer_letter_template') && (
+          <SidebarNavItem
+            to="/offers/letter-template"
+            icon="description"
+            label="Offer Letter"
+            active={path.startsWith('/offers/letter-template')}
             variant={navVariant}
           />
         )}

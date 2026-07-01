@@ -487,14 +487,15 @@ export function notifyCandidateStatusChange(
   if (candidate.status === previousStatus) return
 
   const notifyCandidateStatuses = new Set([
+    'SUBMITTED',
+    'SCREENING',
     'SHORTLISTED',
     'INTERVIEW',
     'OFFER',
     'HIRED',
-    'JOINED',
     'REJECTED',
   ])
-  const notifyReferrerStatuses = new Set(['HIRED', 'JOINED', 'REJECTED'])
+  const notifyReferrerStatuses = new Set(['HIRED', 'REJECTED'])
 
   fireAndForget((async () => {
     const requirement = candidate.requirementId
@@ -696,6 +697,55 @@ export async function runInterviewReminders() {
       })
     }
   }
+}
+
+export function notifyBusinessRequirementStageChanged(
+  businessReq: {
+    id: string
+    title: string
+    client?: string | null
+    accountManager: string
+    hiringManager: string
+    stage: string
+    description?: string
+  }
+) {
+  fireAndForget((async () => {
+    const { getBusinessRequirementStageNotificationRecipients } = await import('./emailRecipients.js')
+    const { businessStageLabel } = await import('./businessStages.js')
+    const recipients = await getBusinessRequirementStageNotificationRecipients(businessReq)
+    const clientLabel = businessReq.client ? ` · ${businessReq.client}` : ''
+    const stageLabel = businessStageLabel(businessReq.stage)
+    const isSow = businessReq.stage === 'SOW_SIGNED'
+    const note = businessReq.description
+      ? `<p style="margin:12px 0 0;padding:12px;background:#f4f4f5;border-radius:8px;font-size:14px;"><strong>Note:</strong> ${businessReq.description
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/\n/g, '<br/>')}</p>`
+      : ''
+    await sendToMany(recipients, (u) =>
+      sendStaffNotificationEmail({
+        to: u.email,
+        recipientName: u.name,
+        subject: `Business requirement — ${stageLabel}: ${businessReq.title}`,
+        headline: isSow ? 'SOW Signed' : 'Deal stage updated',
+        body: `<strong>${businessReq.title}</strong>${clientLabel} is now at <strong>${stageLabel}</strong>.${note} <a href="${env.clientOrigin}/business-requirements/${businessReq.id}">View requirement</a>`,
+      })
+    )
+  })())
+}
+
+/** @deprecated Use notifyBusinessRequirementStageChanged */
+export function notifyBusinessRequirementSowSigned(businessReq: {
+  id: string
+  title: string
+  client?: string | null
+  accountManager: string
+  hiringManager: string
+}) {
+  notifyBusinessRequirementStageChanged({ ...businessReq, stage: 'SOW_SIGNED' })
 }
 
 export function startInterviewReminderJob() {

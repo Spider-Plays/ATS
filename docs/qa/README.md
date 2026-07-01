@@ -64,7 +64,8 @@ Read the documents in this order:
 | 6 | [TEST_SCENARIOS.md](./TEST_SCENARIOS.md) | High-level test scenarios by module |
 | 7 | [TEST_CASES.md](./TEST_CASES.md) | Detailed step-by-step test cases |
 | 8 | [REGRESSION_CHECKLIST.md](./REGRESSION_CHECKLIST.md) | Quick smoke/regression checklists |
-| 9 | [BUG_REPORT_TEMPLATE.md](./BUG_REPORT_TEMPLATE.md) | How to log defects |
+| 9 | [API_REFERENCE.md](./API_REFERENCE.md) | Full API catalog (161 endpoints) for Postman/curl testing |
+| 10 | [BUG_REPORT_TEMPLATE.md](./BUG_REPORT_TEMPLATE.md) | How to log defects |
 
 ---
 

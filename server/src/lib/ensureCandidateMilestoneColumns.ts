@@ -13,6 +13,7 @@ export async function ensureCandidateMilestoneColumns(): Promise<void> {
     'ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "joiningDate" TIMESTAMP(3)',
     'ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "joiningMonth" TEXT',
     'ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "joiningQuarter" TEXT',
+    'ALTER TABLE "Candidate" ADD COLUMN IF NOT EXISTS "submittedAt" TIMESTAMP(3)',
   ]
 
   for (const sql of statements) {

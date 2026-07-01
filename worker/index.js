@@ -2,7 +2,7 @@ const DEFAULT_API_ORIGIN = 'https://stitch-ats.onrender.com'
 
 const NO_CACHE_PATHS = new Set(['/', '/index.html', '/build-id.txt'])
 
-const LOGIN_PATHS = new Set(['/login', '/portal/login', '/referral-portal/login'])
+const LOGIN_PATHS = new Set(['/login', '/candidate/login', '/portal/login', '/referral-portal/login'])
 
 function withHeaders(response, extra) {
   const headers = new Headers(response.headers)

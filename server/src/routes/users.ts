@@ -8,9 +8,11 @@ import { generateTempPassword } from '../lib/password.js'
 import { sanitizeFeatureTags } from '../lib/userTags.js'
 import { logTemporaryPassword } from '../lib/devPasswordLog.js'
 import { env } from '../config/env.js'
-import { notifyAdminPasswordReset, notifyStaffUserCreated } from '../lib/emailDispatch.js'
+import { notifyAdminPasswordReset } from '../lib/emailDispatch.js'
 import { issuePasswordResetLink } from '../lib/passwordReset.js'
 import { buildUserListWhere } from '../lib/userAccess.js'
+import { sendInviteEmail } from '../services/email.js'
+import { EMAIL_NOT_CONFIGURED_DEV_HINT, EMAIL_NOT_CONFIGURED_WARNING } from '../lib/safeError.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser)
@@ -20,9 +22,11 @@ const staffRoles = [
   'ADMIN',
   'HR_HEAD',
   'HR_MANAGER',
+  'FINANCE_HEAD',
   'RECRUITER',
   'TEAM_LEAD',
   'HIRING_MANAGER',
+  'ACCOUNT_MANAGER',
   'INTERVIEWER',
   'CANDIDATE',
   'VENDOR',
@@ -31,7 +35,7 @@ const staffRoles = [
 
 router.get(
   '/',
-  requireRoles('ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER', 'TEAM_LEAD', 'HIRING_MANAGER', 'INTERVIEWER'),
+  requireRoles('ADMIN', 'HR_HEAD', 'HR_MANAGER', 'RECRUITER', 'TEAM_LEAD', 'HIRING_MANAGER', 'ACCOUNT_MANAGER', 'INTERVIEWER'),
   async (req, res) => {
   const listWhere = await buildUserListWhere(req.auth!)
   const users = await prisma.user.findMany({ where: listWhere, orderBy: { createdAt: 'desc' } })
@@ -48,6 +52,7 @@ router.post('/', requireRoles('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
       phoneNumber: z.string().max(40).optional(),
       address: z.string().max(500).optional(),
       temporaryPassword: z.string().min(8, 'Temporary password must be at least 8 characters'),
+      sendInviteEmail: z.boolean().optional(),
     })
     .parse(req.body)
 
@@ -82,12 +87,33 @@ router.post('/', requireRoles('SUPER_ADMIN', 'ADMIN'), async (req, res) => {
     logTemporaryPassword('New user (share with member)', email, body.temporaryPassword)
   }
 
-  notifyStaffUserCreated(
-    { email: user.email, name: user.name, role: user.role },
-    body.temporaryPassword
-  )
+  const sendInvite = body.sendInviteEmail !== false
+  let inviteEmailSent: boolean | undefined
+  let inviteEmailWarning: string | undefined
+  let inviteDevHint: string | undefined
 
-  res.status(201).json({ user: mapUser(user) })
+  if (sendInvite) {
+    const emailResult = await sendInviteEmail({
+      to: user.email,
+      name: user.name,
+      role: user.role.replace(/_/g, ' '),
+      tempPassword: body.temporaryPassword,
+    })
+    inviteEmailSent = emailResult.sent
+    if (!emailResult.sent && emailResult.reason === 'not_configured') {
+      inviteEmailWarning = EMAIL_NOT_CONFIGURED_WARNING
+      if (!env.isProduction) {
+        inviteDevHint = EMAIL_NOT_CONFIGURED_DEV_HINT
+      }
+    }
+  }
+
+  res.status(201).json({
+    user: mapUser(user),
+    ...(sendInvite
+      ? { inviteEmailSent, inviteEmailWarning, inviteDevHint }
+      : { inviteEmailSent: false }),
+  })
 })
 
 router.patch('/me', async (req, res) => {

@@ -8,10 +8,21 @@ export type PortalOpenPosition = {
   title: string
   department: string
   location?: string
+  locationCity?: string
+  isRemote?: boolean
+  workMode?: 'REMOTE' | 'HYBRID' | 'ONSITE'
+  employmentType?: string
+  seniorityLevel?: string
+  experienceMinYears?: number
+  experienceMaxYears?: number
+  salaryBand?: string
   priority?: string
   openings: number
   filled: number
   description?: string
+  jobDescription?: string
+  primarySkills?: string[]
+  secondarySkills?: string[]
   updatedAt: string
 }
 

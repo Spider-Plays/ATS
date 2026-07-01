@@ -5,6 +5,8 @@ export type CandidateFilter = 'ALL' | 'ACTIVE' | CandidateStatus
 export const CANDIDATE_FILTERS: { id: CandidateFilter; label: string }[] = [
   { id: 'ALL', label: 'All' },
   { id: 'ACTIVE', label: 'In pipeline' },
+  { id: 'ADDED', label: 'Added' },
+  { id: 'SUBMITTED', label: 'Submitted' },
   { id: 'INTERVIEW', label: 'Interview' },
   { id: 'OFFER', label: 'Offer' },
   { id: 'HIRED', label: 'Hired' },
@@ -12,26 +14,24 @@ export const CANDIDATE_FILTERS: { id: CandidateFilter; label: string }[] = [
 ]
 
 export const CANDIDATE_STAGE_ORDER: CandidateStatus[] = [
-  'SOURCED',
-  'APPLIED',
+  'ADDED',
+  'SUBMITTED',
   'SCREENING',
   'SHORTLISTED',
   'INTERVIEW',
   'OFFER',
   'HIRED',
-  'JOINED',
   'REJECTED',
 ]
 
 const STAGE_GROUP_TITLES: Record<CandidateStatus, string> = {
-  SOURCED: 'Sourced',
-  APPLIED: 'Applied',
+  ADDED: 'Added',
+  SUBMITTED: 'Submitted',
   SCREENING: 'Screening',
   SHORTLISTED: 'Shortlisted',
   INTERVIEW: 'Interview',
   OFFER: 'Offer',
   HIRED: 'Hired',
-  JOINED: 'Joined',
   REJECTED: 'Rejected',
 }
 
@@ -43,6 +43,10 @@ export function isActiveCandidate(candidate: Candidate): boolean {
   return !isTerminalStatus(candidate.status)
 }
 
+export function isOfferStageCandidate(candidate: Candidate): boolean {
+  return candidate.status === 'OFFER'
+}
+
 export function isHighMatch(candidate: Candidate, threshold = 80): boolean {
   return candidate.matchScore >= threshold
 }
@@ -51,10 +55,46 @@ export function candidateStatusLabel(status: CandidateStatus): string {
   return STAGE_GROUP_TITLES[status] ?? status.replace(/_/g, ' ')
 }
 
+export function candidateStageIndex(status: CandidateStatus): number {
+  const idx = CANDIDATE_STAGE_ORDER.indexOf(status)
+  return idx === -1 ? CANDIDATE_STAGE_ORDER.length : idx
+}
+
+/** Next forward pipeline stage, or null at HIRED / REJECTED / unknown. */
+export function getNextPipelineStage(status: CandidateStatus | string): CandidateStatus | null {
+  const legacyMap: Record<string, CandidateStatus> = {
+    SOURCED: 'SUBMITTED',
+    APPLIED: 'SUBMITTED',
+  }
+  const normalized = (legacyMap[status] ?? status) as CandidateStatus
+  const idx = CANDIDATE_STAGE_ORDER.indexOf(normalized)
+  if (idx === -1) return null
+  const next = CANDIDATE_STAGE_ORDER[idx + 1]
+  if (!next || next === 'REJECTED') return null
+  return next
+}
+
+export function isBackwardCandidateStageMove(
+  current: CandidateStatus,
+  next: CandidateStatus
+): boolean {
+  if (current === next || next === 'REJECTED') return false
+  return candidateStageIndex(next) < candidateStageIndex(current)
+}
+
+export function requiresCandidateStageChangeConfirmation(
+  current: CandidateStatus,
+  next: CandidateStatus
+): boolean {
+  if (current === next) return false
+  if (next === 'REJECTED' || next === 'OFFER') return true
+  return isBackwardCandidateStageMove(current, next)
+}
+
 export function candidateStatusClass(status: CandidateStatus): string {
   switch (status) {
-    case 'SOURCED':
-    case 'APPLIED':
+    case 'ADDED':
+    case 'SUBMITTED':
       return 'bg-slate-100 text-slate-700 dark:bg-slate-800/80 dark:text-slate-300 border-slate-200/80 dark:border-white/10'
     case 'SCREENING':
     case 'SHORTLISTED':
@@ -64,7 +104,6 @@ export function candidateStatusClass(status: CandidateStatus): string {
     case 'OFFER':
       return 'bg-blue-100 text-blue-800 dark:bg-blue-500/20 dark:text-blue-300 border-blue-200/80 dark:border-blue-500/30'
     case 'HIRED':
-    case 'JOINED':
       return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-500/30'
     case 'REJECTED':
       return 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300 border-red-200/80 dark:border-red-500/30'
@@ -83,6 +122,8 @@ export function candidateStats(candidates: Candidate[]) {
   return {
     total: candidates.length,
     active: candidates.filter(isActiveCandidate).length,
+    added: candidates.filter((c) => c.status === 'ADDED').length,
+    submitted: candidates.filter((c) => c.status === 'SUBMITTED').length,
     interview: candidates.filter((c) => c.status === 'INTERVIEW').length,
     offer: candidates.filter((c) => c.status === 'OFFER').length,
     hired: candidates.filter((c) => c.status === 'HIRED').length,

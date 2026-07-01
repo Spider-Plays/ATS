@@ -10,6 +10,7 @@ type SidebarNavItemProps = {
   active: boolean
   /** Recruiter portal uses teal active tones */
   variant?: 'default' | 'recruiter'
+  badge?: number
 }
 
 export function SidebarNavItem({
@@ -18,6 +19,7 @@ export function SidebarNavItem({
   label,
   active,
   variant = 'default',
+  badge,
 }: SidebarNavItemProps) {
   return (
     <Link
@@ -40,6 +42,11 @@ export function SidebarNavItem({
         {icon}
       </span>
       <span className="sidebar-nav-label">{label}</span>
+      {badge != null && badge > 0 && (
+        <span className="sidebar-nav-badge" aria-label={`${badge} pending`}>
+          {badge}
+        </span>
+      )}
     </Link>
   )
 }

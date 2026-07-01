@@ -17,7 +17,7 @@ export async function issuePasswordResetLink(user: UserForReset): Promise<void> 
     where: { id: user.id },
     data: { passwordResetToken: token, passwordResetExpires: expires },
   })
-  const loginPath = user.role === 'CANDIDATE' ? '/portal/login' : '/login'
+  const loginPath = user.role === 'CANDIDATE' ? '/candidate/login' : '/login'
   const resetUrl = `${env.clientOrigin.replace(/\/$/, '')}${loginPath}?reset=${token}`
   await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl })
 }

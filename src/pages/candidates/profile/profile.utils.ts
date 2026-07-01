@@ -60,6 +60,7 @@ export const ACTION_LABELS: Record<string, string> = {
   INTERVIEW_UPDATED: 'Interview updated',
   INTERVIEW_CANCELLED: 'Interview cancelled',
   INTERVIEW_FEEDBACK_DELETED: 'Interview feedback removed',
+  JD_SENT: 'Job description sent',
 }
 
 export function formatActivityDetails(log: ActivityLog): string | null {
@@ -69,7 +70,7 @@ export function formatActivityDetails(log: ActivityLog): string | null {
   if (log.action === 'STATUS_CHANGED' && typeof d === 'object' && d !== null) {
     const parts: string[] = []
     if (d.newStatus) parts.push(`New stage: ${d.newStatus}`)
-    if (d.offerDate) parts.push(`Offer: ${d.offerDate}`)
+    if (d.expectedCTC) parts.push(`Expected CTC: ${d.expectedCTC}`)
     if (d.offerMonth) parts.push(`Offer month: ${d.offerMonth}`)
     if (d.offerQuarter) parts.push(`Offer quarter: ${d.offerQuarter}`)
     if (d.expectedJoiningDate) parts.push(`Expected join: ${d.expectedJoiningDate}`)
@@ -77,6 +78,12 @@ export function formatActivityDetails(log: ActivityLog): string | null {
     if (d.joiningMonth) parts.push(`Join month: ${d.joiningMonth}`)
     if (d.joiningQuarter) parts.push(`Join quarter: ${d.joiningQuarter}`)
     if (parts.length > 0) return parts.join(' · ')
+  }
+  if (log.action === 'JD_SENT' && typeof d === 'object' && d !== null) {
+    const parts: string[] = []
+    if (d.jobTitle) parts.push(String(d.jobTitle))
+    if (d.recipientEmail) parts.push(String(d.recipientEmail))
+    return parts.length > 0 ? parts.join(' · ') : null
   }
   if (log.action === 'RESUME_UPLOADED' && d.fileName) return `File: ${d.fileName}`
   if (

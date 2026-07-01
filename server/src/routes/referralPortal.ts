@@ -42,11 +42,12 @@ function requireReferralPortalAccess(
 
 router.use(requireAuth, requireActiveUser, requireReferralPortalAccess)
 
-const HIRED_STATUSES = new Set(['HIRED', 'JOINED'])
+const HIRED_STATUSES = new Set(['HIRED'])
 const ACTIVE_PIPELINE = new Set([
-  'SOURCED',
-  'APPLIED',
+  'ADDED',
+  'SUBMITTED',
   'SCREENING',
+  'SHORTLISTED',
   'INTERVIEW',
   'OFFER',
   'TO_BE_OFFERED',
@@ -365,6 +366,7 @@ router.get('/check-email', async (req, res) => {
 router.post('/positions/:id/submit', async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: req.auth!.userId } })
   if (!user) return res.status(404).json({ error: 'User not found' })
+  const referrerCode = await ensureUserReferralCode(user.id)
 
   const requirement = await prisma.requirement.findUnique({ where: { id: req.params.id } })
   if (!requirement || requirement.status !== 'LIVE' || !requirement.visibleToReferrals) {
@@ -393,7 +395,7 @@ router.post('/positions/:id/submit', async (req, res) => {
     name: fullName,
     email: body.email.toLowerCase().trim(),
     role: requirement.title,
-    status: 'SOURCED',
+    status: 'SUBMITTED',
     matchScore: 0,
     source,
     appliedDate: new Date(),
@@ -432,11 +434,12 @@ router.post('/positions/:id/submit', async (req, res) => {
       name: fullName,
       email: body.email.toLowerCase().trim(),
       role: requirement.title,
-      status: 'SOURCED',
+      status: 'SUBMITTED',
       matchScore,
       source,
       requirementId: requirement.id,
       jobTitle: requirement.title,
+      submittedAt: new Date(),
       phone: body.phone.trim(),
       location: body.location.trim(),
       pan: body.pan.trim().toUpperCase(),
@@ -468,7 +471,7 @@ router.post('/positions/:id/submit', async (req, res) => {
       requirementId: requirement.id,
       jobCode: requirement.jobCode,
       referralRelationship: body.referralRelationship,
-      referrerCode: user.referralCode ?? undefined,
+      referrerCode,
     },
   })
 

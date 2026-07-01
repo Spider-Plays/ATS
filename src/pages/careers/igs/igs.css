@@ -1,0 +1,1122 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+/* IGS Global job-board theme — igsglobal.com/careers/job-board */
+
+.igs-careers {
+  --igs-midnight-navy: #050816;
+  --igs-snow-white: #ffffff;
+  --igs-neon-teal: #0073e6;
+  --igs-muted: #5c6578;
+  --igs-border: #e5e8ef;
+  --igs-surface: #f7f8fb;
+  --igs-radius-xl: 32px;
+  --igs-radius-md: 12px;
+  --igs-font-heading: 'Outfit', sans-serif;
+  --igs-font-body: 'Plus Jakarta Sans', sans-serif;
+  --igs-hero-glow: radial-gradient(circle at 0% 0%, rgba(255, 31, 106, 0.35), transparent 55%),
+    radial-gradient(circle at 100% 0%, rgba(27, 108, 255, 0.35), transparent 55%),
+    var(--igs-midnight-navy);
+  --igs-site-bg: url('https://igsglobal.com/_astro/background.BiIeh7nZ.webp');
+
+  font-family: var(--igs-font-body);
+  color: var(--igs-midnight-navy);
+  background-color: #fff;
+}
+
+.igs-careers h1,
+.igs-careers h2,
+.igs-careers h3,
+.igs-careers h4,
+.igs-careers h5 {
+  font-family: var(--igs-font-heading);
+}
+
+/* ─── Header ─── */
+.igs-layout-header {
+  background: #fff;
+  border-bottom: 1px solid var(--igs-border);
+  box-shadow: 0 1px 0 rgba(5, 8, 22, 0.04);
+}
+
+.igs-layout-header__inner {
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+  height: 4.75rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .igs-layout-header__inner {
+    padding: 0 2.5rem;
+  }
+}
+
+.igs-logo-img {
+  height: 3.25rem;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.igs-footer__logo {
+  height: auto;
+  max-width: 10rem;
+  object-fit: contain;
+}
+
+.igs-header-nav {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  justify-self: center;
+}
+
+.igs-header-logo {
+  justify-self: start;
+}
+
+.igs-header-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .igs-header-nav {
+    display: flex;
+  }
+}
+
+.igs-header-link {
+  font-family: var(--igs-font-heading);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--igs-midnight-navy);
+  transition: color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.igs-header-chevron {
+  opacity: 0.7;
+  margin-top: 1px;
+}
+
+.igs-header-link:hover {
+  color: var(--igs-neon-teal);
+}
+
+.igs-header-link--static {
+  cursor: default;
+}
+
+.igs-header-link--static:hover {
+  color: var(--igs-midnight-navy);
+}
+
+.igs-btn-contact--static {
+  cursor: default;
+  opacity: 1;
+}
+
+.igs-btn-contact--static:hover {
+  opacity: 1;
+}
+
+.igs-btn-contact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.5rem;
+  background: var(--igs-neon-teal) !important;
+  color: #fff;
+  font-family: var(--igs-font-heading);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 9999px;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.igs-btn-contact:hover {
+  opacity: 0.9;
+}
+
+.igs-btn-contact-outline {
+  background: transparent !important;
+  color: var(--igs-muted);
+  border: 1px solid var(--igs-border);
+}
+
+.igs-btn-contact-outline:hover {
+  background: var(--igs-surface) !important;
+  color: var(--igs-midnight-navy);
+  opacity: 1;
+}
+
+/* ─── Hero ─── */
+.igs-page-pad {
+  padding: 1.5rem 1rem 0;
+}
+
+@media (min-width: 768px) {
+  .igs-page-pad {
+    padding: 2rem 2rem 0;
+  }
+}
+
+.igs-hero-card {
+  max-width: 80rem;
+  margin: 0 auto;
+  border-radius: var(--igs-radius-xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 31.25rem;
+  box-shadow: 0 24px 48px rgba(5, 8, 22, 0.15);
+  clip-path: inset(0 round 32px);
+}
+
+@media (min-width: 1024px) {
+  .igs-hero-card {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.igs-hero-card__copy {
+  flex: 1;
+  background: var(--igs-hero-glow);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  text-align: left;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 768px) {
+  .igs-hero-card__copy {
+    padding: 4rem;
+  }
+}
+
+.igs-hero-card__copy h1 {
+  font-size: clamp(1.75rem, 3.5vw, 3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--igs-snow-white);
+  letter-spacing: -0.02em;
+}
+
+.igs-hero-card__copy p {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--igs-snow-white);
+  max-width: 32rem;
+  font-family: var(--igs-font-heading);
+}
+
+.igs-btn-capabilities {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  margin-top: 0.35rem;
+  padding: 0.625rem 1.75rem;
+  border-radius: var(--igs-radius-md);
+  font-family: var(--igs-font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--igs-snow-white);
+  background: linear-gradient(90deg, #ff1f6a, #1b6cff) !important;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.igs-btn-capabilities:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.igs-hero-card__visual {
+  flex: 1;
+  position: relative;
+  min-height: 25rem;
+}
+
+.igs-hero-card__visual img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.igs-hero-join-badge {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 1.75rem 2rem;
+  border-radius: 8px;
+  border: 1px solid rgba(5, 8, 22, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  min-width: 10rem;
+}
+
+.igs-hero-join-badge span {
+  display: block;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--igs-midnight-navy);
+  line-height: 1.2;
+}
+
+/* ─── Job board ─── */
+.igs-open-roles {
+  padding: 3rem 1rem 2rem;
+}
+
+@media (min-width: 768px) {
+  .igs-open-roles {
+    padding: 3.5rem 2rem 2.5rem;
+  }
+}
+
+.igs-section-title {
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 700;
+  color: var(--igs-midnight-navy);
+  letter-spacing: -0.02em;
+}
+
+.igs-section-sub {
+  font-size: 0.95rem;
+  color: var(--igs-muted);
+  line-height: 1.6;
+  max-width: 36rem;
+}
+
+/* ─── Job board filters (search + department select) ─── */
+.igs-filters {
+  align-items: stretch;
+}
+
+.igs-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.igs-search-icon {
+  left: 1rem !important;
+  color: var(--igs-muted) !important;
+  font-size: 1.35rem !important;
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+.igs-filters .igs-search-input,
+.igs-select .app-select-trigger-outlined {
+  height: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: var(--igs-radius-md);
+  border: 1px solid var(--igs-border);
+  background: #fff;
+  box-shadow: none;
+  font-family: var(--igs-font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--igs-midnight-navy);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.igs-filters .igs-search-input {
+  width: 100%;
+  padding: 0 1rem 0 2.85rem;
+}
+
+.igs-filters .igs-search-input::placeholder {
+  color: var(--igs-muted);
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.igs-filters .igs-search-input:hover:not(:focus):not(:disabled),
+.igs-select .app-select-trigger-outlined:hover:not(:disabled) {
+  border-color: #c5d4f0;
+}
+
+.igs-filters .igs-search-input:focus,
+.igs-select .app-select-trigger-outlined[aria-expanded='true'] {
+  border-color: #1b6cff;
+  box-shadow: 0 0 0 3px rgba(27, 108, 255, 0.12);
+  outline: none;
+}
+
+.igs-select-menu {
+  border-radius: 16px !important;
+  border: 1px solid var(--igs-border) !important;
+  background: #fff !important;
+  color: var(--igs-midnight-navy) !important;
+  box-shadow: 0 16px 40px rgba(5, 8, 22, 0.12) !important;
+  padding: 0.35rem;
+  font-family: var(--igs-font-body);
+}
+
+.igs-select-menu .app-select-option {
+  border: none;
+  border-radius: 10px;
+  margin: 0.125rem 0;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--igs-midnight-navy);
+}
+
+.igs-select-menu .app-select-option:hover:not(:disabled) {
+  background: var(--igs-surface);
+}
+
+.igs-select-menu .app-select-option-selected {
+  background: rgba(27, 108, 255, 0.08);
+  color: #0b4f9c;
+}
+
+.igs-select-menu .app-select-option-selected svg {
+  color: #1b6cff;
+}
+
+.igs-position-card {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  padding: 1.5rem 1.5rem 1.5rem 1.75rem;
+  background: #fff;
+  border: 1px solid var(--igs-border);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.igs-position-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #ff1f6a, #1b6cff);
+  border-radius: 20px 0 0 20px;
+}
+
+@media (min-width: 768px) {
+  .igs-position-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.75rem 2rem 1.75rem 2.25rem;
+  }
+}
+
+.igs-position-card:hover {
+  border-color: #c5d4f0;
+  box-shadow: 0 16px 40px rgba(5, 8, 22, 0.1);
+  transform: translateY(-2px);
+}
+
+.igs-position-card__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.igs-position-card__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--igs-muted);
+}
+
+.igs-position-card__title {
+  font-family: var(--igs-font-heading);
+  font-size: clamp(1.125rem, 2vw, 1.35rem);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--igs-midnight-navy);
+  letter-spacing: -0.02em;
+}
+
+.igs-position-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.igs-position-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--igs-midnight-navy);
+  background: var(--igs-surface);
+  border: 1px solid var(--igs-border);
+}
+
+.igs-position-card__desc {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--igs-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+.igs-position-card__aside {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+@media (min-width: 768px) {
+  .igs-position-card__aside {
+    justify-content: flex-end;
+  }
+}
+
+.igs-position-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  border-radius: var(--igs-radius-md);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--igs-snow-white);
+  background: linear-gradient(90deg, #ff1f6a, #1b6cff);
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.igs-position-card:hover .igs-position-card__cta {
+  opacity: 0.95;
+}
+
+.igs-position-card__cta-icon {
+  transition: transform 0.15s;
+}
+
+.igs-position-card:hover .igs-position-card__cta-icon {
+  transform: translateX(2px);
+}
+
+/* ─── Contact section (feedback-main-card) ─── */
+.igs-contact-section {
+  padding: 0 1rem 3rem;
+}
+
+@media (min-width: 768px) {
+  .igs-contact-section {
+    padding: 0 2rem 4rem;
+  }
+}
+
+.igs-feedback-card {
+  max-width: 80rem;
+  margin: 0 auto;
+  background-color: var(--igs-midnight-navy) !important;
+  border-radius: var(--igs-radius-xl) !important;
+  padding: 2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: stretch;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.2);
+}
+
+@media (min-width: 768px) {
+  .igs-feedback-card {
+    flex-direction: row;
+    padding: 3rem 2.5rem;
+    gap: 2.5rem;
+    align-items: stretch;
+  }
+}
+
+.igs-feedback-left {
+  flex: 1;
+  min-width: 0;
+  color: var(--igs-snow-white);
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 768px) {
+  .igs-feedback-left {
+    min-width: 18.75rem;
+    padding-right: 1.25rem;
+  }
+}
+
+.igs-feedback-left h2 {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.75rem;
+}
+
+.igs-feedback-left p {
+  font-size: 1rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.igs-feedback-right {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  background: #fff !important;
+  border-radius: var(--igs-radius-md) !important;
+  padding: 2rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1;
+  font-family: var(--igs-font-heading);
+}
+
+@media (min-width: 768px) {
+  .igs-feedback-right {
+    min-width: 21.875rem;
+    padding: 2.5rem;
+  }
+}
+
+.igs-feedback-right h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--igs-midnight-navy);
+}
+
+.igs-feedback-right > p {
+  font-size: 0.875rem;
+  color: var(--igs-muted);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+/* Contact form */
+.igs-feedback-form {
+  width: 100%;
+}
+
+.igs-feedback-form__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  .igs-feedback-form__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.igs-f-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.igs-f-group--full {
+  grid-column: 1 / -1;
+}
+
+.igs-f-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--igs-midnight-navy);
+}
+
+.igs-f-required {
+  color: #ff1f6a;
+}
+
+.igs-f-input {
+  width: 100%;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--igs-border);
+  border-radius: 8px;
+  font-family: var(--igs-font-body);
+  font-size: 0.875rem;
+  color: var(--igs-midnight-navy);
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.igs-f-input:focus {
+  outline: none;
+  border-color: var(--igs-neon-teal);
+  box-shadow: 0 0 0 3px rgba(0, 115, 230, 0.12);
+}
+
+.igs-f-input--textarea {
+  min-height: 6.25rem;
+  resize: vertical;
+}
+
+.igs-f-submit-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.625rem;
+}
+
+.igs-f-submit-btn {
+  background: linear-gradient(90deg, #ff1f6a, #1b6cff) !important;
+  color: var(--igs-snow-white);
+  border: none;
+  border-radius: var(--igs-radius-md);
+  padding: 0.625rem 1.75rem;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  font-family: var(--igs-font-heading);
+  transition: opacity 0.2s;
+}
+
+.igs-f-submit-btn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.igs-f-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.igs-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  background: var(--igs-neon-teal);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--igs-radius-md);
+  transition: opacity 0.2s;
+  font-family: var(--igs-font-heading);
+}
+
+.igs-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.igs-btn-outline-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid var(--igs-border);
+  color: var(--igs-midnight-navy);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--igs-radius-md);
+  background: #fff;
+  transition: background 0.2s;
+  font-family: var(--igs-font-heading);
+}
+
+.igs-btn-outline-dark:hover {
+  background: var(--igs-surface);
+}
+
+/* ─── Job detail ─── */
+.igs-job-detail-card {
+  --igs-midnight-navy: #050816;
+  --igs-snow-white: #ffffff;
+  --igs-neon-teal: #0073e6;
+  --igs-muted: #5c6578;
+  --igs-border: #e5e8ef;
+  --igs-surface: #f7f8fb;
+  --igs-radius-md: 12px;
+  --igs-font-heading: 'Outfit', sans-serif;
+  --igs-font-body: 'Plus Jakarta Sans', sans-serif;
+
+  font-family: var(--igs-font-body);
+  color: var(--igs-midnight-navy);
+  background: #fff;
+  border: 1px solid var(--igs-border);
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(5, 8, 22, 0.06);
+}
+
+.igs-job-detail-card h1,
+.igs-job-detail-card h2,
+.igs-job-detail-card h3,
+.igs-job-detail-card h4,
+.igs-job-detail-card h5 {
+  font-family: var(--igs-font-heading);
+}
+
+.igs-job-detail-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .igs-job-detail-meta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.igs-job-detail-meta__item {
+  padding: 1rem 1.125rem;
+  border-radius: 14px;
+  background: var(--igs-surface);
+  border: 1px solid rgba(229, 232, 239, 0.9);
+}
+
+.igs-job-detail-meta__label {
+  color: var(--igs-muted);
+}
+
+.igs-job-detail-meta__value {
+  color: var(--igs-midnight-navy);
+}
+
+.igs-job-detail-section__title {
+  color: var(--igs-muted);
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
+}
+
+.igs-job-detail-section__body {
+  color: #334155;
+  line-height: 1.75;
+}
+
+.igs-job-detail-skills__list {
+  margin-top: 0.25rem;
+}
+
+.igs-job-skill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.igs-job-skill--primary {
+  background: rgba(0, 115, 230, 0.1);
+  color: #005bb5;
+}
+
+.igs-job-skill--secondary {
+  background: #eef1f6;
+  color: #475569;
+}
+
+.igs-job-application-status {
+  padding: 1.25rem 1.5rem;
+  border-radius: 14px;
+  background: var(--igs-surface);
+  border: 1px solid rgba(229, 232, 239, 0.9);
+}
+
+.igs-job-application-status__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.igs-job-application-status__badge--current {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.igs-job-application-status__badge--active {
+  background: rgba(0, 115, 230, 0.1);
+  color: #005bb5;
+}
+
+.igs-job-application-status__badge--closed {
+  background: #eef1f6;
+  color: #475569;
+}
+
+.igs-job-application-status__notice {
+  background: #fff;
+  border: 1px solid var(--igs-border);
+  color: #475569;
+}
+
+.igs-link {
+  color: var(--igs-neon-teal);
+  font-weight: 600;
+}
+
+.igs-link:hover {
+  text-decoration: underline;
+}
+
+/* ─── Footer ─── */
+.igs-footer-wrap {
+  padding: 0 1rem 2rem;
+}
+
+@media (min-width: 768px) {
+  .igs-footer-wrap {
+    padding: 0 2rem 3rem;
+  }
+}
+
+.igs-footer {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: var(--igs-font-body);
+}
+
+.igs-footer__surface {
+  max-width: 80rem;
+  margin: 0 auto;
+  background: var(--igs-midnight-navy);
+  border-radius: var(--igs-radius-xl);
+  padding: 2.5rem 1.5rem 2rem;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.15);
+}
+
+@media (min-width: 768px) {
+  .igs-footer__surface {
+    padding: 3rem 2.5rem 2rem;
+  }
+}
+
+.igs-footer__main {
+  display: grid;
+  gap: 2.5rem;
+}
+
+@media (min-width: 1024px) {
+  .igs-footer__main {
+    grid-template-columns: 1fr 2fr;
+    gap: 3rem;
+  }
+}
+
+.igs-footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+
+.igs-footer__brand-text {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.65);
+  max-width: 22rem;
+}
+
+.igs-footer__social {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.igs-footer__social-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.igs-footer__social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.igs-footer__social-icon:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #fff;
+}
+
+.igs-footer__links {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem 2rem;
+}
+
+@media (min-width: 768px) {
+  .igs-footer__links {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.igs-footer__col h4 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.igs-footer__col ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.igs-footer__col a {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.15s;
+}
+
+.igs-footer__col a:hover {
+  color: #fff;
+}
+
+.igs-footer__link-static {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: default;
+}
+
+.igs-footer__social-icon--static {
+  cursor: default;
+  opacity: 0.85;
+}
+
+.igs-footer__social-icon--static:hover {
+  opacity: 0.85;
+}
+
+.igs-footer__locations {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@media (min-width: 768px) {
+  .igs-footer__locations {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .igs-footer__locations {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.igs-footer__location h5 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.04em;
+}
+
+.igs-footer__location--contact h5 {
+  color: var(--igs-neon-teal);
+}
+
+.igs-footer__location p {
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.igs-footer__location p span {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.igs-footer__location a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.igs-footer__location a:hover {
+  text-decoration: underline;
+}
+
+.igs-footer__legal {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1.5rem;
+  margin-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.igs-footer__legal-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.igs-footer__legal-links a {
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.15s;
+}
+
+.igs-footer__legal-links a:hover {
+  color: #fff;
+}
+
+.igs-footer__legal-links .igs-footer__link-static {
+  color: rgba(255, 255, 255, 0.5);
+}

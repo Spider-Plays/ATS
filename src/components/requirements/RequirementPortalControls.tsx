@@ -13,6 +13,7 @@ import {
   canManageRequirementPosting,
 } from '@/permissions'
 import { Modal } from '../ui/Modal'
+import { AppDatePicker } from '../ui/AppDatePicker'
 
 type RequirementPortalControlsProps = {
   requirement: Requirement
@@ -106,7 +107,7 @@ export function RequirementPortalControls({
     onSuccess: (_data, visible) => {
       invalidate()
       addToast(
-        visible ? 'Visible on candidate portal' : 'Hidden from candidate portal',
+        visible ? 'Visible on careers page and candidate portal' : 'Hidden from careers page and candidate portal',
         'success'
       )
     },
@@ -220,10 +221,10 @@ export function RequirementPortalControls({
               </div>
               <p className="text-xs text-slate-500 dark:text-white/50">
                 {portalVisible && canPostToPortals
-                  ? 'Live on open positions for external applicants.'
+                  ? 'Live on the public careers page and candidate portal.'
                   : portalVisible
-                    ? 'Will show when the job is live.'
-                    : 'Not listed on the careers portal yet.'}
+                    ? 'Will show on /careers and the candidate portal when the job is live.'
+                    : 'Not listed on the careers page or candidate portal yet.'}
               </p>
               <button
                 type="button"
@@ -239,11 +240,11 @@ export function RequirementPortalControls({
               >
                 {portalVisible ? (
                   <>
-                    <EyeOff size={16} /> Remove from candidate portal
+                    <EyeOff size={16} /> Remove from careers & portal
                   </>
                 ) : (
                   <>
-                    <Eye size={16} /> Post to candidate portal
+                    <Eye size={16} /> Post to careers & portal
                   </>
                 )}
               </button>
@@ -378,11 +379,10 @@ export function RequirementPortalControls({
               <label className="text-xs font-bold uppercase tracking-wider text-primary/60 dark:text-white/60">
                 Closure date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
+              <AppDatePicker
                 value={closedAt}
-                onChange={(e) => setClosedAt(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-primary/10 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-primary dark:text-white"
+                onChange={setClosedAt}
+                aria-label="Closure date"
               />
             </div>
             <div className="flex gap-3 justify-end pt-2">

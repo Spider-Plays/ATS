@@ -95,7 +95,7 @@ export function RequirementHiringPanel({ requirement, userRole }: RequirementHir
             {requirement.status === 'CANCELLED'
               ? 'This requirement was cancelled.'
               : requirement.status === 'ON_HOLD' || requirement.status === 'LIVE'
-                ? 'Only recruiters, HR managers, and team leads can update hiring stage.'
+                ? 'Only admins, recruiters, HR managers, and team leads can update hiring stage.'
                 : 'Hiring stage can be updated when the job is live or on hold.'}
           </p>
         )}

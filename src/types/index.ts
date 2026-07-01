@@ -77,6 +77,7 @@ export interface Requirement {
     title: string
     department: string
     hiringManager: string
+    accountManager?: string
     status: RequirementStatus
     hiringStage?: RequirementHiringStage
     liveAt?: string
@@ -126,6 +127,59 @@ export interface Requirement {
     closedAt?: string
 }
 
+export type BusinessStageKey =
+    | 'INITIAL_DISCUSSION'
+    | 'PROPOSAL_SENT'
+    | 'NEGOTIATION'
+    | 'SOW_SIGNED'
+    | 'CONFIRMED'
+
+export type BusinessRequirementStatus = 'ACTIVE' | 'OPEN_TO_HIRING' | 'CANCELLED'
+
+export interface BusinessRequirementStageHistoryEntry {
+    stage: BusinessStageKey
+    percentage: number
+    by: string
+    at: string
+    role?: string
+    description?: string
+}
+
+export interface BusinessRequirement {
+    id: string
+    title: string
+    client?: string
+    department: string
+    accountManager: string
+    hiringManager: string
+    businessStage: BusinessStageKey
+    stagePercentage: number
+    status: BusinessRequirementStatus
+    publishedRequirementId?: string
+    stageHistory: BusinessRequirementStageHistoryEntry[]
+    openings: number
+    priority?: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
+    location?: string
+    locationCity?: string
+    isRemote?: boolean
+    workMode?: 'REMOTE' | 'HYBRID' | 'ONSITE'
+    employmentType?: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERN'
+    seniorityLevel?: 'JUNIOR' | 'MID' | 'SENIOR' | 'LEAD' | 'PRINCIPAL'
+    experienceMinYears?: number
+    experienceMaxYears?: number
+    salaryBand?: string
+    targetStartDate?: string
+    hiringDeadline?: string
+    description?: string
+    jobDescription?: string
+    primarySkills?: string[]
+    secondarySkills?: string[]
+    createdBy?: string
+    createdByRole?: string
+    createdAt: string
+    updatedAt: string
+}
+
 export type VendorStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
 
 export interface Vendor {
@@ -171,14 +225,13 @@ export interface VendorDetail extends Vendor {
 }
 
 export type CandidateStatus =
-  | 'SOURCED'
-  | 'APPLIED'
+  | 'ADDED'
+  | 'SUBMITTED'
   | 'SCREENING'
   | 'SHORTLISTED'
   | 'INTERVIEW'
   | 'OFFER'
   | 'HIRED'
-  | 'JOINED'
   | 'REJECTED'
 
 export interface Candidate {
@@ -214,6 +267,10 @@ export interface Candidate {
     vendorId?: string
     submittedByUserId?: string
     referredByUserId?: string
+    referredByName?: string
+    referredByEmail?: string
+    referredByDepartment?: string
+    referredByReferralCode?: string
     referralRelationship?: string
     referralNotes?: string
     primarySkills?: string[]
@@ -342,6 +399,7 @@ export type OfferStatus =
   | 'DRAFT'
   | 'PENDING_HR_APPROVAL'
   | 'PENDING_EXEC_APPROVAL'
+  | 'PENDING_APPROVAL'
   | 'APPROVED'
   | 'SENT'
   | 'NEGOTIATION'
@@ -367,6 +425,40 @@ export type CompensationBreakdown = {
   netPay: CompensationLine
 }
 
+export type CompensationConfig = {
+  basicPercentOfCtc: number
+  hraPercentOfBasic: number
+  statBonusPercentOfBasic: number
+  ltaPercentOfBasic: number
+  mealAllowanceAnnual: number
+  mobileAllowanceAnnual: number
+  siteAllowanceAnnual: number
+  employerPfPercentOfBasic: number
+  pfAdminPercentOfBasic: number
+  insuranceAnnual: number
+  employerLwfAnnual: number
+  employeeLwfAnnual: number
+}
+
+export type OfferLetterOrgSettings = {
+  legalEntityName: string
+  returnAddress: string
+  timesheetAddress: string
+  reportingTime: string
+  acceptanceDeadlineDays: number
+  annualLeaveDays: number
+  noticePeriodDays: number
+  reviewPeriodMonths: number
+}
+
+export type OfferLetterTemplate = {
+  orgSettings: OfferLetterOrgSettings
+  coverPageHtml: string
+  agreementIntroHtml: string
+  clausePages: string[]
+  declarationPageHtml: string
+}
+
 export type OfferLetterMeta = {
   candidateAddress?: string
   positionTitle?: string
@@ -385,6 +477,17 @@ export type OfferApprovalHistoryEntry = {
   role: string
   onBehalfOf?: string
   reason?: string
+  comment?: string
+}
+
+export type OfferApprovalStage = {
+  id: string
+  label: string
+  approverIds: string[]
+}
+
+export type OfferApprovalChain = {
+  stages: OfferApprovalStage[]
 }
 
 export interface Offer {
@@ -409,6 +512,7 @@ export interface Offer {
     letterHtml?: string
     approval?: Record<string, unknown>
     approvalHistory?: OfferApprovalHistoryEntry[]
+    approvalChain?: OfferApprovalStage[]
     approvalStep?: string
     rejectionReason?: string
     validUntil?: string
@@ -424,9 +528,11 @@ export type UserRole =
   | 'ADMIN'
   | 'HR_HEAD'
   | 'HR_MANAGER'
+  | 'FINANCE_HEAD'
   | 'RECRUITER'
   | 'TEAM_LEAD'
   | 'HIRING_MANAGER'
+  | 'ACCOUNT_MANAGER'
   | 'INTERVIEWER'
   | 'CANDIDATE'
   | 'VENDOR'

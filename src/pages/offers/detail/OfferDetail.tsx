@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  Undo2,
   FileText,
   Check,
   RotateCw,
@@ -24,14 +25,24 @@ import {
   canApproveOfferExec,
   canApproveOfferHr,
   canDeleteOffer,
+  canEditOfferDetails,
+  canRollbackOfferApproval,
   canViewOfferCompensation,
   requiresExecDelegationForOffer,
   requiresHrHeadDelegationForOffer,
 } from '@/permissions'
 import { OfferApprovalModal } from '@/components/offers/OfferApprovalModal'
+import { OfferDetailsEditPanel } from '@/components/offers/OfferDetailsEditPanel'
 import { CompensationBreakdownTable } from '@/components/offers/CompensationBreakdownTable'
 import { OfferLetterFrame } from '@/components/offers/OfferLetterFrame'
 import { PortalOfferPreviewModal } from '@/components/offers/PortalOfferPreviewModal'
+import { BackButton } from '@/components/ui/BackButton'
+import { getOfferApprovalRollbackTarget } from '@/pages/offers/detail/offerApprovalRollback'
+import {
+  canUserApproveCurrentStage,
+  getCurrentStage,
+  usesApprovalChain,
+} from '@/lib/offerApprovalChain'
 import type { OfferStatus } from '@/types'
 import clsx from 'clsx'
 import './detail.css'
@@ -61,7 +72,8 @@ const OfferDetail = () => {
   const { addToast } = useToastStore()
   const [approvalModal, setApprovalModal] = useState<{
     action: 'APPROVE' | 'REJECT'
-    step: 'HR' | 'EXEC'
+    step: 'HR' | 'EXEC' | 'CHAIN'
+    stageLabel?: string
   } | null>(null)
   const [portalPreviewOpen, setPortalPreviewOpen] = useState(false)
 
@@ -125,9 +137,10 @@ const OfferDetail = () => {
   const approvalMutation = useMutation({
     mutationFn: async (opts: {
       action: 'APPROVE' | 'REJECT'
-      step: 'HR' | 'EXEC'
+      step: 'HR' | 'EXEC' | 'CHAIN'
       delegated: boolean
       reason?: string
+      comment?: string
     }) => {
       if (opts.action === 'REJECT') {
         return api.offers.reject(id!, {
@@ -136,10 +149,19 @@ const OfferDetail = () => {
           onBehalfOfExec: opts.step === 'EXEC' ? opts.delegated : undefined,
         })
       }
-      if (opts.step === 'EXEC') {
-        return api.offers.approveExec(id!, { onBehalfOfExec: opts.delegated })
+      if (opts.step === 'CHAIN') {
+        return api.offers.approveStage(id!, { comment: opts.comment })
       }
-      return api.offers.approveHr(id!, { onBehalfOfHrHead: opts.delegated })
+      if (opts.step === 'EXEC') {
+        return api.offers.approveExec(id!, {
+          onBehalfOfExec: opts.delegated,
+          comment: opts.comment,
+        })
+      }
+      return api.offers.approveHr(id!, {
+        onBehalfOfHrHead: opts.delegated,
+        comment: opts.comment,
+      })
     },
     onSuccess: () => {
       setApprovalModal(null)
@@ -160,6 +182,17 @@ const OfferDetail = () => {
     },
     onError: (err: unknown) => {
       addToast(err instanceof ApiError ? err.message : 'Failed to delete offer', 'error')
+    },
+  })
+
+  const rollbackMutation = useMutation({
+    mutationFn: () => api.offers.rollbackApproval(id!),
+    onSuccess: () => {
+      invalidate()
+      addToast('Offer approval rolled back', 'success')
+    },
+    onError: (err: unknown) => {
+      addToast(err instanceof ApiError ? err.message : 'Rollback failed', 'error')
     },
   })
 
@@ -191,13 +224,37 @@ const OfferDetail = () => {
   if (isLoading) return <div className="p-8 text-center">Loading offer details...</div>
   if (!offer) return <div className="p-8 text-center">Offer not found.</div>
 
+  const rollbackTarget = getOfferApprovalRollbackTarget(offer)
+
+  const handleRollback = async () => {
+    if (!rollbackTarget) return
+    const ok = await confirm({
+      title: 'Rollback approval',
+      message: `${rollbackTarget.label}? The offer will return to the previous approval stage.`,
+      confirmLabel: rollbackTarget.label,
+      variant: 'danger',
+    })
+    if (ok) rollbackMutation.mutate()
+  }
+
   const status = offer.status
   const currentStep = stepIndex(status)
+  const chainOffer = usesApprovalChain(offer)
+  const currentChainStage = getCurrentStage(offer)
+  const showChainApprove =
+    status === 'PENDING_APPROVAL' && canUserApproveCurrentStage(user?.uid, offer)
   const showHrApprove = status === 'PENDING_HR_APPROVAL' && canApproveOfferHr(user?.role)
   const showExecApprove = status === 'PENDING_EXEC_APPROVAL' && canApproveOfferExec(user?.role)
+  const canEdit = canEditOfferDetails(user?.role, status)
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      <BackButton
+        fallback="/offers"
+        to="/offers"
+        label="Back to offers"
+        variant="muted"
+      />
       {offer.rejectionReason && status === 'DRAFT' && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm">
           <strong>Rejected:</strong> {offer.rejectionReason}
@@ -226,6 +283,34 @@ const OfferDetail = () => {
             >
               <Send size={18} /> Submit for approval
             </button>
+          )}
+          {showChainApprove && currentChainStage && (
+            <>
+              <button
+                onClick={() =>
+                  setApprovalModal({
+                    action: 'REJECT',
+                    step: 'CHAIN',
+                    stageLabel: currentChainStage.label,
+                  })
+                }
+                className="flex items-center gap-2 px-6 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold text-sm"
+              >
+                <X size={18} /> Reject
+              </button>
+              <button
+                onClick={() =>
+                  setApprovalModal({
+                    action: 'APPROVE',
+                    step: 'CHAIN',
+                    stageLabel: currentChainStage.label,
+                  })
+                }
+                className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm"
+              >
+                <Check size={18} /> Approve {currentChainStage.label}
+              </button>
+            </>
           )}
           {showHrApprove && (
             <>
@@ -259,9 +344,12 @@ const OfferDetail = () => {
               </button>
             </>
           )}
-          {(status === 'PENDING_HR_APPROVAL' || status === 'PENDING_EXEC_APPROVAL') &&
+          {(status === 'PENDING_HR_APPROVAL' ||
+            status === 'PENDING_EXEC_APPROVAL' ||
+            status === 'PENDING_APPROVAL') &&
             !showHrApprove &&
-            !showExecApprove && (
+            !showExecApprove &&
+            !showChainApprove && (
               <span className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-800 rounded-xl font-bold text-xs uppercase">
                 <Clock size={16} /> Pending approval
               </span>
@@ -299,6 +387,16 @@ const OfferDetail = () => {
               Revise offer
             </button>
           )}
+          {canRollbackOfferApproval(user?.role) && rollbackTarget && (
+            <button
+              type="button"
+              onClick={handleRollback}
+              disabled={rollbackMutation.isPending}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 text-sm font-bold"
+            >
+              <Undo2 size={18} /> {rollbackTarget.label}
+            </button>
+          )}
           {canDeleteOffer(user?.role) && (
             <button
               type="button"
@@ -332,6 +430,37 @@ const OfferDetail = () => {
           ))}
         </div>
       </div>
+
+      {chainOffer && offer.approvalChain && (
+        <div className="app-card rounded-xl p-6 space-y-4">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-primary/60">Approval stages</h3>
+          <div className="flex flex-wrap gap-3">
+            {offer.approvalChain.map((stage, idx) => {
+              const isCurrent =
+                status === 'PENDING_APPROVAL' && stage.id === offer.approvalStep
+              const isPast =
+                status === 'PENDING_APPROVAL'
+                  ? idx < offer.approvalChain!.findIndex((s) => s.id === offer.approvalStep)
+                  : ['APPROVED', 'SENT', 'ACCEPTED'].includes(status)
+              return (
+                <div
+                  key={stage.id}
+                  className={clsx(
+                    'px-4 py-2 rounded-xl border text-sm font-bold',
+                    isCurrent && 'border-primary bg-primary/10 text-primary',
+                    isPast && 'border-green-200 bg-green-50 text-green-800',
+                    !isCurrent && !isPast && 'border-primary/10 text-primary/50'
+                  )}
+                >
+                  {stage.label}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <OfferDetailsEditPanel offer={offer} canEdit={canEdit} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
@@ -407,6 +536,12 @@ const OfferDetail = () => {
                 <div key={`ap-${i}`} className="relative pl-6 border-l-2 border-green-200 pb-1">
                   <p className="text-[10px] text-muted-foreground">{new Date(item.at).toLocaleString()}</p>
                   <p className="text-sm font-bold">{item.action} ({item.step})</p>
+                  {item.comment && (
+                    <p className="text-xs text-primary/60 mt-0.5">Comment: {item.comment}</p>
+                  )}
+                  {item.reason && (
+                    <p className="text-xs text-primary/60 mt-0.5">Reason: {item.reason}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -419,11 +554,14 @@ const OfferDetail = () => {
           open
           action={approvalModal.action}
           step={approvalModal.step}
+          stageLabel={approvalModal.stageLabel}
           candidateName={candidate?.name || 'Candidate'}
           requiresDelegation={
-            approvalModal.step === 'HR'
-              ? requiresHrHeadDelegationForOffer(user?.role)
-              : requiresExecDelegationForOffer(user?.role)
+            approvalModal.step === 'CHAIN'
+              ? false
+              : approvalModal.step === 'HR'
+                ? requiresHrHeadDelegationForOffer(user?.role)
+                : requiresExecDelegationForOffer(user?.role)
           }
           isPending={approvalMutation.isPending}
           onClose={() => setApprovalModal(null)}

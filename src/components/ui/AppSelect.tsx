@@ -20,6 +20,7 @@ type AppSelectProps = {
   allowClear?: boolean
   clearLabel?: string
   'aria-label'?: string
+  menuClassName?: string
 }
 
 export function AppSelect({
@@ -33,6 +34,7 @@ export function AppSelect({
   size = 'md',
   allowClear = false,
   clearLabel,
+  menuClassName,
   'aria-label': ariaLabel,
 }: AppSelectProps) {
   const [open, setOpen] = useState(false)
@@ -83,6 +85,7 @@ export function AppSelect({
         allowClear={allowClear}
         clearLabel={clearLabel}
         onClear={allowClear ? () => pick('') : undefined}
+        menuClassName={menuClassName}
       />
     </div>
   )

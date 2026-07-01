@@ -5,8 +5,10 @@ import { Prisma } from '@prisma/client'
 import { env } from './config/env.js'
 import { resolveApiBuildId } from './config/buildId.js'
 import { prisma } from './lib/prisma.js'
+import { isEmailConfigured } from './services/email.js'
 import authRoutes from './routes/auth.js'
 import userRoutes from './routes/users.js'
+import businessRequirementRoutes from './routes/businessRequirements.js'
 import requirementRoutes from './routes/requirements.js'
 import candidateRoutes from './routes/candidates.js'
 import interviewRoutes from './routes/interviews.js'
@@ -15,6 +17,7 @@ import feedbackRoutes from './routes/feedback.js'
 import activityLogRoutes from './routes/activityLogs.js'
 import searchRoutes from './routes/search.js'
 import portalRoutes from './routes/portal.js'
+import careersRoutes from './routes/careers.js'
 import vendorRoutes from './routes/vendors.js'
 import vendorPortalRoutes from './routes/vendorPortal.js'
 import referralPortalRoutes from './routes/referralPortal.js'
@@ -23,6 +26,7 @@ import departmentRoutes from './routes/departments.js'
 import clientRoutes from './routes/clients.js'
 import roleAccessRoutes from './routes/roleAccess.js'
 import interviewPanelRoutes from './routes/interviewPanels.js'
+import offerSettingsRoutes from './routes/offerSettings.js'
 import { m365Routes } from './integrations/m365/index.js'
 
 export const app = express()
@@ -81,14 +85,20 @@ app.get('/api/health', async (_req, res) => {
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
   try {
     await prisma.$queryRaw`SELECT 1`
-    res.json({ ok: true, database: 'connected', buildId })
+    res.json({
+      ok: true,
+      database: 'connected',
+      buildId,
+      email: isEmailConfigured() ? 'configured' : 'not_configured',
+    })
   } catch {
-    res.status(503).json({ ok: false, database: 'unavailable', buildId })
+    res.status(503).json({ ok: false, database: 'unavailable', buildId, email: isEmailConfigured() ? 'configured' : 'not_configured' })
   }
 })
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
+app.use('/api/business-requirements', businessRequirementRoutes)
 app.use('/api/requirements', requirementRoutes)
 app.use('/api/candidates', candidateRoutes)
 app.use('/api/interviews', interviewRoutes)
@@ -97,6 +107,7 @@ app.use('/api/feedback', feedbackRoutes)
 app.use('/api/activity-logs', activityLogRoutes)
 app.use('/api/search', searchRoutes)
 app.use('/api/portal', portalRoutes)
+app.use('/api/careers', careersRoutes)
 app.use('/api/vendors', vendorRoutes)
 app.use('/api/vendor-portal', vendorPortalRoutes)
 app.use('/api/referral-portal', referralPortalRoutes)
@@ -105,6 +116,7 @@ app.use('/api/departments', departmentRoutes)
 app.use('/api/clients', clientRoutes)
 app.use('/api/role-access', roleAccessRoutes)
 app.use('/api/interview-panels', interviewPanelRoutes)
+app.use('/api/offer-settings', offerSettingsRoutes)
 app.use('/api/integrations/m365', m365Routes)
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -119,6 +131,13 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
       error: env.isProduction
         ? 'Database unavailable.'
         : 'Database unavailable. Wake your Neon project in the console or check DATABASE_URL in server/.env.',
+    })
+  }
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2021') {
+    return res.status(503).json({
+      error: env.isProduction
+        ? 'Database schema is out of date.'
+        : `Database table missing (${err.meta?.table ?? 'unknown'}). Run \`npm run db:push --prefix server\` against your DATABASE_URL, then restart the API.`,
     })
   }
   if (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'LIMIT_FILE_SIZE') {

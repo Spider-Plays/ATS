@@ -12,7 +12,7 @@ import {
 import { buildQuarterOptions } from './candidateMilestones'
 import { REFERRAL_RELATIONSHIPS } from './candidateSubmissionForm'
 import { HIRING_STAGES, hiringStageClass } from './requirementHiring'
-import type { CandidateStatus, RequirementHiringStage, UserRole } from '../types'
+import type { CandidateStatus, Requirement, RequirementHiringStage, UserRole } from '../types'
 
 const mapOpts = (items: readonly { value: string; label: string }[]): AppSelectOption[] =>
   items.map((o) => ({ value: o.value, label: o.label }))
@@ -36,6 +36,40 @@ export const REQUIREMENT_PRIORITY_OPTIONS: AppSelectOption[] = [
 
 export function quarterSelectOptions(): AppSelectOption[] {
   return [{ value: '', label: 'Select quarter' }, ...buildQuarterOptions()]
+}
+
+const CALENDAR_MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const
+
+export function calendarMonthSelectOptions(): AppSelectOption[] {
+  return [
+    { value: '', label: 'Month' },
+    ...CALENDAR_MONTHS.map((label, index) => ({
+      value: String(index + 1).padStart(2, '0'),
+      label,
+    })),
+  ]
+}
+
+export function calendarYearSelectOptions(yearsAround = 2): AppSelectOption[] {
+  const baseYear = new Date().getFullYear()
+  const years: AppSelectOption[] = [{ value: '', label: 'Year' }]
+  for (let year = baseYear - yearsAround; year <= baseYear + yearsAround; year++) {
+    years.push({ value: String(year), label: String(year) })
+  }
+  return years
 }
 
 export const INTERVIEW_DURATION_OPTIONS: AppSelectOption[] = [30, 45, 60, 90].map((m) => ({
@@ -77,10 +111,12 @@ export const USER_ROLE_OPTIONS: AppSelectOption[] = [
   { value: 'SUPER_ADMIN', label: 'Super Admin' },
   { value: 'ADMIN', label: 'Admin' },
   { value: 'HR_HEAD', label: 'HR Head' },
+  { value: 'FINANCE_HEAD', label: 'Finance Head' },
   { value: 'HR_MANAGER', label: 'HR Manager' },
   { value: 'RECRUITER', label: 'Recruiter' },
   { value: 'TEAM_LEAD', label: 'Team Lead' },
   { value: 'HIRING_MANAGER', label: 'Hiring Manager' },
+  { value: 'ACCOUNT_MANAGER', label: 'Account Manager' },
   { value: 'INTERVIEWER', label: 'Interviewer' },
   { value: 'CANDIDATE', label: 'Candidate' },
 ]
@@ -110,6 +146,21 @@ export function candidateStageSelectOptions(): AppSelectOption[] {
     value: status,
     label: candidateStatusLabel(status),
     chipClassName: candidateStatusClass(status),
+  }))
+}
+
+export function requirementSelectSublabel(
+  req: Pick<Requirement, 'jobCode' | 'id' | 'client' | 'department'>
+): string {
+  const code = req.jobCode ?? req.id.slice(-8).toUpperCase()
+  return [code, req.client, req.department].filter(Boolean).join(' · ')
+}
+
+export function requirementSelectOptions(requirements: Requirement[]): AppSelectOption[] {
+  return requirements.map((req) => ({
+    value: req.id,
+    label: req.title,
+    sublabel: requirementSelectSublabel(req),
   }))
 }
 

@@ -1,48 +1,60 @@
-import React, { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { api } from '@/services/api'
-import { ListSearchBar } from '@/components/ui/ListSearchBar'
-import { matchesAnySearch } from '@/lib/textSearch'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { ReferralStatusBadge } from '@/components/referral-portal/ReferralStatusBadge'
-import { matchesReferralStatusSearch, referralStatusLabel } from '@/lib/referralStatus'
-import './list.css'
+import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/services/api";
+import { ListSearchBar } from "@/components/ui/ListSearchBar";
+import { matchesAnySearch } from "@/lib/textSearch";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ReferralSubmissionCard } from "@/components/referral-portal/ReferralSubmissionCard";
+import {
+  matchesReferralStatusSearch,
+  referralStatusLabel,
+} from "@/lib/referralStatus";
+import "./list.css";
 
 const ReferralList = () => {
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState("");
   const { data: referrals = [], isLoading } = useQuery({
-    queryKey: ['referral-portal-referrals'],
+    queryKey: ["referral-portal-referrals"],
     queryFn: api.referralPortal.getReferrals,
-  })
+  });
 
   const filtered = useMemo(
     () =>
-      referrals.filter((c) =>
-        matchesAnySearch(
-          [c.name, c.email, c.jobTitle, c.role, c.referralRelationship, referralStatusLabel(c.status)],
-          search
-        ) || matchesReferralStatusSearch(c.status, search)
+      referrals.filter(
+        (c) =>
+          matchesAnySearch(
+            [
+              c.name,
+              c.email,
+              c.jobTitle,
+              c.role,
+              c.referralRelationship,
+              referralStatusLabel(c.status),
+            ],
+            search,
+          ) || matchesReferralStatusSearch(c.status, search),
       ),
-    [referrals, search]
-  )
+    [referrals, search],
+  );
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white">My referrals</h1>
-          <p className="text-sm text-slate-500 mt-1">
+      <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div className="space-y-2">
+          <span className="portal-page-eyebrow">Referrals</span>
+          <h1 className="text-page-title">My referrals</h1>
+          <p className="text-page-desc">
             Everyone you have referred — track status and hiring progress.
           </p>
         </div>
         <Link
           to="/referral-portal/jobs"
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700"
+          className="btn-filled inline-flex items-center justify-center px-5 py-2.5 text-sm shrink-0"
         >
           Refer someone new
         </Link>
-      </div>
+      </header>
 
       <ListSearchBar
         value={search}
@@ -51,69 +63,55 @@ const ReferralList = () => {
       />
 
       {isLoading ? (
-        <p className="text-center py-12 text-slate-500">Loading…</p>
+        <p className="text-center py-12 text-slate-500">Loading referrals…</p>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon="group"
-          title={search ? 'No matches' : 'No referrals yet'}
+          title={search ? "No matches" : "No referrals yet"}
           description={
             search
-              ? 'Try a different search.'
-              : 'Browse open roles and submit your first referral.'
+              ? "Try a different search."
+              : "Browse open roles and submit your first referral."
           }
         />
       ) : (
-        <div className="bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/10 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-100">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">
-                  Candidate
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">
-                  Job
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">
-                  Relationship
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">
-                  Submitted
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/10">
-              {filtered.map((c) => (
-                <tr key={c.id} className="hover:bg-violet-50/50 dark:hover:bg-violet-500/5">
-                  <td className="px-4 py-3">
-                    <Link
-                      to={`/referral-portal/referrals/${c.id}`}
-                      className="font-bold text-slate-900 dark:text-white hover:text-violet-700"
-                    >
-                      {c.name}
-                    </Link>
-                    <p className="text-xs text-slate-500">{c.email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{c.jobTitle ?? c.role}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">
-                    {c.referralRelationship ?? '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <ReferralStatusBadge status={c.status} />
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="space-y-4">
+          {filtered.map((c) => (
+            <li key={c.id}>
+              <ReferralSubmissionCard
+                referral={{
+                  id: c.id,
+                  name: c.name,
+                  email: c.email,
+                  status: c.status,
+                  jobTitle: c.jobTitle ?? c.role,
+                  jobCode: c.reqId,
+                  requirementId: c.requirementId,
+                  matchScore: c.matchScore,
+                  phone: c.phone,
+                  location: c.location,
+                  referralRelationship: c.referralRelationship,
+                  createdAt: c.createdAt,
+                }}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {!isLoading && filtered.length > 0 && (
+        <p className="text-sm text-slate-500 text-center">
+          Want to refer more talent?{" "}
+          <Link
+            to="/referral-portal/jobs"
+            className="font-bold text-primary hover:underline"
+          >
+            Browse open roles
+          </Link>
+        </p>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ReferralList
+export default ReferralList;

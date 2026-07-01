@@ -11,7 +11,7 @@ export function resolveDevLoginRedirect(
   clickedRole?: string
 ): string {
   const role = session.user.role
-  if (role === 'CANDIDATE' || clickedRole === 'CANDIDATE') return '/portal/dashboard'
+  if (role === 'CANDIDATE' || clickedRole === 'CANDIDATE') return '/candidate/dashboard'
   if (role === 'VENDOR' || clickedRole === 'VENDOR') return '/vendor-portal/dashboard'
   if (role === 'EMPLOYEE' || clickedRole === 'EMPLOYEE') return '/referral-portal/dashboard'
   if (role === 'ADMIN' || role === 'SUPER_ADMIN') return '/admin'

@@ -5,6 +5,9 @@
     "type": "module",
     "scripts": {
         "dev": "concurrently -n client,server -c blue,green \"npm run dev:client\" \"npm run dev:server\"",
+        "dev:qa": "npm run dev",
+        "dev:prod": "concurrently -n client,server -c blue,green \"npm run dev:client\" \"cross-env ATS_ENV=production npm run dev --prefix server\"",
+        "env:qa": "node scripts/set-qa-staging-env.mjs",
         "dev:client": "vite",
         "dev:server": "npm run dev --prefix server",
         "build": "npm run build --prefix server && tsc && vite build",
@@ -16,17 +19,21 @@
         "db:setup-staging": "node scripts/setup-qa-staging-db.mjs",
         "neon:staging-branch": "node scripts/neon-staging-branch.mjs",
         "verify:qa-staging": "node scripts/verify-qa-staging.mjs",
+        "verify:db:qa": "npm run db:verify --prefix server",
+        "verify:db:prod": "cross-env ATS_ENV=production npm run db:verify --prefix server",
         "deploy:worker": "npx wrangler deploy",
-        "deploy:worker:qa": "npm run build:client && npx wrangler deploy --env qa",
+        "deploy:worker:qa": "npm run build:client && npx wrangler deploy --config wrangler.qa.toml",
         "deploy:worker:preview": "npx wrangler versions upload",
         "build:client:check": "tsc && vite build",
         "db:setup": "npm run db:setup --prefix server",
         "db:clear": "npm run db:clear --prefix server",
+        "db:clear-demo": "npm run db:clear-demo --prefix server",
         "db:bootstrap": "npm run db:bootstrap --prefix server",
         "db:seed": "npm run db:seed --prefix server",
         "db:seed-demo": "npm run db:seed-demo --prefix server",
         "db:reset-passwords": "npm run db:reset-passwords --prefix server",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "openapi:generate": "node server/scripts/generate-openapi.mjs"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.1.0",
@@ -56,6 +63,7 @@
         "@types/react": "^18.2.64",
         "@types/react-dom": "^18.2.21",
         "concurrently": "^9.1.2",
+        "cross-env": "^7.0.3",
         "typescript": "^5.2.2",
         "wrangler": "^4.105.0"
     }

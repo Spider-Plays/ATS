@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Download, FileText, Loader2 } from 'lucide-react'
+import { BackButton } from '@/components/ui/BackButton'
+import { DocumentPreviewFrame } from '@/components/documents/DocumentPreviewFrame'
 import { api } from '@/services/api'
 import { showInterviewerSessionActions } from '@/permissions'
 import { useAuth } from '@/hooks/useAuth'
@@ -28,6 +30,8 @@ const InterviewCandidateResume = () => {
 
   const canAccess =
     interview && showInterviewerSessionActions(interview, user?.uid)
+
+  const isInterviewerView = user?.role === 'INTERVIEWER'
 
   useEffect(() => {
     if (!id || !interview?.candidateId) return
@@ -94,6 +98,11 @@ const InterviewCandidateResume = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500 pb-12">
+      <BackButton
+        fallback="/interviews"
+        label="Back to interviews"
+        variant="muted"
+      />
       <div>
         <h1 className="text-2xl font-black text-primary dark:text-white tracking-tight">
           {candidate?.name ?? interview.candidateName ?? 'Candidate'} — Resume
@@ -102,7 +111,12 @@ const InterviewCandidateResume = () => {
           {interview.stageName ?? interview.type.replace(/_/g, ' ')} ·{' '}
           {new Date(interview.scheduledAt).toLocaleString()}
         </p>
-        {candidate && (
+        {isInterviewerView && (
+          <p className="text-sm text-primary/50 dark:text-white/50 mt-2">
+            View only — downloading is not available in the interviewer session.
+          </p>
+        )}
+        {candidate && !isInterviewerView && (
           <Link
             to={`/candidates/${candidate.id}?tab=resume`}
             className="inline-block mt-2 text-xs font-bold text-primary dark:text-white hover:underline"
@@ -123,31 +137,45 @@ const InterviewCandidateResume = () => {
         </div>
       ) : candidate?.resumeFileName || candidate?.resumeUrl ? (
         <div className="min-h-[75vh] rounded-2xl border border-primary/10 dark:border-white/10 overflow-hidden flex flex-col bg-white dark:bg-white/5">
-          <div className="p-3 border-b border-primary/10 dark:border-white/10 flex justify-between items-center gap-4">
-            <span className="text-sm font-bold text-primary dark:text-white flex items-center gap-2 truncate">
-              <FileText size={16} />
-              {candidate.resumeFileName ?? 'Resume'}
-            </span>
-            {resumeBlobUrl && (
-              <a
-                href={resumeBlobUrl}
-                download={candidate.resumeFileName || 'resume'}
-                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary dark:text-white hover:opacity-80 shrink-0"
-              >
-                <Download size={14} />
-                Download
-              </a>
-            )}
-          </div>
+          {!isInterviewerView && (
+            <div className="p-3 border-b border-primary/10 dark:border-white/10 flex justify-between items-center gap-4">
+              <span className="text-sm font-bold text-primary dark:text-white flex items-center gap-2 truncate">
+                <FileText size={16} />
+                {candidate.resumeFileName ?? 'Resume'}
+              </span>
+              {resumeBlobUrl && (
+                <a
+                  href={resumeBlobUrl}
+                  download={candidate.resumeFileName || 'resume'}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-primary dark:text-white hover:opacity-80 shrink-0"
+                >
+                  <Download size={14} />
+                  Download
+                </a>
+              )}
+            </div>
+          )}
           {isPdf && resumeBlobUrl ? (
-            <iframe
-              src={resumeBlobUrl}
-              className="w-full h-[72vh] min-h-[640px] bg-white border-0"
-              title="Resume preview"
-            />
+            isInterviewerView ? (
+              <DocumentPreviewFrame
+                blobUrl={resumeBlobUrl}
+                title="Resume preview"
+                mimeType={candidate.resumeMimeType}
+                fileName={candidate.resumeFileName}
+                className="flex-1 min-h-[72vh]"
+              />
+            ) : (
+              <iframe
+                src={resumeBlobUrl}
+                className="w-full h-[72vh] min-h-[640px] bg-white border-0"
+                title="Resume preview"
+              />
+            )
           ) : (
             <div className="p-8 text-center text-sm text-primary/60 dark:text-white/60">
-              {resumeBlobUrl ? (
+              {isInterviewerView ? (
+                'In-browser preview is available for PDF resumes only.'
+              ) : resumeBlobUrl ? (
                 <a
                   href={resumeBlobUrl}
                   download={candidate.resumeFileName}

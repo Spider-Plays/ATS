@@ -1,5 +1,11 @@
 import { env } from '../config/env.js'
 import { getAnnualCtcFromOffer } from './offerCompensation.js'
+import {
+  canUserApproveCurrentStage,
+  getCurrentStage,
+  usesApprovalChain,
+} from './offerApprovalChain.js'
+import { canEditOfferDetails } from './offerTransitions.js'
 
 export const OFFER_HR_APPROVAL_ROLES = ['HR_HEAD', 'SUPER_ADMIN', 'ADMIN'] as const
 export const OFFER_EXEC_APPROVAL_ROLES = ['SUPER_ADMIN', 'ADMIN'] as const
@@ -85,4 +91,54 @@ export function assertCanRespondToOffer(offer: { status: string; validUntil?: Da
   if (offer.validUntil && offer.validUntil < new Date()) {
     throw new Error('This offer has expired')
   }
+}
+
+export function assertCanEditOffer(
+  auth: { userId: string; role: string },
+  offer: { status: string }
+): void {
+  if (!canEditOfferDetails(auth.role, offer.status)) {
+    throw new Error('You cannot edit this offer at its current stage')
+  }
+}
+
+export function assertCanApproveOfferStage(
+  auth: { userId: string; role: string },
+  offer: {
+    createdBy: string
+    status: string
+    approvalStep?: string | null
+    approvalChainJson?: string | null
+  }
+): void {
+  if (offer.status !== 'PENDING_APPROVAL') {
+    throw new Error('Offer is not pending approval')
+  }
+  if (!usesApprovalChain(offer)) {
+    throw new Error('This offer does not use a custom approval chain')
+  }
+  if (!canUserApproveCurrentStage(auth, offer)) {
+    const stage = getCurrentStage(offer)
+    throw new Error(
+      stage
+        ? `Only assigned approvers for ${stage.label} can act at this step`
+        : 'You are not allowed to approve at this step'
+    )
+  }
+}
+
+export function assertCanRejectOfferStage(
+  auth: { userId: string; role: string },
+  offer: {
+    createdBy: string
+    status: string
+    approvalStep?: string | null
+    approvalChainJson?: string | null
+  }
+): void {
+  if (offer.status === 'PENDING_APPROVAL' && usesApprovalChain(offer)) {
+    assertCanApproveOfferStage(auth, offer)
+    return
+  }
+  throw new Error('Use HR or executive rejection for this offer')
 }

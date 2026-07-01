@@ -23,7 +23,9 @@ import {
   resolveResumeMime,
   saveResumeFile,
 } from '../lib/resumeStorage.js'
+import { loadCandidateResume } from '../lib/candidateResume.js'
 import { notifyNewCandidate } from '../lib/emailDispatch.js'
+import { mapPortalPosition } from '../lib/portalPositions.js'
 
 const router = Router()
 router.use(requireAuth, requireActiveUser, requireRoles('VENDOR'))
@@ -34,34 +36,6 @@ async function getVendorForUser(userId: string) {
   const vendor = await prisma.vendor.findUnique({ where: { id: user.vendorId } })
   if (!vendor || vendor.status !== 'ACTIVE') return null
   return { user, vendor }
-}
-
-function mapPortalPosition(r: {
-  id: string
-  jobCode: string | null
-  client: string | null
-  title: string
-  department: string
-  location: string | null
-  priority: string | null
-  openings: number
-  filled: number
-  description: string | null
-  updatedAt: Date
-}) {
-  return {
-    id: r.id,
-    jobCode: r.jobCode ?? r.id.slice(-8).toUpperCase(),
-    client: r.client ?? undefined,
-    title: r.title,
-    department: r.department,
-    location: r.location ?? undefined,
-    priority: r.priority ?? undefined,
-    openings: r.openings,
-    filled: r.filled,
-    description: r.description ?? undefined,
-    updatedAt: r.updatedAt.toISOString(),
-  }
 }
 
 async function assignedRequirementIds(vendorId: string): Promise<string[]> {
@@ -226,10 +200,12 @@ router.post('/parse-resume', handleUploadResume, async (req, res) => {
 
 router.get('/check-email', async (req, res) => {
   const email = typeof req.query.email === 'string' ? req.query.email : ''
+  const excludeId =
+    typeof req.query.excludeId === 'string' ? req.query.excludeId.trim() : ''
   if (!email.trim()) {
     return res.json({ exists: false })
   }
-  const existing = await findCandidateByEmail(email)
+  const existing = await findCandidateByEmail(email, excludeId || undefined)
   if (!existing) {
     return res.json({ exists: false })
   }
@@ -261,6 +237,114 @@ router.get('/submissions', async (req, res) => {
       mapCandidate(c, { requirement: c.requirementId ? reqById.get(c.requirementId) ?? null : null })
     )
   )
+})
+
+router.get('/submissions/:candidateId', async (req, res) => {
+  const ctx = await getVendorForUser(req.auth!.userId)
+  if (!ctx) return res.status(403).json({ error: 'Vendor access not configured' })
+
+  try {
+    await assertVendorOwnsCandidate(ctx.vendor.id, req.params.candidateId)
+  } catch {
+    return res.status(404).json({ error: 'Submission not found' })
+  }
+
+  const row = await prisma.candidate.findUnique({ where: { id: req.params.candidateId } })
+  if (!row) return res.status(404).json({ error: 'Submission not found' })
+
+  const requirement = row.requirementId
+    ? await prisma.requirement.findUnique({ where: { id: row.requirementId } })
+    : null
+
+  res.json(mapCandidate(row, { requirement }))
+})
+
+router.patch('/submissions/:candidateId', async (req, res) => {
+  const ctx = await getVendorForUser(req.auth!.userId)
+  if (!ctx) return res.status(403).json({ error: 'Vendor access not configured' })
+
+  try {
+    await assertVendorOwnsCandidate(ctx.vendor.id, req.params.candidateId)
+  } catch {
+    return res.status(404).json({ error: 'Submission not found' })
+  }
+
+  const existing = await prisma.candidate.findUnique({ where: { id: req.params.candidateId } })
+  if (!existing) return res.status(404).json({ error: 'Submission not found' })
+
+  const body = vendorSubmitBodySchema.parse(req.body)
+  const fullName = `${body.firstName.trim()} ${body.lastName.trim()}`.trim()
+  const primarySkills = parseSkillList(body.primarySkills)
+  const secondarySkills = parseSkillList(body.secondarySkills ?? [])
+
+  const duplicate = await findCandidateByEmail(body.email, req.params.candidateId)
+  if (duplicate) {
+    return res.status(409).json({
+      error: DUPLICATE_CANDIDATE_EMAIL_MESSAGE,
+      existingCandidateId: duplicate.id,
+    })
+  }
+
+  const requirement = existing.requirementId
+    ? await prisma.requirement.findUnique({ where: { id: existing.requirementId } })
+    : null
+
+  const skillCorpus = [...primarySkills, ...secondarySkills].join(' ')
+  let matchScore = existing.matchScore
+  if (requirement) {
+    const draft = {
+      ...existing,
+      name: fullName,
+      email: body.email.toLowerCase().trim(),
+      phone: body.phone.trim(),
+      location: body.location.trim(),
+      pan: body.pan.trim().toUpperCase(),
+      totalExperience: body.totalExperience.trim(),
+      currentCompany: body.currentCompany.trim(),
+      currentCTC: body.currentCTC.trim(),
+      expectedCTC: body.expectedCTC.trim(),
+      noticePeriod: body.noticePeriod.trim(),
+      linkedIn: body.linkedIn?.trim() || null,
+      portfolio: body.portfolio?.trim() || null,
+      primarySkills: serializeSkills(primarySkills),
+      secondarySkills: serializeSkills(secondarySkills),
+    }
+    matchScore = computeMatchScore(draft, requirement, skillCorpus).score
+  }
+
+  const updated = await prisma.candidate.update({
+    where: { id: existing.id },
+    data: {
+      name: fullName,
+      email: body.email.toLowerCase().trim(),
+      phone: body.phone.trim(),
+      location: body.location.trim(),
+      pan: body.pan.trim().toUpperCase(),
+      totalExperience: body.totalExperience.trim(),
+      currentCompany: body.currentCompany.trim(),
+      currentCTC: body.currentCTC.trim(),
+      expectedCTC: body.expectedCTC.trim(),
+      noticePeriod: body.noticePeriod.trim(),
+      linkedIn: body.linkedIn?.trim() || null,
+      portfolio: body.portfolio?.trim() || null,
+      primarySkills: serializeSkills(primarySkills),
+      secondarySkills: serializeSkills(secondarySkills),
+      matchScore,
+      updatedAt: new Date(),
+    },
+  })
+
+  await logActivity({
+    entityType: 'CANDIDATE',
+    entityId: updated.id,
+    action: 'VENDOR_UPDATED_SUBMISSION',
+    performedBy: ctx.user.id,
+    performerName: ctx.user.name,
+    performerRole: ctx.user.role,
+    details: { vendorId: ctx.vendor.id, vendorName: ctx.vendor.name },
+  })
+
+  res.json(mapCandidate(updated, { requirement }))
 })
 
 router.post('/positions/:id/submit', async (req, res) => {
@@ -296,7 +380,7 @@ router.post('/positions/:id/submit', async (req, res) => {
     name: fullName,
     email: body.email.toLowerCase().trim(),
     role: requirement.title,
-    status: 'SOURCED',
+    status: 'SUBMITTED',
     matchScore: 0,
     source: `Vendor: ${ctx.vendor.name}`,
     appliedDate: new Date(),
@@ -332,11 +416,12 @@ router.post('/positions/:id/submit', async (req, res) => {
       name: fullName,
       email: body.email.toLowerCase().trim(),
       role: requirement.title,
-      status: 'SOURCED',
+      status: 'SUBMITTED',
       matchScore,
       source: `Vendor: ${ctx.vendor.name}`,
       requirementId: requirement.id,
       jobTitle: requirement.title,
+      submittedAt: new Date(),
       phone: body.phone.trim(),
       location: body.location.trim(),
       pan: body.pan.trim().toUpperCase(),
@@ -478,6 +563,30 @@ router.post('/submissions/:candidateId/resume', handleUploadResume, async (req, 
   })
 
   res.json(mapCandidate(updated, { requirement }))
+})
+
+router.get('/submissions/:candidateId/resume', async (req, res) => {
+  const ctx = await getVendorForUser(req.auth!.userId)
+  if (!ctx) return res.status(403).json({ error: 'Vendor access not configured' })
+
+  try {
+    await assertVendorOwnsCandidate(ctx.vendor.id, req.params.candidateId)
+  } catch {
+    return res.status(404).json({ error: 'Submission not found' })
+  }
+
+  const row = await prisma.candidate.findUnique({ where: { id: req.params.candidateId } })
+  if (!row?.resumeFileName) return res.status(404).json({ error: 'No resume uploaded' })
+
+  const loaded = await loadCandidateResume(row)
+  if (!loaded) return res.status(404).json({ error: 'Resume file missing' })
+
+  res.setHeader('Content-Type', loaded.mime)
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename="${encodeURIComponent(loaded.fileName)}"`
+  )
+  res.send(loaded.buffer)
 })
 
 export default router

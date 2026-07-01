@@ -1,4 +1,4 @@
-import 'dotenv/config'
+import './loadEnv.js'
 import { m365Config } from '../integrations/m365/config.js'
 
 const isProduction = process.env.NODE_ENV === 'production'

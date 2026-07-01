@@ -1,109 +1,149 @@
-import React, { useEffect, useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { AlertCircle } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
-import { authApi } from '@/services/http/auth'
-import { api } from '@/services/api'
-import { ApiError } from '@/lib/apiClient'
-import { portalHomePath } from '@/lib/portalWorkflow'
-import { postAuthPath } from '@/lib/loginRedirect'
-import { CandidateAuthShell } from '@/components/portal/CandidateAuthShell'
-import { DevQuickLogin } from '@/dev/DevQuickLogin'
-import './login.css'
+import React, { useEffect, useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { AlertCircle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { authApi } from "@/services/http/auth";
+import { api } from "@/services/api";
+import { ApiError } from "@/lib/apiClient";
+import { portalHomePath } from "@/lib/portalWorkflow";
+import {
+  portalReturnToFromSearch,
+  sanitizePortalReturnTo,
+} from "@/lib/portalReturnTo";
+import { postAuthPath } from "@/lib/loginRedirect";
+import { CandidateAuthShell } from "@/components/portal/CandidateAuthShell";
+import { backButtonClass } from "@/components/ui/BackButton";
+import { DevQuickLogin } from "@/dev/DevQuickLogin";
+import "./login.css";
 
 const CandidateLogin = () => {
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { login, logout, user } = useAuth()
-  const [loading, setLoading] = useState(false)
-  const [authError, setAuthError] = useState<string | null>(null)
-  const [showPassword, setShowPassword] = useState(false)
-  const [mode, setMode] = useState<'login' | 'forgot' | 'reset'>('login')
-  const [forgotEmail, setForgotEmail] = useState('')
-  const [resetToken, setResetToken] = useState('')
-  const [resetPassword, setResetPassword] = useState('')
-  const [infoMessage, setInfoMessage] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login, logout, user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState<"login" | "forgot" | "reset">("login");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetToken, setResetToken] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
-  const { register, handleSubmit } = useForm<{ email: string; password: string }>()
+  const { register, handleSubmit } = useForm<{
+    email: string;
+    password: string;
+  }>();
 
   const redirectAfterAuth = async () => {
+    const returnTo = sanitizePortalReturnTo(
+      portalReturnToFromSearch(location.search),
+    );
+    if (returnTo) {
+      try {
+        const me = await api.portal.getMe();
+        if (!me.profileComplete) {
+          navigate(
+            `/candidate/onboarding?returnTo=${encodeURIComponent(returnTo)}`,
+            { replace: true },
+          );
+          return;
+        }
+        navigate(returnTo, { replace: true });
+        return;
+      } catch {
+        navigate(
+          `/candidate/onboarding?returnTo=${encodeURIComponent(returnTo)}`,
+          { replace: true },
+        );
+        return;
+      }
+    }
     try {
-      const me = await api.portal.getMe()
-      navigate(portalHomePath(me), { replace: true })
+      const me = await api.portal.getMe();
+      navigate(portalHomePath(me), { replace: true });
     } catch {
-      navigate('/portal/onboarding', { replace: true })
+      navigate("/candidate/onboarding", { replace: true });
     }
-  }
+  };
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    const token = params.get('reset')
+    const params = new URLSearchParams(location.search);
+    const token = params.get("reset");
     if (token) {
-      setResetToken(token)
-      setMode('reset')
+      setResetToken(token);
+      setMode("reset");
     }
-  }, [location.search])
+  }, [location.search]);
 
   useEffect(() => {
-    if (user?.role !== 'CANDIDATE') return
+    if (user?.role !== "CANDIDATE") return;
     if (user.mustChangePassword) {
-      navigate('/set-password', { replace: true })
-      return
+      navigate("/set-password", { replace: true });
+      return;
     }
-    void redirectAfterAuth()
-  }, [user, navigate])
+    void redirectAfterAuth();
+  }, [user, navigate]);
 
   const onSubmit = async (data: { email: string; password: string }) => {
-    setLoading(true)
-    setAuthError(null)
+    setLoading(true);
+    setAuthError(null);
     try {
-      const session = await login(data.email, data.password)
-      if (session.user.role !== 'CANDIDATE') {
-        await logout()
-        setAuthError('This sign-in page is for candidates only. Use the team login instead.')
-        return
+      const session = await login(data.email, data.password);
+      if (session.user.role !== "CANDIDATE") {
+        await logout();
+        setAuthError(
+          "This sign-in page is for candidates only. Use the team login instead.",
+        );
+        return;
       }
       if (session.user.mustChangePassword) {
-        navigate(postAuthPath(session.user), { replace: true })
-        return
+        navigate(postAuthPath(session.user), { replace: true });
+        return;
       }
-      await redirectAfterAuth()
+      await redirectAfterAuth();
     } catch (err: unknown) {
-      const code = err instanceof Error ? err.message : ''
-      if (code === 'ACCOUNT_DISABLED') {
-        setAuthError('This account has been disabled.')
-      } else if (code === 'SERVER_UNAVAILABLE') {
-        setAuthError('Cannot reach the server. Start the API and try again.')
+      const code = err instanceof Error ? err.message : "";
+      if (code === "ACCOUNT_DISABLED") {
+        setAuthError("This account has been disabled.");
+      } else if (code === "SERVER_UNAVAILABLE") {
+        setAuthError("Cannot reach the server. Start the API and try again.");
       } else {
-        setAuthError('Invalid email or password.')
+        setAuthError("Invalid email or password.");
       }
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <CandidateAuthShell
       title={
-        mode === 'forgot'
-          ? 'Reset password'
-          : mode === 'reset'
-            ? 'Set new password'
-            : 'Welcome back'
+        mode === "forgot"
+          ? "Reset password"
+          : mode === "reset"
+            ? "Set new password"
+            : "Welcome back"
       }
       subtitle={
-        mode === 'forgot'
-          ? 'We will email you a reset link if your account exists.'
-          : mode === 'reset'
-            ? 'Choose a new password for your candidate account.'
-            : 'Sign in to track applications, interviews, and offers.'
+        mode === "forgot"
+          ? "We will email you a reset link if your account exists."
+          : mode === "reset"
+            ? "Choose a new password for your candidate account."
+            : "Sign in to track applications, interviews, and offers."
       }
       footer={
-        mode === 'login' ? (
+        mode === "login" ? (
           <p className="text-center text-sm text-slate-600">
-            New here?{' '}
-            <Link to="/portal/signup" className="font-bold text-[#0f3d38] hover:underline">
+            New here?{" "}
+            <Link
+              to={
+                portalReturnToFromSearch(location.search)
+                  ? `/candidate/signup?returnTo=${encodeURIComponent(portalReturnToFromSearch(location.search)!)}`
+                  : "/candidate/signup"
+              }
+              className="font-bold text-primary hover:underline"
+            >
               Create candidate account
             </Link>
           </p>
@@ -117,25 +157,27 @@ const CandidateLogin = () => {
         </div>
       )}
       {infoMessage && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm">
+        <div className="p-4 bg-primary-container/40 border border-primary/30 rounded-xl text-on-primary-container text-sm">
           {infoMessage}
         </div>
       )}
 
-      {mode === 'forgot' && (
+      {mode === "forgot" && (
         <form
           onSubmit={async (e) => {
-            e.preventDefault()
-            setLoading(true)
-            setAuthError(null)
+            e.preventDefault();
+            setLoading(true);
+            setAuthError(null);
             try {
-              const res = await authApi.forgotPassword(forgotEmail)
-              setInfoMessage(res.message)
-              setMode('login')
+              const res = await authApi.forgotPassword(forgotEmail);
+              setInfoMessage(res.message);
+              setMode("login");
             } catch (err) {
-              setAuthError(err instanceof ApiError ? err.message : 'Request failed')
+              setAuthError(
+                err instanceof ApiError ? err.message : "Request failed",
+              );
             } finally {
-              setLoading(false)
+              setLoading(false);
             }
           }}
           className="space-y-4"
@@ -151,34 +193,39 @@ const CandidateLogin = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-[#0f3d38] text-white rounded-xl font-bold text-sm"
+            className="portal-btn-primary !h-11"
           >
             Send reset link
           </button>
           <button
             type="button"
-            onClick={() => setMode('login')}
-            className="w-full text-sm font-bold text-slate-500"
+            onClick={() => setMode("login")}
+            className={backButtonClass("muted", "w-full")}
           >
             Back to sign in
           </button>
         </form>
       )}
 
-      {mode === 'reset' && (
+      {mode === "reset" && (
         <form
           onSubmit={async (e) => {
-            e.preventDefault()
-            setLoading(true)
-            setAuthError(null)
+            e.preventDefault();
+            setLoading(true);
+            setAuthError(null);
             try {
-              const res = await authApi.resetPassword(resetToken, resetPassword)
-              setInfoMessage(res.message)
-              setMode('login')
+              const res = await authApi.resetPassword(
+                resetToken,
+                resetPassword,
+              );
+              setInfoMessage(res.message);
+              setMode("login");
             } catch (err) {
-              setAuthError(err instanceof ApiError ? err.message : 'Reset failed')
+              setAuthError(
+                err instanceof ApiError ? err.message : "Reset failed",
+              );
             } finally {
-              setLoading(false)
+              setLoading(false);
             }
           }}
           className="space-y-4"
@@ -195,33 +242,44 @@ const CandidateLogin = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3.5 bg-[#0f3d38] text-white rounded-xl font-bold text-sm"
+            className="portal-btn-primary !h-11"
           >
             Update password
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("login")}
+            className={backButtonClass("muted", "w-full")}
+          >
+            Back to sign in
           </button>
         </form>
       )}
 
-      {mode === 'login' && (
+      {mode === "login" && (
         <>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase">Email</label>
+              <label className="text-xs font-bold text-muted-foreground uppercase">
+                Email
+              </label>
               <input
                 type="email"
-                className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-[#0f3d38] focus:ring-0 font-medium"
+                className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-0 font-medium"
                 placeholder="you@email.com"
-                {...register('email')}
+                {...register("email")}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase">Password</label>
+              <label className="text-xs font-bold text-muted-foreground uppercase">
+                Password
+              </label>
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-[#0f3d38] focus:ring-0 font-medium pr-12"
+                  type={showPassword ? "text" : "password"}
+                  className="w-full px-4 py-3.5 rounded-xl border border-slate-200 focus:border-primary focus:ring-0 font-medium pr-12"
                   placeholder="••••••••"
-                  {...register('password')}
+                  {...register("password")}
                 />
                 <button
                   type="button"
@@ -229,7 +287,7 @@ const CandidateLogin = () => {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   <span className="material-symbols-outlined text-xl">
-                    {showPassword ? 'visibility_off' : 'visibility'}
+                    {showPassword ? "visibility_off" : "visibility"}
                   </span>
                 </button>
               </div>
@@ -237,14 +295,16 @@ const CandidateLogin = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-[#0f3d38] text-white rounded-xl font-bold text-sm hover:bg-[#0c322e] flex items-center justify-center gap-2"
+              className="portal-btn-primary !h-11 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <span className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
                   Sign in
-                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                  <span className="material-symbols-outlined text-lg">
+                    arrow_forward
+                  </span>
                 </>
               )}
             </button>
@@ -252,11 +312,11 @@ const CandidateLogin = () => {
           <button
             type="button"
             onClick={() => {
-              setMode('forgot')
-              setAuthError(null)
-              setInfoMessage(null)
+              setMode("forgot");
+              setAuthError(null);
+              setInfoMessage(null);
             }}
-            className="w-full text-sm font-bold text-slate-500 hover:text-[#0f3d38]"
+            className="w-full text-sm font-bold text-slate-500 hover:text-primary"
           >
             Forgot password?
           </button>
@@ -265,15 +325,15 @@ const CandidateLogin = () => {
               filterRole="CANDIDATE"
               onSuccess={() => void redirectAfterAuth()}
               onError={(msg) => {
-                setAuthError(msg || null)
-                setInfoMessage(null)
+                setAuthError(msg || null);
+                setInfoMessage(null);
               }}
             />
           )}
         </>
       )}
     </CandidateAuthShell>
-  )
-}
+  );
+};
 
-export default CandidateLogin
+export default CandidateLogin;

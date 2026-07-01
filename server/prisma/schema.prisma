@@ -70,6 +70,41 @@ model VendorRequirement {
   @@unique([vendorId, requirementId])
 }
 
+model BusinessRequirement {
+  id                     String   @id @default(cuid())
+  title                  String
+  client                 String?
+  department             String
+  accountManager         String
+  hiringManager          String
+  businessStage          String   @default("INITIAL_DISCUSSION")
+  stagePercentage        Int      @default(10)
+  status                 String   @default("ACTIVE")
+  publishedRequirementId String?
+  stageHistory           String   @default("[]")
+  openings               Int
+  priority               String?
+  location               String?
+  locationCity           String?
+  isRemote               Boolean  @default(false)
+  workMode               String?
+  employmentType         String?
+  seniorityLevel         String?
+  experienceMinYears     Int?
+  experienceMaxYears     Int?
+  salaryBand             String?
+  targetStartDate        DateTime?
+  hiringDeadline         DateTime?
+  description            String?
+  jobDescription         String?
+  primarySkills          String   @default("[]")
+  secondarySkills        String   @default("[]")
+  createdBy              String?
+  createdByRole          String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
 model Requirement {
   id              String   @id @default(cuid())
   jobCode         String?  @unique
@@ -77,6 +112,7 @@ model Requirement {
   title           String
   department      String
   hiringManager   String
+  accountManager  String?
   status          String
   hiringStage     String   @default("SOURCING")
   liveAt          DateTime?
@@ -158,6 +194,7 @@ model Candidate {
   joiningDate            DateTime?
   joiningMonth           String?
   joiningQuarter         String?
+  submittedAt            DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
@@ -234,6 +271,7 @@ model Offer {
   letterPdfKey      String?
   approval          String    @default("{}")
   approvalHistory   String    @default("[]")
+  approvalChainJson String    @default("[]")
   approvalStep      String?
   rejectionReason   String?
   validUntil        DateTime?
@@ -288,5 +326,12 @@ model ActivityLog {
 model RolePageAccess {
   role      String   @id
   pages     String
+  updatedAt DateTime @updatedAt
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedBy String?
   updatedAt DateTime @updatedAt
 }

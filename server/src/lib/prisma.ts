@@ -26,6 +26,12 @@ export function assertPrismaClientModels() {
       'Prisma client is out of date (missing interviewPanelLevel). Stop the API, run `npm run db:generate --prefix server`, then restart `npm run dev`.'
     )
   }
+  const client2 = prisma as PrismaWithCatalog & { businessRequirement?: { findMany: unknown } }
+  if (!client2.businessRequirement?.findMany) {
+    throw new Error(
+      'Prisma client is out of date (missing businessRequirement). Stop the API, run `npm run db:generate --prefix server`, then restart `npm run dev`.'
+    )
+  }
   const requirementFields = Prisma.dmmf.datamodel.models.find((m) => m.name === 'Requirement')?.fields
   if (!requirementFields?.some((f) => f.name === 'hiringStage')) {
     throw new Error(

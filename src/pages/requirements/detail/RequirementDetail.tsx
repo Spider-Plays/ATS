@@ -39,13 +39,16 @@ import {
     canUseHiringManagerEditPage,
     requiresHrHeadDelegationForApproval,
     isAdminRole,
+    isAccountManagerRole,
 } from '@/permissions'
 import { canEditInterviewPlan as canEditInterviewPlanByRole } from '@/permissions'
 import { hasOrgWideAccess } from '@/permissions'
 import { RequirementApprovalModal } from '@/components/requirements/RequirementApprovalModal'
 import { RequirementTimeline } from '@/components/requirements/RequirementTimeline'
+import { RequirementActivity } from '@/components/requirements/RequirementActivity'
 import { RequirementHiringPanel } from '@/components/requirements/RequirementHiringPanel'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { BackButton } from '@/components/ui/BackButton'
 import './detail.css'
 
 const TABS = [
@@ -53,6 +56,7 @@ const TABS = [
     { id: 'interview-plan', label: 'Interview Stages' },
     { id: 'recruiters', label: 'Recruiter Assignment' },
     { id: 'timeline', label: 'Timeline' },
+    { id: 'activity', label: 'Activity log' },
     { id: 'candidates', label: 'Candidates' },
 ]
 
@@ -99,6 +103,12 @@ const RequirementDetail = () => {
         enabled: !!id
     })
 
+    const { data: activityLogs = [], isLoading: activityLoading } = useQuery({
+        queryKey: ['requirementActivity', id],
+        queryFn: () => api.requirements.getActivityLogs(id!),
+        enabled: !!id,
+    })
+
     // Always fetch users to get HM details
     const { data: users = [] } = useQuery({
         queryKey: ['users'],
@@ -108,13 +118,13 @@ const RequirementDetail = () => {
     const { data: candidates = [] } = useQuery({
         queryKey: ['candidates', 'requirement', id],
         queryFn: () => api.candidates.getByRequirementId(id || ''),
-        enabled: !!id
+        enabled: !!id && !isAccountManagerRole(user?.role),
     })
 
     const { data: matchingData, isLoading: matchingLoading, refetch: refetchMatches } = useQuery({
         queryKey: ['requirement-matches', id],
         queryFn: () => api.requirements.getMatchingProfiles(id!),
-        enabled: !!id,
+        enabled: !!id && !isAccountManagerRole(user?.role),
     })
 
     const matchingProfiles = matchingData?.matches ?? []
@@ -128,10 +138,14 @@ const RequirementDetail = () => {
             u.name === requirement?.hiringManager
     )
     const isHr = ['SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'HR_HEAD', 'TEAM_LEAD'].includes(user?.role || '')
-    const canApprove = canApproveRequirement(user?.role)
+    const isAccountManagerViewer = isAccountManagerRole(user?.role)
+    const canApprove = !isAccountManagerViewer && canApproveRequirement(user?.role)
     const adminMustDelegate = requiresHrHeadDelegationForApproval(user?.role)
     const isHiringManager = user?.role === 'HIRING_MANAGER'
     const isAdmin = isAdminRole(user?.role)
+    const visibleTabs = isAccountManagerViewer
+        ? TABS.filter((t) => t.id === 'details' || t.id === 'timeline' || t.id === 'activity')
+        : TABS
     const canEditOrgWide = hasOrgWideAccess(user?.role)
     const canEditInterviewPlan = canEditInterviewPlanByRole(user?.role)
     const { data: departmentCatalog = [] } = useQuery({
@@ -169,6 +183,7 @@ const RequirementDetail = () => {
             api.requirements.approve(id!, options),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['requirement', id] })
+            queryClient.invalidateQueries({ queryKey: ['requirementActivity', id] })
             queryClient.invalidateQueries({ queryKey: ['requirements'] })
             queryClient.invalidateQueries({ queryKey: ['pendingRequirements'] })
             setApprovalModal(null)
@@ -184,6 +199,7 @@ const RequirementDetail = () => {
             api.requirements.reject(id!, options),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['requirement', id] })
+            queryClient.invalidateQueries({ queryKey: ['requirementActivity', id] })
             queryClient.invalidateQueries({ queryKey: ['requirements'] })
             queryClient.invalidateQueries({ queryKey: ['pendingRequirements'] })
             setApprovalModal(null)
@@ -200,6 +216,7 @@ const RequirementDetail = () => {
             queryClient.invalidateQueries({ queryKey: ['candidates', 'requirement', id] })
             queryClient.invalidateQueries({ queryKey: ['requirement-matches', id] })
             queryClient.invalidateQueries({ queryKey: ['requirement', id] })
+            queryClient.invalidateQueries({ queryKey: ['requirementActivity', id] })
             addToast('Candidate linked to this requirement', 'success')
         },
         onError: () => addToast('Failed to link candidate', 'error'),
@@ -209,6 +226,7 @@ const RequirementDetail = () => {
         mutationFn: (recruiterId: string) => api.requirements.assignRecruiter(id!, recruiterId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['requirement', id] })
+            queryClient.invalidateQueries({ queryKey: ['requirementActivity', id] })
             queryClient.invalidateQueries({ queryKey: ['requirements'] })
             setSelectedRecruiter('')
             addToast('Recruiter assigned', 'success')
@@ -222,6 +240,7 @@ const RequirementDetail = () => {
         mutationFn: (recruiterId: string) => api.requirements.unassignRecruiter(id!, recruiterId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['requirement', id] })
+            queryClient.invalidateQueries({ queryKey: ['requirementActivity', id] })
             queryClient.invalidateQueries({ queryKey: ['requirements'] })
             setRemoveRecruiterTarget(null)
             addToast('Recruiter removed', 'success')
@@ -245,6 +264,7 @@ const RequirementDetail = () => {
         mutationFn: (department: string) => api.requirements.update(id!, { department }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['requirement', id] })
+            queryClient.invalidateQueries({ queryKey: ['requirementActivity', id] })
             addToast('Department updated', 'success')
         },
         onError: (err: unknown) => {
@@ -285,11 +305,20 @@ const RequirementDetail = () => {
     const isCancelled = requirement.status === 'CANCELLED'
     const isRejected = requirement.status === 'REJECTED'
     const showAdminEditor =
-      canUseAdminRequirementEditor(user?.role) && canEditRequirement(user?.role, requirement, user)
-    const showHmEditButton = canUseHiringManagerEditPage(user?.role, requirement, user)
+      !isAccountManagerViewer &&
+      canUseAdminRequirementEditor(user?.role) &&
+      canEditRequirement(user?.role, requirement, user)
+    const showHmEditButton =
+      !isAccountManagerViewer && canUseHiringManagerEditPage(user?.role, requirement, user)
 
     return (
         <div className="p-8 max-w-7xl mx-auto w-full animate-in fade-in duration-500">
+            <BackButton
+                fallback="/requirements"
+                label="Back to requirements"
+                className="mb-6"
+                variant="muted"
+            />
             {/* 2.0 Header */}
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
                 <div className="space-y-2">
@@ -419,12 +448,19 @@ const RequirementDetail = () => {
                 </div>
             </div>
 
+            {isAccountManagerViewer && (
+                <div className="mb-6 flex items-center gap-2 px-4 py-3 rounded-xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 text-primary dark:text-white text-sm font-medium">
+                    <Briefcase size={18} className="shrink-0" />
+                    View only — you are the account manager for this role.
+                </div>
+            )}
+
             <AnimatedTabNav
                 layoutId="requirement-detail-tabs"
                 variant="pill"
                 className="mb-8 overflow-x-auto custom-scrollbar"
                 aria-label="Requirement sections"
-                tabs={TABS.map((tab) => ({ id: tab.id, label: tab.label }))}
+                tabs={visibleTabs.map((tab) => ({ id: tab.id, label: tab.label }))}
                 activeId={activeTab}
                 onChange={setActiveTab}
             />
@@ -808,6 +844,15 @@ const RequirementDetail = () => {
                                     Approvals, requirement edits, recruiter assignments, and portal visibility.
                                 </p>
                                 <RequirementTimeline requirement={requirement} users={users} />
+                            </div>
+                        )}
+
+                        {activeTab === 'activity' && (
+                            <div className="app-card border-slate-200 p-8 shadow-sm max-w-4xl">
+                                <RequirementActivity
+                                    activityLogs={activityLogs}
+                                    activityLoading={activityLoading}
+                                />
                             </div>
                         )}
 
